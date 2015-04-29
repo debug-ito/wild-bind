@@ -5,22 +5,26 @@
 --
 {-# LANGUAGE MultiParamTypeClasses #-}
 module WildBind (
+  -- * Common types
   ActionDescription,
+  -- * Front-end
   FrontState,
   FrontInput,
   FrontInputDevice(..),
   FrontEvent(..),
   FrontEventSource(..),
-  Action(..),
   FrontDescriber(..),
+  -- * Back-end
+  Action(..),
   Engine(..),
+  -- * Entry point
   wildBind
 ) where
 
 import Data.Maybe (isJust)
 import Data.Text (Text)
 
--- | The state of front-end side. It can change with no regard with WildBind.
+-- | The state of the front-end. It can change with no regard with WildBind.
 class FrontState s
 
 -- | The type of input symbols, like key buttons.
