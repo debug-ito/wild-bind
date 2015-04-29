@@ -8,25 +8,43 @@ module WildBind (
   
 ) where
 
+import Data.Maybe (isJust)
 import Data.Text (Text)
-import Data.Foldable (Foldable, forM_)
 
-class Input i
+class FrontState s
+class FrontInput i
 
-class Input i => InputGenerator g i where
-  inputTo :: g -> (i -> IO ()) -> IO ()
+type ActionDescription = Text
 
-class Input i => WindBind w i where
-  bind :: w -> i -> Maybe (IO ())
+data FrontEvent s i = FEInput s i
+                    | FEChange s
 
-instance (Foldable f, Input i) => InputGenerator (f i) i where
-  inputTo = forM_
+class (FrontState s, FrontInput i) => Front f s i where
+  defaultActionDescription :: f -> i -> ActionDescription
+  setGrab :: f -> (i -> Bool) -> IO ()
+  nextEvent :: f -> IO (FrontEvent s i)  -- should it be a streaming I/F?
 
+data Action a = Action {
+  actDescription :: ActionDescription,
+  actDo :: IO a
+}
 
------
+newtype Engine s i = Engine {
+  bindingFor :: s -> i -> Maybe (Action (Engine s i))
+}
 
-data SampleInput = SIA | SIB | SIC deriving (Eq,Ord,Show)
-
-instance Input SampleInput
-
-
+wildBind :: (Front f s i) => f -> Engine s i -> IO ()
+wildBind front engine = do
+  event <- nextEvent front
+  case event of
+    FEChange state -> setGrab' state
+    FEInput state input -> do
+      setGrab' state
+      case bindingFor engine state input of
+        Nothing -> loop
+        Just action -> wildBind front =<< actDo action
+  where
+    loop = wildBind front engine
+    setGrab' :: s -> IO ()
+    setGrab' state = setGrab front (isJust . bindingFor engine state)
+      
