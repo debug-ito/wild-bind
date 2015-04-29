@@ -16,10 +16,10 @@ library
   ghc-options:          -Wall
   exposed-modules:      WildBind.X11
   -- other-modules:
-  build-depends:        base >=4.6 && <4.7,
-                        wild-bind ==0.0.*,
-                        text ==1.2.*,
-                        X11 ==1.6.*
+  build-depends:        base >=4.6.0 && <4.7,
+                        wild-bind >=0.0.0 && <0.1,
+                        text >=1.2.0 && <1.3,
+                        X11 >=1.6.1 && <1.7
 
 -- executable wild-bind-x11
 --   default-language:     Haskell2010
