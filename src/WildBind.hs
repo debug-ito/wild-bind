@@ -3,7 +3,7 @@
 -- Description:
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 module WildBind (
   
 ) where
@@ -19,7 +19,7 @@ type ActionDescription = Text
 data FrontEvent s i = FEInput s i
                     | FEChange s
 
-class (FrontState s, FrontInput i) => Front f s i where
+class (FrontState s, FrontInput i) => Front f s i | f -> s, f -> i where
   defaultActionDescription :: f -> i -> ActionDescription
   setGrab :: f -> (i -> Bool) -> IO ()
   nextEvent :: f -> IO (FrontEvent s i)  -- should it be a streaming I/F?
@@ -45,6 +45,4 @@ wildBind front engine = do
         Just action -> wildBind front =<< actDo action
   where
     loop = wildBind front engine
-    setGrab' :: s -> IO ()
     setGrab' state = setGrab front (isJust . bindingFor engine state)
-      
