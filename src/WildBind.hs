@@ -16,7 +16,7 @@ module WildBind (
   FrontDescriber(..),
   -- * Back-end
   Action(..),
-  Engine(..),
+  Binding(..),
   -- * Entry point
   wildBind
 ) where
@@ -56,22 +56,25 @@ data Action a = Action {
 class (FrontInput i) => FrontDescriber f i where
   describeActions :: f -> (i -> ActionDescription) -> IO ()
 
--- | WildBind back-end engine.
-newtype Engine s i = Engine {
-  bindingFor :: s -> i -> Maybe (Action (Engine s i)) -- ^ If 'Nothing', the input is not bound.
+-- | WildBind back-end binding between inputs and actions.
+newtype Binding s i = Binding {
+  bindingFor :: s -> i -> Maybe (Action (Binding s i))
+                -- ^ If 'Nothing', the input is not bound. If 'Just',
+                -- the result of the 'Action' is the new state of the
+                -- 'Binding'.
 }
 
--- | Combines the front-end and the 'Engine' and returns the executable.
-wildBind :: (FrontInputDevice f i, FrontEventSource f s i) => f -> Engine s i -> IO ()
-wildBind front engine = do
+-- | Combines the front-end and the 'Binding' and returns the executable.
+wildBind :: (FrontInputDevice f i, FrontEventSource f s i) => f -> Binding s i -> IO ()
+wildBind front binding = do
   event <- nextEvent front
   case event of
     FEChange state -> setGrab' state
     FEInput state input -> do
       setGrab' state
-      case bindingFor engine state input of
+      case bindingFor binding state input of
         Nothing -> loop
         Just action -> wildBind front =<< actDo action
   where
-    loop = wildBind front engine
-    setGrab' state = setGrab front (isJust . bindingFor engine state)
+    loop = wildBind front binding
+    setGrab' state = setGrab front (isJust . bindingFor binding state)
