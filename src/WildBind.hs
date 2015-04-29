@@ -31,6 +31,9 @@ data Action a = Action {
   actDo :: IO a
 }
 
+class (FrontInput i) => FrontDescriber f i where
+  describeActions :: f -> (i -> ActionDescription) -> IO ()
+
 newtype Engine s i = Engine {
   bindingFor :: s -> i -> Maybe (Action (Engine s i))
 }
