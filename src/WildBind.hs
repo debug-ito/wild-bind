@@ -3,7 +3,7 @@
 -- Description:
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module WildBind (
   
 ) where
@@ -16,13 +16,15 @@ class FrontInput i
 
 type ActionDescription = Text
 
+class (FrontInput i) => FrontInputDevice f i where
+  defaultActionDescription :: f -> i -> ActionDescription
+  setGrab :: f -> (i -> Bool) -> IO ()
+
 data FrontEvent s i = FEInput s i
                     | FEChange s
 
-class (FrontState s, FrontInput i) => Front f s i | f -> s, f -> i where
-  defaultActionDescription :: f -> i -> ActionDescription
-  setGrab :: f -> (i -> Bool) -> IO ()
-  nextEvent :: f -> IO (FrontEvent s i)  -- should it be a streaming I/F?
+class (FrontState s, FrontInput i) => FrontEventSource f s i where
+  nextEvent :: f -> IO (FrontEvent s i)  -- should it be a streaming I/F, like conduit?
 
 data Action a = Action {
   actDescription :: ActionDescription,
@@ -33,7 +35,7 @@ newtype Engine s i = Engine {
   bindingFor :: s -> i -> Maybe (Action (Engine s i))
 }
 
-wildBind :: (Front f s i) => f -> Engine s i -> IO ()
+wildBind :: (FrontInputDevice f i, FrontEventSource f s i) => f -> Engine s i -> IO ()
 wildBind front engine = do
   event <- nextEvent front
   case event of
