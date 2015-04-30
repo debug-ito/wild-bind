@@ -5,10 +5,11 @@
 --
 module WildBind.X11.Key (
   KeySymLike(..),
-  xEventFromKeySym, xEventFromKeySymLike
+  xEventFromKeySym, xEventFromKeySymLike,
+  xKeyCode
 ) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>), (<*>))
 
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Data.Map as M
@@ -51,6 +52,19 @@ xEventFromKeySymLike xev = do
   mks <- xEventFromKeySym xev
   return (fromKeySym =<< mks)
 
--- xKeySymToKeyCode :: Xlib.Display -> Xlib.KeySym -> IO (Xlib.KeyCode, Xlib.ButtonMask)
--- xKeySymToKeyCode disp ks = do
---   keycode <- Xlib.keysymToKeyCode disp ks
+-- | Internal abstract of modifiers
+data ModifierKey = ModNumLock deriving (Eq,Ord,Show,Bounded,Enum)
+
+-- | Convertible into a set of Modifiers.
+class ModifierLike k where
+  toModifiers :: k -> [ModifierKey]
+
+instance ModifierLike NumPad.NumPadUnlockedInput where
+  toModifiers _ = []
+
+xKeyCode :: (KeySymLike k, ModifierLike k) => Xlib.Display -> k -> IO (Xlib.KeyCode, Xlib.ButtonMask)
+xKeyCode disp key = (,) <$> Xlib.keysymToKeycode disp (toKeySym key) <*> createMask disp (toModifiers key)
+
+createMask :: Xlib.Display -> [ModifierKey] -> IO Xlib.ButtonMask
+createMask _ [] = return 0
+createMask disp (modkey:_) = undefined
