@@ -19,6 +19,8 @@ import Data.Text (Text)
 import WildBind (FrontState, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput))
 import WildBind.NumPad (NumPadUnlockedInput(..))
 
+import WildBind.X11.Key (KeySymLike(fromKeySym,toKeySym))
+
 -- | Information of the currently active window.
 data ActiveWindow = ActiveWindow {
   awName :: Text, -- ^ name of the window
@@ -41,33 +43,13 @@ x11RootWindow = Xlib.defaultRootWindow . x11Display
 initX11Front :: IO X11Front
 initX11Front = X11Front <$> Xlib.openDisplay ""
 
-keySymToNumPadUnlockedInput :: Xlib.KeySym -> Maybe NumPadUnlockedInput
-keySymToNumPadUnlockedInput k
-  | k == Xlib.xK_KP_Up = Just NumUp
-  | k == Xlib.xK_KP_Down = Just NumDown
-  | k == Xlib.xK_KP_Left = Just NumLeft
-  | k == Xlib.xK_KP_Right = Just NumRight
-  | k == Xlib.xK_KP_Home = Just NumHome
-  | k == Xlib.xK_KP_Page_Up = Just NumPageUp
-  | k == Xlib.xK_KP_Page_Down = Just NumPageDown
-  | k == Xlib.xK_KP_End = Just NumEnd
-  | k == Xlib.xK_KP_Begin = Just NumCenter
-  | k == Xlib.xK_KP_Insert = Just NumInsert
-  | k == Xlib.xK_KP_Delete = Just NumDelete
-  | k == Xlib.xK_KP_Enter = Just NumEnter
-  | k == Xlib.xK_KP_Divide = Just NumDivide
-  | k == Xlib.xK_KP_Multiply = Just NumMulti
-  | k == Xlib.xK_KP_Subtract = Just NumMinus
-  | k == Xlib.xK_KP_Add = Just NumPlus
-  | otherwise = Nothing
-
 convertEvent :: XEventPtr -> IO (Maybe NumPadUnlockedInput)
 convertEvent xev = convert' =<< Xlib.get_EventType xev
   where
     convert' xtype
       | xtype == Xlib.keyRelease = do
         mkeysym <- fst <$> (Xlib.lookupString $ Xlib.asKeyEvent xev)
-        return (keySymToNumPadUnlockedInput =<< mkeysym)
+        return (fromKeySym =<< mkeysym)
       | otherwise = return Nothing
 
 instance FrontInputDevice X11Front NumPadUnlockedInput where
