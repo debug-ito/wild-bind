@@ -5,7 +5,7 @@
 --
 module WildBind.X11.Key (
   KeySymLike(..),
-  xEventFromKeySym
+  xEventFromKeySym, xEventFromKeySymLike
 ) where
 
 import Control.Applicative ((<$>))
@@ -45,3 +45,12 @@ instance KeySymLike NumPad.NumPadUnlockedInput where
 -- | Extract the KeySym associated with the XEvent.
 xEventFromKeySym :: Xlib.XEventPtr -> IO (Maybe Xlib.KeySym)
 xEventFromKeySym xev = fst <$> (Xlib.lookupString $ Xlib.asKeyEvent xev)
+
+xEventFromKeySymLike :: KeySymLike k => Xlib.XEventPtr -> IO (Maybe k)
+xEventFromKeySymLike xev = do
+  mks <- xEventFromKeySym xev
+  return (fromKeySym =<< mks)
+
+-- xKeySymToKeyCode :: Xlib.Display -> Xlib.KeySym -> IO (Xlib.KeyCode, Xlib.ButtonMask)
+-- xKeySymToKeyCode disp ks = do
+--   keycode <- Xlib.keysymToKeyCode disp ks

@@ -19,7 +19,7 @@ import Data.Text (Text)
 import WildBind (FrontState, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput))
 import WildBind.NumPad (NumPadUnlockedInput(..))
 
-import WildBind.X11.Key (KeySymLike(fromKeySym,toKeySym), xEventFromKeySym)
+import WildBind.X11.Key (KeySymLike(fromKeySym,toKeySym), xEventFromKeySymLike)
 
 -- | Information of the currently active window.
 data ActiveWindow = ActiveWindow {
@@ -47,9 +47,7 @@ convertEvent :: XEventPtr -> IO (Maybe NumPadUnlockedInput)
 convertEvent xev = convert' =<< Xlib.get_EventType xev
   where
     convert' xtype
-      | xtype == Xlib.keyRelease = do
-        mkeysym <- xEventFromKeySym xev
-        return (fromKeySym =<< mkeysym)
+      | xtype == Xlib.keyRelease = xEventFromKeySymLike xev
       | otherwise = return Nothing
 
 instance FrontInputDevice X11Front NumPadUnlockedInput where
