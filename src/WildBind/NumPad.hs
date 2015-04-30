@@ -26,6 +26,6 @@ data NumPadUnlockedInput
   | NumEnter
   | NumInsert
   | NumDelete
-  deriving (Eq,Ord,Show)
+  deriving (Eq,Ord,Show,Bounded,Enum)
 
 instance FrontInput NumPadUnlockedInput
