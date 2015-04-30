@@ -3,12 +3,11 @@
 -- Description: X11-specific implementation for WildBind
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
--- Maybe this should be released as a separate package.
 {-# LANGUAGE MultiParamTypeClasses, OverloadedStrings #-}
 module WildBind.X11 (
-  X11Handle,
+  X11Front,
   ActiveWindow,
-  initX11Handle
+  initX11Front
 ) where
 
 import Control.Applicative ((<$>))
@@ -20,24 +19,27 @@ import Data.Text (Text)
 import WildBind (FrontState, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput))
 import WildBind.NumPad (NumPadUnlockedInput(..))
 
+-- | Information of the currently active window.
 data ActiveWindow = ActiveWindow {
-  awName :: Text,
-  awDesc :: Text
+  awName :: Text, -- ^ name of the window
+  awDesc :: Text  -- ^ description of the window
 } deriving (Eq,Ord,Show)
 instance FrontState ActiveWindow
 
 emptyActiveWindow :: ActiveWindow
 emptyActiveWindow = ActiveWindow "" ""
 
-data X11Handle = X11Handle {
+-- | The X11 front-end
+data X11Front = X11Front {
   x11Display :: Display
 }
 
-x11RootWindow :: X11Handle -> Window
+x11RootWindow :: X11Front -> Window
 x11RootWindow = Xlib.defaultRootWindow . x11Display
 
-initX11Handle :: IO X11Handle
-initX11Handle = X11Handle <$> Xlib.openDisplay ""
+-- | Initialize and obtain 'X11Front' object.
+initX11Front :: IO X11Front
+initX11Front = X11Front <$> Xlib.openDisplay ""
 
 keySymToNumPadUnlockedInput :: Xlib.KeySym -> Maybe NumPadUnlockedInput
 keySymToNumPadUnlockedInput k
@@ -68,11 +70,11 @@ convertEvent xev = convert' =<< Xlib.get_EventType xev
         return (keySymToNumPadUnlockedInput =<< mkeysym)
       | otherwise = return Nothing
 
-instance FrontInputDevice X11Handle NumPadUnlockedInput where
+instance FrontInputDevice X11Front NumPadUnlockedInput where
   defaultActionDescription = undefined
   setGrab = undefined
 
-instance FrontEventSource X11Handle ActiveWindow NumPadUnlockedInput where
+instance FrontEventSource X11Front ActiveWindow NumPadUnlockedInput where
   nextEvent handle = Xlib.allocaXEvent $ \xev -> do
     Xlib.nextEvent (x11Display handle) xev
     maybe (nextEvent handle) (return . FEInput emptyActiveWindow) =<< convertEvent xev
