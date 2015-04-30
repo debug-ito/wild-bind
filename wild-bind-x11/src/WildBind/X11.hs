@@ -19,7 +19,7 @@ import Data.Text (Text)
 import WildBind (FrontState, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput))
 import WildBind.NumPad (NumPadUnlockedInput(..))
 
-import WildBind.X11.Key (KeySymLike(fromKeySym,toKeySym))
+import WildBind.X11.Key (KeySymLike(fromKeySym,toKeySym), xEventFromKeySym)
 
 -- | Information of the currently active window.
 data ActiveWindow = ActiveWindow {
@@ -48,7 +48,7 @@ convertEvent xev = convert' =<< Xlib.get_EventType xev
   where
     convert' xtype
       | xtype == Xlib.keyRelease = do
-        mkeysym <- fst <$> (Xlib.lookupString $ Xlib.asKeyEvent xev)
+        mkeysym <- xEventFromKeySym xev
         return (fromKeySym =<< mkeysym)
       | otherwise = return Nothing
 

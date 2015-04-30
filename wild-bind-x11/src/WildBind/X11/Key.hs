@@ -3,7 +3,12 @@
 -- Description: types and functions related to key symbols and their conversion
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
-module WildBind.X11.Key (KeySymLike(..)) where
+module WildBind.X11.Key (
+  KeySymLike(..),
+  xEventFromKeySym
+) where
+
+import Control.Applicative ((<$>))
 
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Data.Map as M
@@ -37,3 +42,6 @@ instance KeySymLike NumPad.NumPadUnlockedInput where
     NumPad.NumMinus -> Xlib.xK_KP_Subtract
     NumPad.NumPlus -> Xlib.xK_KP_Add
 
+-- | Extract the KeySym associated with the XEvent.
+xEventFromKeySym :: Xlib.XEventPtr -> IO (Maybe Xlib.KeySym)
+xEventFromKeySym xev = fst <$> (Xlib.lookupString $ Xlib.asKeyEvent xev)
