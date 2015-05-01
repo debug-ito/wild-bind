@@ -16,19 +16,20 @@ module WildBind (
   FrontDescriber(..),
   -- * Back-end
   Action(..),
-  Binding(..),
+  Binding,
   -- * Entry point
   wildBind
 ) where
 
 import Data.Maybe (isJust)
 import Data.Text (Text)
+import qualified Data.Map as M
 
 -- | The state of the front-end. It can change with no regard with WildBind.
 class FrontState s
 
 -- | The type of input symbols, like key buttons.
-class FrontInput i
+class Ord i => FrontInput i
 
 -- | Human-readable description of an action.
 type ActionDescription = Text
@@ -36,7 +37,8 @@ type ActionDescription = Text
 -- | Something that knows about and controls the input device.
 class (FrontInput i) => FrontInputDevice f i where
   defaultActionDescription :: f -> i -> ActionDescription
-  setGrab :: f -> (i -> Bool) -> IO ()
+  setGrab :: f -> i -> IO () -- ^ Grab (or capture) the specified input symbol. 
+  unsetGrab :: f -> i -> IO () -- ^ Release the grab for the input symbol.
 
 -- | Event from the front-end.
 data FrontEvent s i = FEInput s i
@@ -58,23 +60,34 @@ class (FrontInput i) => FrontDescriber f i where
 
 -- | WildBind back-end binding between inputs and actions.
 newtype Binding s i = Binding {
-  bindingFor :: s -> i -> Maybe (Action (Binding s i))
-                -- ^ If 'Nothing', the input is not bound. If 'Just',
-                -- the result of the 'Action' is the new state of the
-                -- 'Binding'.
+  bindingFor :: s -> M.Map i (Action (Binding s i))
+                -- ^ The result of the 'Action' is the new state of
+                -- the 'Binding'.
 }
+
+type GrabSet i = [i]
+
+getGrabSet :: (FrontState s) => Binding s i -> s -> GrabSet i
+getGrabSet binding state = M.keys $ bindingFor binding state
+
+updateGrab :: (FrontInputDevice f i) => f -> GrabSet i -> GrabSet i -> IO ()
+updateGrab front before after = undefined
 
 -- | Combines the front-end and the 'Binding' and returns the executable.
 wildBind :: (FrontInputDevice f i, FrontEventSource f s i) => f -> Binding s i -> IO ()
-wildBind front binding = do
+wildBind front binding = wildBindWithLastState front binding Nothing
+
+-- | TODO: we should rewrite this function with StateT IO... This is safer.
+wildBindWithLastState :: (FrontInputDevice f i, FrontEventSource f s i) => f -> Binding s i -> Maybe s -> IO ()
+wildBindWithLastState front binding mlast_state = do
   event <- nextEvent front
   case event of
-    FEChange state -> setGrab' state
+    FEChange state ->
+      updateGrab front (maybe [] (getGrabSet binding) mlast_state) (getGrabSet binding state)
     FEInput state input -> do
-      setGrab' state
-      case bindingFor binding state input of
-        Nothing -> loop
-        Just action -> wildBind front =<< actDo action
-  where
-    loop = wildBind front binding
-    setGrab' state = setGrab front (isJust . bindingFor binding state)
+      updateGrab front (maybe [] (getGrabSet binding) mlast_state) (getGrabSet binding state)
+      case M.lookup input $ bindingFor binding state of
+        Nothing -> wildBind front binding
+        Just action -> do
+          next_binding <- actDo action
+          updateGrab front (getGrabSet binding state) (getGrabSet next_binding state)
