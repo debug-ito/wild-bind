@@ -21,7 +21,7 @@ module WildBind (
   wildBind
 ) where
 
-import Data.Maybe (isJust)
+import Data.List ((\\))
 import Data.Text (Text)
 import qualified Data.Map as M
 
@@ -71,13 +71,15 @@ getGrabSet :: (FrontState s) => Binding s i -> s -> GrabSet i
 getGrabSet binding state = M.keys $ bindingFor binding state
 
 updateGrab :: (FrontInputDevice f i) => f -> GrabSet i -> GrabSet i -> IO ()
-updateGrab front before after = undefined
+updateGrab front before after = do
+  mapM_ (unsetGrab front) (before \\ after)
+  mapM_ (setGrab front) (after \\ before)
 
 -- | Combines the front-end and the 'Binding' and returns the executable.
 wildBind :: (FrontInputDevice f i, FrontEventSource f s i) => f -> Binding s i -> IO ()
 wildBind front binding = wildBindWithLastState front binding Nothing
 
--- | TODO: we should rewrite this function with StateT IO... This is safer.
+-- | TODO: we should rewrite this function with StateT IO... This is safer. The state is Maybe (Binding s i, s)
 wildBindWithLastState :: (FrontInputDevice f i, FrontEventSource f s i) => f -> Binding s i -> Maybe s -> IO ()
 wildBindWithLastState front binding mlast_state = do
   event <- nextEvent front
