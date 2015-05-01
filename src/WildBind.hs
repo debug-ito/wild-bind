@@ -21,6 +21,8 @@ module WildBind (
   wildBind
 ) where
 
+import Data.Monoid (Monoid(..))
+
 import Data.List ((\\))
 import Data.Text (Text)
 import qualified Data.Map as M
@@ -64,6 +66,10 @@ newtype Binding s i = Binding {
                 -- ^ The result of the 'Action' is the new state of
                 -- the 'Binding'.
 }
+
+instance Monoid (Binding s i) where
+  mempty = undefined
+  mappend = undefined
 
 type GrabSet i = [i]
 
