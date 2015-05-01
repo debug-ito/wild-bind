@@ -56,7 +56,7 @@ data Action a = Action {
 
 -- | Something that describes current bindings for the user.
 class (FrontInput i) => FrontDescriber f i where
-  describeActions :: f -> (i -> ActionDescription) -> IO ()
+  describeAction :: f -> i -> ActionDescription -> IO ()
 
 -- | WildBind back-end binding between inputs and actions.
 newtype Binding s i = Binding {
