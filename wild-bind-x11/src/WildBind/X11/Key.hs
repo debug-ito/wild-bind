@@ -3,10 +3,11 @@
 -- Description: types and functions related to key symbols and their conversion
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
+{-# LANGUAGE TypeSynonymInstances #-}
 module WildBind.X11.Key (
   -- * Conversion between key types
   KeySymLike(..),
-  xEventFromKeySym, xEventFromKeySymLike,
+  xEventToKeySymLike,
   -- * Key grabs
   xGrabKey, xUngrabKey
 ) where
@@ -27,6 +28,10 @@ import qualified WildBind.NumPad as NumPad
 class KeySymLike k where
   fromKeySym :: Xlib.KeySym -> Maybe k
   toKeySym :: k -> Xlib.KeySym
+
+instance KeySymLike Xlib.KeySym where
+  fromKeySym = Just
+  toKeySym = id
 
 instance KeySymLike NumPad.NumPadUnlockedInput where
   fromKeySym ks = M.lookup ks $ M.fromList $ map (\n -> (toKeySym n, n)) $ enumFromTo minBound maxBound 
@@ -49,13 +54,13 @@ instance KeySymLike NumPad.NumPadUnlockedInput where
     NumPad.NumPlus -> Xlib.xK_KP_Add
 
 -- | Extract the KeySym associated with the XEvent.
-xEventFromKeySym :: Xlib.XEventPtr -> IO (Maybe Xlib.KeySym)
-xEventFromKeySym xev = fst <$> (Xlib.lookupString $ Xlib.asKeyEvent xev)
+xEventToKeySym :: Xlib.XEventPtr -> IO (Maybe Xlib.KeySym)
+xEventToKeySym xev = fst <$> (Xlib.lookupString $ Xlib.asKeyEvent xev)
 
--- | Extract the KeySymLike associated with the XEvent.
-xEventFromKeySymLike :: KeySymLike k => Xlib.XEventPtr -> IO (Maybe k)
-xEventFromKeySymLike xev = do
-  mks <- xEventFromKeySym xev
+-- | Extract the 'KeySymLike' associated with the XEvent.
+xEventToKeySymLike :: KeySymLike k => Xlib.XEventPtr -> IO (Maybe k)
+xEventToKeySymLike xev = do
+  mks <- xEventToKeySym xev
   return (fromKeySym =<< mks)
 
 -- | Internal abstract of key modifiers
