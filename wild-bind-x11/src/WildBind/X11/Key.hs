@@ -58,7 +58,7 @@ xEventFromKeySymLike xev = do
   mks <- xEventFromKeySym xev
   return (fromKeySym =<< mks)
 
--- | Internal abstract of modifiers
+-- | Internal abstract of key modifiers
 data ModifierKey = ModNumLock deriving (Eq,Ord,Show,Bounded,Enum)
 
 -- | Convertible into a set of Modifiers.
@@ -108,11 +108,14 @@ getXModifier disp key = do
 
 -----
 
+-- | Grab the specified key on the specified window. The key is
+-- captured from now on, so the window won't get that.
 xGrabKey :: (KeySymLike k, ModifierLike k) => Xlib.Display -> Xlib.Window -> k -> IO ()
 xGrabKey disp win key = do
   (code, mask) <- xKeyCode disp key
   Xlib.grabKey disp code mask win False Xlib.grabModeAsync Xlib.grabModeAsync
 
+-- | Release the grab on the specified key.
 xUngrabKey :: (KeySymLike k, ModifierLike k) => Xlib.Display -> Xlib.Window -> k -> IO ()
 xUngrabKey disp win key = do
   (code, mask) <- xKeyCode disp key
