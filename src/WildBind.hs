@@ -22,10 +22,12 @@ module WildBind (
 ) where
 
 import Data.Monoid (Monoid(..))
-
 import Data.List ((\\))
 import Data.Text (Text)
 import qualified Data.Map as M
+import qualified Control.Monad.Trans.State as State
+import Control.Monad.IO.Class (liftIO)
+import Control.Applicative ((<$>))
 
 -- | The state of the front-end. It can change with no regard with WildBind.
 class FrontState s
@@ -83,19 +85,45 @@ updateGrab front before after = do
 
 -- | Combines the front-end and the 'Binding' and returns the executable.
 wildBind :: (FrontInputDevice f i, FrontEventSource f s i) => f -> Binding s i -> IO ()
-wildBind front binding = wildBindWithLastState front binding Nothing
+wildBind front binding = State.evalStateT (wildBindWithState front) (binding, Nothing)
 
--- | TODO: we should rewrite this function with StateT IO... This is safer. The state is Maybe (Binding s i, s)
-wildBindWithLastState :: (FrontInputDevice f i, FrontEventSource f s i) => f -> Binding s i -> Maybe s -> IO ()
-wildBindWithLastState front binding mlast_state = do
-  event <- nextEvent front
+---
+
+type WBState s i = State.StateT (Binding s i, Maybe s) IO
+
+updateWBState :: (FrontInputDevice f i, FrontState s) => f -> Binding s i -> s -> WBState s i ()
+updateWBState front after_binding after_state = do
+  (before_binding, before_mstate) <- State.get
+  let before_grabset = maybe [] (getGrabSet before_binding) before_mstate
+  State.put $ (after_binding, Just after_state)
+  liftIO $ updateGrab front before_grabset (getGrabSet after_binding after_state)
+
+updateFrontState :: (FrontInputDevice f i, FrontState s) => f -> s -> WBState s i ()
+updateFrontState front after_state = do
+  cur_binding <- fst <$> State.get
+  updateWBState front cur_binding after_state
+
+updateBinding :: (FrontInputDevice f i, FrontState s) => f -> Binding s i -> WBState s i ()
+updateBinding front after_binding = do
+  (_, mstate) <- State.get
+  case mstate of
+    Nothing -> return ()
+    Just state -> updateWBState front after_binding state
+
+wildBindWithState :: (FrontInputDevice f i, FrontEventSource f s i) => f -> WBState s i ()
+wildBindWithState front = do
+  event <- liftIO $ nextEvent front
   case event of
     FEChange state ->
-      updateGrab front (maybe [] (getGrabSet binding) mlast_state) (getGrabSet binding state)
+      updateFrontState front state
     FEInput state input -> do
-      updateGrab front (maybe [] (getGrabSet binding) mlast_state) (getGrabSet binding state)
-      case M.lookup input $ bindingFor binding state of
-        Nothing -> wildBind front binding
+      updateFrontState front state
+      cur_binding <- fst <$> State.get
+      case M.lookup input $ bindingFor cur_binding state of
+        Nothing -> return ()
         Just action -> do
-          next_binding <- actDo action
-          updateGrab front (getGrabSet binding state) (getGrabSet next_binding state)
+          next_binding <- liftIO $ actDo action
+          updateBinding front next_binding
+  wildBindWithState front
+
+
