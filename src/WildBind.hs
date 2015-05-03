@@ -84,8 +84,9 @@ updateGrab front before after = do
   mapM_ (setGrab front) (after \\ before)
 
 -- | Combines the front-end and the 'Binding' and returns the executable.
-wildBind :: (FrontInputDevice f i, FrontEventSource f s i) => f -> Binding s i -> IO ()
-wildBind front binding = State.evalStateT (wildBindWithState front) (binding, Nothing)
+wildBind :: (FrontInputDevice fi i, FrontEventSource fe s i) => fi -> fe -> Binding s i -> IO ()
+wildBind front_input front_event binding =
+  State.evalStateT (wildBindWithState front_input front_event) (binding, Nothing)
 
 ---
 
@@ -110,20 +111,20 @@ updateBinding front after_binding = do
     Nothing -> return ()
     Just state -> updateWBState front after_binding state
 
-wildBindWithState :: (FrontInputDevice f i, FrontEventSource f s i) => f -> WBState s i ()
-wildBindWithState front = do
-  event <- liftIO $ nextEvent front
+wildBindWithState :: (FrontInputDevice fi i, FrontEventSource fe s i) => fi -> fe -> WBState s i ()
+wildBindWithState front_input front_event = do
+  event <- liftIO $ nextEvent front_event
   case event of
     FEChange state ->
-      updateFrontState front state
+      updateFrontState front_input state
     FEInput state input -> do
-      updateFrontState front state
+      updateFrontState front_input state
       cur_binding <- fst <$> State.get
       case M.lookup input $ bindingFor cur_binding state of
         Nothing -> return ()
         Just action -> do
           next_binding <- liftIO $ actDo action
-          updateBinding front next_binding
-  wildBindWithState front
+          updateBinding front_input next_binding
+  wildBindWithState front_input front_event
 
 
