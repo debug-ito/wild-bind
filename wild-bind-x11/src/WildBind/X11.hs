@@ -19,7 +19,7 @@ import Data.Text (Text)
 import WildBind (FrontState, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput))
 import WildBind.NumPad (NumPadUnlockedInput(..), descriptionForUnlocked)
 
-import WildBind.X11.Key (xEventToKeySymLike, xGrabKey, xUngrabKey)
+import WildBind.X11.Internal.Key (xEventToKeySymLike, xGrabKey, xUngrabKey)
 
 -- | Information of the currently active window.
 data ActiveWindow = ActiveWindow {

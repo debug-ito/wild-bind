@@ -1,4 +1,4 @@
-module WindBind.X11Spec (main, spec) where
+module WildBind.X11Spec (main, spec) where
 
 import Test.Hspec
 

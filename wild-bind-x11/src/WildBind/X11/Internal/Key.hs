@@ -1,10 +1,11 @@
 -- |
--- Module: WildBind.X11.Key
+-- Module: WildBind.X11.Internal.Key
 -- Description: types and functions related to key symbols and their conversion
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
+-- This is an internal module. Package users should not rely on this.
 {-# LANGUAGE TypeSynonymInstances #-}
-module WildBind.X11.Key (
+module WildBind.X11.Internal.Key (
   -- * Conversion between key types
   KeySymLike(..),
   xEventToKeySymLike,
