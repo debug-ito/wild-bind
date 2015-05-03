@@ -17,9 +17,9 @@ import qualified Graphics.X11.Xlib as Xlib
 import Data.Text (Text)
 
 import WildBind (FrontState, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput))
-import WildBind.NumPad (NumPadUnlockedInput(..))
+import WildBind.NumPad (NumPadUnlockedInput(..), descriptionForUnlocked)
 
-import WildBind.X11.Key (KeySymLike(fromKeySym,toKeySym), xEventFromKeySymLike)
+import WildBind.X11.Key (KeySymLike(fromKeySym,toKeySym), xEventFromKeySymLike, xGrabKey, xUngrabKey)
 
 -- | Information of the currently active window.
 data ActiveWindow = ActiveWindow {
@@ -51,8 +51,10 @@ convertEvent xev = convert' =<< Xlib.get_EventType xev
       | otherwise = return Nothing
 
 instance FrontInputDevice X11Front NumPadUnlockedInput where
-  defaultActionDescription = undefined
-  setGrab = undefined
+  setGrab f key = xGrabKey (x11Display f) (x11RootWindow f) key
+  unsetGrab f key = xUngrabKey (x11Display f) (x11RootWindow f) key
+  defaultActionDescription _ = descriptionForUnlocked
+
 
 instance FrontEventSource X11Front ActiveWindow NumPadUnlockedInput where
   nextEvent handle = Xlib.allocaXEvent $ \xev -> do

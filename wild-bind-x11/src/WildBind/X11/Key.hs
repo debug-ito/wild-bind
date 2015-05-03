@@ -4,9 +4,11 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 module WildBind.X11.Key (
+  -- * Conversion between key types
   KeySymLike(..),
   xEventFromKeySym, xEventFromKeySymLike,
-  xKeyCode
+  -- * Key grabs
+  xGrabKey, xUngrabKey
 ) where
 
 import Control.Applicative ((<$>), (<*>))
@@ -66,6 +68,7 @@ class ModifierLike k where
 instance ModifierLike NumPad.NumPadUnlockedInput where
   toModifiers _ = []
 
+-- | Convert a 'KeySymLike' into a KeyCode and ButtonMask for grabbing.
 xKeyCode :: (KeySymLike k, ModifierLike k) => Xlib.Display -> k -> IO (Xlib.KeyCode, Xlib.ButtonMask)
 xKeyCode disp key = (,) <$> Xlib.keysymToKeycode disp (toKeySym key) <*> createMask disp (toModifiers key)
 
@@ -102,3 +105,15 @@ getXModifier :: Xlib.Display -> ModifierKey -> IO Xlib.Modifier
 getXModifier disp key = do
   xmmap <- getXModifierMap disp
   lookupXModifier disp xmmap key
+
+-----
+
+xGrabKey :: (KeySymLike k, ModifierLike k) => Xlib.Display -> Xlib.Window -> k -> IO ()
+xGrabKey disp win key = do
+  (code, mask) <- xKeyCode disp key
+  Xlib.grabKey disp code mask win False Xlib.grabModeAsync Xlib.grabModeAsync
+
+xUngrabKey :: (KeySymLike k, ModifierLike k) => Xlib.Display -> Xlib.Window -> k -> IO ()
+xUngrabKey disp win key = do
+  (code, mask) <- xKeyCode disp key
+  Xlib.ungrabKey disp code mask win
