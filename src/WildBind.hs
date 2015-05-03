@@ -47,6 +47,7 @@ class (FrontInput i) => FrontInputDevice f i where
 -- | Event from the front-end. @s@ is the state of the front-end. @i@ is the input.
 data FrontEvent s i = FEInput s i -- ^ An event that a new input is made.
                     | FEChange s  -- ^ An event that the front-end state is changed.
+                    deriving (Show)
 
 -- | Something that brings stream of events from the front-end.
 class (FrontState s, FrontInput i) => FrontEventSource f s i where
