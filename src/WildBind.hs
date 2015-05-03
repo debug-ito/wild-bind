@@ -44,9 +44,9 @@ class (FrontInput i) => FrontInputDevice f i where
   setGrab :: f -> i -> IO () -- ^ Grab (or capture) the specified input symbol. 
   unsetGrab :: f -> i -> IO () -- ^ Release the grab for the input symbol.
 
--- | Event from the front-end.
-data FrontEvent s i = FEInput s i
-                    | FEChange s
+-- | Event from the front-end. @s@ is the state of the front-end. @i@ is the input.
+data FrontEvent s i = FEInput s i -- ^ An event that a new input is made.
+                    | FEChange s  -- ^ An event that the front-end state is changed.
 
 -- | Something that brings stream of events from the front-end.
 class (FrontState s, FrontInput i) => FrontEventSource f s i where
