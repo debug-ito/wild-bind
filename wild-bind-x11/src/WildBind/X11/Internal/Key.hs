@@ -15,6 +15,7 @@ module WildBind.X11.Internal.Key (
 
 import Control.Applicative ((<$>), (<*>))
 import Data.Bits ((.|.))
+import qualified Data.Bits as Bits
 import Data.Maybe (mapMaybe, listToMaybe)
 
 import qualified Graphics.X11.Xlib as Xlib
@@ -80,8 +81,9 @@ xKeyCode disp key = (,) <$> Xlib.keysymToKeycode disp (toKeySym key) <*> createM
 
 createMask :: Xlib.Display -> [ModifierKey] -> IO Xlib.ButtonMask
 createMask _ [] = return 0
-createMask disp (modkey:rest) = (.|.) <$> getXModifier disp modkey <*> createMask disp rest
-
+createMask disp (modkey:rest) = do
+  modifier_index <- fromIntegral <$> getXModifier disp modkey
+  (Bits.shift 1 modifier_index .|.) <$> createMask disp rest
 
 type XModifierMap = [(Xlib.Modifier, [Xlib.KeyCode])]
 
