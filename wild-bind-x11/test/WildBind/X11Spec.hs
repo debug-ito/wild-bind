@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
 module WildBind.X11Spec (main, spec) where
 
 import System.IO (hPutStrLn,stderr)
@@ -5,9 +6,10 @@ import System.Environment (lookupEnv)
 import Control.Applicative ((<$>))
 import Test.Hspec
 
-import WildBind (setGrab,unsetGrab,nextEvent,FrontEvent(FEChange,FEInput))
+import WildBind (setGrab,unsetGrab,nextEvent,FrontEvent(FEChange,FEInput),FrontInputDevice,FrontEventSource)
 import qualified WildBind.NumPad as NumPad
 import WildBind.X11 (initX11Front,ActiveWindow,X11Front)
+import WildBind.X11.Internal.Key (KeySymLike)
 
 main :: IO ()
 main = hspec spec
@@ -29,15 +31,14 @@ whenNumPad = whenEnv "WILDBIND_TEST_NUMPAD"
 p :: String -> IO ()
 p = hPutStrLn stderr . ("--- " ++)
 
-nextEvent' :: X11Front -> IO (FrontEvent ActiveWindow NumPad.NumPadUnlockedInput)
-nextEvent' = nextEvent
-
-grabExp :: X11Front -> NumPad.NumPadUnlockedInput -> Expectation
+grabExp :: forall f i
+           . (Bounded i, Enum i, Show i, FrontInputDevice f i, FrontEventSource f ActiveWindow i)
+           => f -> i -> Expectation
 grabExp front grab_input = do
-  mapM_ (unsetGrab front) (enumFromTo minBound maxBound :: [NumPad.NumPadUnlockedInput])
+  mapM_ (unsetGrab front) (enumFromTo minBound maxBound :: [i])
   setGrab front grab_input
   p ("Press some numpad keys (grab="++ show grab_input ++")..")
-  ev <- nextEvent' front
+  ev <- nextEvent front :: IO (FrontEvent ActiveWindow i)
   p ("Got event: " ++ show ev)
   case ev of
     FEChange _ -> expectationFailure "FEChange is caught. not expected"
