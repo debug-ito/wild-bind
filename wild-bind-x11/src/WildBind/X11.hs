@@ -7,7 +7,8 @@
 module WildBind.X11 (
   X11Front,
   ActiveWindow,
-  initX11Front
+  initX11Front,
+  releaseX11Front
 ) where
 
 import Control.Applicative ((<$>))
@@ -42,6 +43,10 @@ x11RootWindow = Xlib.defaultRootWindow . x11Display
 -- | Initialize and obtain 'X11Front' object.
 initX11Front :: IO X11Front
 initX11Front = X11Front <$> Xlib.openDisplay ""
+
+-- | Release all resource associated with 'X11Front'.
+releaseX11Front :: X11Front -> IO ()
+releaseX11Front = Xlib.closeDisplay . x11Display
 
 convertEvent :: (KeySymLike k) => XEventPtr -> IO (Maybe k)
 convertEvent xev = convert' =<< Xlib.get_EventType xev

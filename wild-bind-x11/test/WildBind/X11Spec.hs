@@ -3,13 +3,13 @@ module WildBind.X11Spec (main, spec) where
 
 import System.IO (hPutStrLn,stderr)
 import System.Environment (lookupEnv)
-import Control.Exception (finally)
+import Control.Exception (finally,bracket)
 import Control.Applicative ((<$>))
 import Test.Hspec
 
 import WildBind (setGrab,unsetGrab,nextEvent,FrontEvent(FEChange,FEInput),FrontInputDevice,FrontEventSource)
 import qualified WildBind.NumPad as NumPad
-import WildBind.X11 (initX11Front,ActiveWindow)
+import WildBind.X11 (initX11Front,releaseX11Front,ActiveWindow)
 
 main :: IO ()
 main = hspec spec
@@ -49,12 +49,10 @@ grabExp front grab_input = grabExpMain `finally` releaseAll where
 spec :: Spec
 spec = do
   describe "X11Front - NumPadUnlockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ do
-      f <- initX11Front
+    it "should grab/ungrab keys" $ whenNumPad $ bracket initX11Front releaseX11Front $ \f ->
       mapM_ (grabExp f) (enumFromTo minBound maxBound :: [NumPad.NumPadUnlockedInput] )
   describe "X11Front - NumPadLockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ do
-      f <- initX11Front
+    it "should grab/ungrab keys" $ whenNumPad $ bracket initX11Front releaseX11Front $ \f ->
       mapM_ (grabExp f) (enumFromTo minBound maxBound :: [NumPad.NumPadLockedInput] )
 
 
