@@ -3,7 +3,7 @@
 -- Description: X11-specific implementation for WildBind
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
-{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings, FlexibleInstances #-}
 module WildBind.X11 (
   X11Front,
   ActiveWindow,
@@ -16,10 +16,10 @@ import Graphics.X11.Xlib (Display, Window, XEventPtr)
 import qualified Graphics.X11.Xlib as Xlib
 import Data.Text (Text)
 
-import WildBind (FrontState, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput))
-import WildBind.NumPad (NumPadUnlockedInput(..), descriptionForUnlocked)
+import WildBind (FrontState, FrontInput, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput))
+import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUnlocked, descriptionForLocked)
 
-import WildBind.X11.Internal.Key (xEventToKeySymLike, xGrabKey, xUngrabKey)
+import WildBind.X11.Internal.Key (KeySymLike, ModifierLike, xEventToKeySymLike, xGrabKey, xUngrabKey)
 
 -- | Information of the currently active window.
 data ActiveWindow = ActiveWindow {
@@ -43,20 +43,28 @@ x11RootWindow = Xlib.defaultRootWindow . x11Display
 initX11Front :: IO X11Front
 initX11Front = X11Front <$> Xlib.openDisplay ""
 
-convertEvent :: XEventPtr -> IO (Maybe NumPadUnlockedInput)
+convertEvent :: (KeySymLike k) => XEventPtr -> IO (Maybe k)
 convertEvent xev = convert' =<< Xlib.get_EventType xev
   where
     convert' xtype
       | xtype == Xlib.keyRelease = xEventToKeySymLike xev
       | otherwise = return Nothing
 
+grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front -> k -> IO ()
+grabDef func front key = func (x11Display front) (x11RootWindow front) key
+
 instance FrontInputDevice X11Front NumPadUnlockedInput where
-  setGrab f key = xGrabKey (x11Display f) (x11RootWindow f) key
-  unsetGrab f key = xUngrabKey (x11Display f) (x11RootWindow f) key
+  setGrab = grabDef xGrabKey
+  unsetGrab = grabDef xUngrabKey
   defaultActionDescription _ = descriptionForUnlocked
 
+instance FrontInputDevice X11Front NumPadLockedInput where
+  setGrab = grabDef xGrabKey
+  unsetGrab = grabDef xUngrabKey
+  defaultActionDescription _ = descriptionForLocked
 
-instance FrontEventSource X11Front ActiveWindow NumPadUnlockedInput where
+
+instance (FrontInput k, KeySymLike k) => FrontEventSource X11Front ActiveWindow k where
   nextEvent handle = Xlib.allocaXEvent $ \xev -> do
     Xlib.nextEvent (x11Display handle) xev
     maybe (nextEvent handle) (return . FEInput emptyActiveWindow) =<< convertEvent xev

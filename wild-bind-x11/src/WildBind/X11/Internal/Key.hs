@@ -7,9 +7,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module WildBind.X11.Internal.Key (
   -- * Conversion between key types
-  KeySymLike(..),
+  KeySymLike(..), 
   xEventToKeySymLike,
   -- * Key grabs
+  ModifierLike,
   xGrabKey, xUngrabKey
 ) where
 
