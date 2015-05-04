@@ -160,6 +160,10 @@ xGrabKey disp win key = do
   (code, mask) <- xKeyCode disp key
   Xlib.grabKey disp code mask win False Xlib.grabModeAsync Xlib.grabModeAsync
 
+-- grabKey throws an exception if that key for the window is already
+-- grabbed by another X client. For now, we don't handle that
+-- exception.
+
 -- | Release the grab on the specified key.
 xUngrabKey :: (KeySymLike k, ModifierLike k) => Xlib.Display -> Xlib.Window -> k -> IO ()
 xUngrabKey disp win key = do
