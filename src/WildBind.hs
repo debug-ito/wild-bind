@@ -27,7 +27,6 @@ import Data.Text (Text)
 import qualified Data.Map as M
 import qualified Control.Monad.Trans.State as State
 import Control.Monad.IO.Class (liftIO)
-import Control.Applicative ((<$>))
 
 -- | The state of the front-end. It can change with no regard with WildBind.
 class FrontState s
@@ -102,7 +101,7 @@ updateWBState front after_binding after_state = do
 
 updateFrontState :: (FrontInputDevice f i, FrontState s) => f -> s -> WBState s i ()
 updateFrontState front after_state = do
-  cur_binding <- fst <$> State.get
+  (cur_binding, _) <- State.get
   updateWBState front cur_binding after_state
 
 updateBinding :: (FrontInputDevice f i, FrontState s) => f -> Binding s i -> WBState s i ()
@@ -120,7 +119,7 @@ wildBindWithState front_input front_event = do
       updateFrontState front_input state
     FEInput state input -> do
       updateFrontState front_input state
-      cur_binding <- fst <$> State.get
+      (cur_binding, _) <- State.get
       case M.lookup input $ bindingFor cur_binding state of
         Nothing -> return ()
         Just action -> do
