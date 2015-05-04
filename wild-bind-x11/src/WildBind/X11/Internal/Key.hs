@@ -35,8 +35,11 @@ instance KeySymLike Xlib.KeySym where
   fromKeySym = Just
   toKeySym = id
 
+fromKeySymDef :: (Bounded k, Enum k) => (k -> Xlib.KeySym) -> Xlib.KeySym -> Maybe k
+fromKeySymDef to_conv ks = M.lookup ks $ M.fromList $ map (\n -> (to_conv n, n)) $ enumFromTo minBound maxBound 
+
 instance KeySymLike NumPad.NumPadUnlockedInput where
-  fromKeySym ks = M.lookup ks $ M.fromList $ map (\n -> (toKeySym n, n)) $ enumFromTo minBound maxBound 
+  fromKeySym = fromKeySymDef toKeySym
   toKeySym n = case n of
     NumPad.NumUp -> Xlib.xK_KP_Up
     NumPad.NumDown -> Xlib.xK_KP_Down
@@ -54,6 +57,28 @@ instance KeySymLike NumPad.NumPadUnlockedInput where
     NumPad.NumMulti -> Xlib.xK_KP_Multiply
     NumPad.NumMinus -> Xlib.xK_KP_Subtract
     NumPad.NumPlus -> Xlib.xK_KP_Add
+
+instance KeySymLike NumPad.NumPadLockedInput where
+  fromKeySym = fromKeySymDef toKeySym
+  toKeySym n = case n of
+    NumPad.NumL0 -> Xlib.xK_KP_0
+    NumPad.NumL1 -> Xlib.xK_KP_1
+    NumPad.NumL2 -> Xlib.xK_KP_2
+    NumPad.NumL3 -> Xlib.xK_KP_3
+    NumPad.NumL4 -> Xlib.xK_KP_4
+    NumPad.NumL5 -> Xlib.xK_KP_5
+    NumPad.NumL6 -> Xlib.xK_KP_6
+    NumPad.NumL7 -> Xlib.xK_KP_7
+    NumPad.NumL8 -> Xlib.xK_KP_8
+    NumPad.NumL9 -> Xlib.xK_KP_9
+    NumPad.NumLDivide -> Xlib.xK_KP_Divide
+    NumPad.NumLMulti -> Xlib.xK_KP_Multiply
+    NumPad.NumLMinus -> Xlib.xK_KP_Subtract
+    NumPad.NumLPlus -> Xlib.xK_KP_Add
+    NumPad.NumLEnter -> Xlib.xK_KP_Enter
+    NumPad.NumLPeriod -> Xlib.xK_KP_Decimal
+    -- XKeysymToKeycode() didn't return the correct keycode for XK_KP_Decimal in numpaar code...
+
 
 -- | Extract the KeySym associated with the XEvent.
 xEventToKeySym :: Xlib.XEventPtr -> IO (Maybe Xlib.KeySym)
@@ -74,6 +99,9 @@ class ModifierLike k where
 
 instance ModifierLike NumPad.NumPadUnlockedInput where
   toModifiers _ = []
+
+instance ModifierLike NumPad.NumPadLockedInput where
+  toModifiers _ = [ModNumLock]
 
 -- | Convert a 'KeySymLike' into a KeyCode and ButtonMask for grabbing.
 xKeyCode :: (KeySymLike k, ModifierLike k) => Xlib.Display -> k -> IO (Xlib.KeyCode, Xlib.ButtonMask)
