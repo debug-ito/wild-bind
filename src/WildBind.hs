@@ -40,8 +40,10 @@ type ActionDescription = Text
 -- | Something that knows about and controls the input device.
 class (FrontInput i) => FrontInputDevice f i where
   defaultActionDescription :: f -> i -> ActionDescription
-  setGrab :: f -> i -> IO () -- ^ Grab (or capture) the specified input symbol. 
-  unsetGrab :: f -> i -> IO () -- ^ Release the grab for the input symbol.
+  -- | Grab (or capture) the specified input symbol. 
+  setGrab :: f -> i -> IO ()
+  -- | Release the grab for the input symbol.
+  unsetGrab :: f -> i -> IO ()
 
 -- | Event from the front-end. @s@ is the state of the front-end. @i@ is the input.
 data FrontEvent s i = FEInput s i -- ^ An event that a new input is made.
