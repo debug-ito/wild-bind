@@ -17,7 +17,7 @@ import Graphics.X11.Xlib (Display, Window, XEventPtr)
 import qualified Graphics.X11.Xlib as Xlib
 import Data.Text (Text)
 
-import WildBind (FrontState, FrontInput, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput))
+import WildBind (FrontState, FrontInput, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput,FEChange))
 import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUnlocked, descriptionForLocked)
 
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike, xEventToKeySymLike, xGrabKey, xUngrabKey)
@@ -42,17 +42,22 @@ x11RootWindow = Xlib.defaultRootWindow . x11Display
 
 -- | Initialize and obtain 'X11Front' object.
 initX11Front :: IO X11Front
-initX11Front = X11Front <$> Xlib.openDisplay ""
+initX11Front = do
+  disp <- Xlib.openDisplay ""
+  Xlib.selectInput disp (Xlib.defaultRootWindow disp) Xlib.substructureNotifyMask
+  return $ X11Front disp
 
 -- | Release all resource associated with 'X11Front'.
 releaseX11Front :: X11Front -> IO ()
 releaseX11Front = Xlib.closeDisplay . x11Display
 
-convertEvent :: (KeySymLike k) => XEventPtr -> IO (Maybe k)
+convertEvent :: (KeySymLike k) => XEventPtr -> IO (Maybe (FrontEvent ActiveWindow k))
 convertEvent xev = convert' =<< Xlib.get_EventType xev
   where
     convert' xtype
-      | xtype == Xlib.keyRelease = xEventToKeySymLike xev
+      | xtype == Xlib.keyRelease = do
+        mkey <- xEventToKeySymLike xev
+        return (FEInput emptyActiveWindow <$> mkey)
       | otherwise = return Nothing
 
 grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front -> k -> IO ()
@@ -72,5 +77,5 @@ instance FrontInputDevice X11Front NumPadLockedInput where
 instance (FrontInput k, KeySymLike k) => FrontEventSource X11Front ActiveWindow k where
   nextEvent handle = Xlib.allocaXEvent $ \xev -> do
     Xlib.nextEvent (x11Display handle) xev
-    maybe (nextEvent handle) (return . FEInput emptyActiveWindow) =<< convertEvent xev
+    maybe (nextEvent handle) return =<< convertEvent xev
     
