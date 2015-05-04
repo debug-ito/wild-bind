@@ -9,7 +9,7 @@ import Test.Hspec
 
 import WildBind (setGrab,unsetGrab,nextEvent,FrontEvent(FEChange,FEInput),FrontInputDevice,FrontEventSource)
 import qualified WildBind.NumPad as NumPad
-import WildBind.X11 (initX11Front,releaseX11Front,ActiveWindow)
+import WildBind.X11 (initX11Front,releaseX11Front,ActiveWindow,X11Front)
 
 main :: IO ()
 main = hspec spec
@@ -46,13 +46,22 @@ grabExp front grab_input = grabExpMain `finally` releaseAll where
         got `shouldBe` grab_input
   releaseAll = mapM_ (unsetGrab front) (enumFromTo minBound maxBound :: [i])
 
+withX11Front :: (X11Front -> Expectation) -> Expectation
+withX11Front act = bracket initX11Front releaseX11Front act
+
 spec :: Spec
 spec = do
   describe "X11Front - NumPadUnlockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ bracket initX11Front releaseX11Front $ \f ->
+    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \f ->
       mapM_ (grabExp f) (enumFromTo minBound maxBound :: [NumPad.NumPadUnlockedInput] )
   describe "X11Front - NumPadLockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ bracket initX11Front releaseX11Front $ \f ->
+    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \f ->
       mapM_ (grabExp f) (enumFromTo minBound maxBound :: [NumPad.NumPadLockedInput] )
+  describe "X11Front" $ do
+    it "should NOT throw exception when it tries to double-grab in the same process" $ withX11Front $ \f1 ->
+      withX11Front $ \f2 -> do
+        setGrab f1 NumPad.NumLeft `shouldReturn` ()
+        setGrab f2 NumPad.NumLeft `shouldReturn` ()
+      
 
 
