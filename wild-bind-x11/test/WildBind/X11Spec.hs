@@ -16,10 +16,10 @@ checkEnv :: String -> IO Bool
 checkEnv env_name = (== "1") <$> maybe "" id <$> lookupEnv env_name
 
 whenEnv :: String -> Expectation -> Expectation
-whenEnv env_name exp = do
+whenEnv env_name act = do
   ret <- checkEnv env_name
   if ret
-  then exp
+  then act
   else pendingWith ("You need to set " ++ env_name ++ "=1 to run the test")
 
 
