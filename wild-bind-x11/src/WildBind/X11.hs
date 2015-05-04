@@ -13,31 +13,20 @@ module WildBind.X11 (
 
 import Control.Applicative ((<$>))
 
-import Graphics.X11.Xlib (Display, Window, XEventPtr)
 import qualified Graphics.X11.Xlib as Xlib
-import Data.Text (Text)
 
 import WildBind (FrontState, FrontInput, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput,FEChange))
 import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUnlocked, descriptionForLocked)
 
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike, xEventToKeySymLike, xGrabKey, xUngrabKey)
-
--- | Information of the currently active window.
-data ActiveWindow = ActiveWindow {
-  awName :: Text, -- ^ name of the window
-  awDesc :: Text  -- ^ description of the window
-} deriving (Eq,Ord,Show)
-instance FrontState ActiveWindow
-
-emptyActiveWindow :: ActiveWindow
-emptyActiveWindow = ActiveWindow "" ""
+import WildBind.X11.Internal.Window (ActiveWindow,emptyWindow)
 
 -- | The X11 front-end
 data X11Front = X11Front {
-  x11Display :: Display
+  x11Display :: Xlib.Display
 }
 
-x11RootWindow :: X11Front -> Window
+x11RootWindow :: X11Front -> Xlib.Window
 x11RootWindow = Xlib.defaultRootWindow . x11Display
 
 -- | Initialize and obtain 'X11Front' object.
@@ -51,13 +40,13 @@ initX11Front = do
 releaseX11Front :: X11Front -> IO ()
 releaseX11Front = Xlib.closeDisplay . x11Display
 
-convertEvent :: (KeySymLike k) => XEventPtr -> IO (Maybe (FrontEvent ActiveWindow k))
+convertEvent :: (KeySymLike k) => Xlib.XEventPtr -> IO (Maybe (FrontEvent ActiveWindow k))
 convertEvent xev = convert' =<< Xlib.get_EventType xev
   where
     convert' xtype
       | xtype == Xlib.keyRelease = do
         mkey <- xEventToKeySymLike xev
-        return (FEInput emptyActiveWindow <$> mkey)
+        return (FEInput emptyWindow <$> mkey)
       | otherwise = return Nothing
 
 grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front -> k -> IO ()
