@@ -60,7 +60,15 @@ instance KeySymLike NumPad.NumPadUnlockedInput where
     NumPad.NumPlus -> Xlib.xK_KP_Add
 
 instance KeySymLike NumPad.NumPadLockedInput where
-  fromKeySym = fromKeySymDef toKeySym
+  -- Xlib handles the [(.) (Delete)] key in a weird way. In the input
+  -- event, it brings XK_KP_Decimal when NumLock enabled, XK_KP_Delete
+  -- when NumLock disabled. However, XKeysymToKeycode() function won't
+  -- return the correct keycode for XK_KP_Decimal. (I'm not sure how
+  -- much this behavior depends on user's environment...) As a
+  -- workaround in this instance, we map NumLPeriod -> XK_KP_Delete,
+  -- but in the reverse map, we also respond to XK_KP_Decimal.
+  fromKeySym ks | ks == Xlib.xK_KP_Decimal = Just NumPad.NumLPeriod
+                | otherwise                = (fromKeySymDef toKeySym) ks
   toKeySym n = case n of
     NumPad.NumL0 -> Xlib.xK_KP_0
     NumPad.NumL1 -> Xlib.xK_KP_1
@@ -77,7 +85,7 @@ instance KeySymLike NumPad.NumPadLockedInput where
     NumPad.NumLMinus -> Xlib.xK_KP_Subtract
     NumPad.NumLPlus -> Xlib.xK_KP_Add
     NumPad.NumLEnter -> Xlib.xK_KP_Enter
-    NumPad.NumLPeriod -> Xlib.xK_KP_Decimal
+    NumPad.NumLPeriod -> Xlib.xK_KP_Delete
     -- XKeysymToKeycode() didn't return the correct keycode for XK_KP_Decimal in numpaar code...
 
 
