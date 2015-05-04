@@ -3,6 +3,7 @@ module WildBind.X11Spec (main, spec) where
 
 import System.IO (hPutStrLn,stderr)
 import System.Environment (lookupEnv)
+import Control.Exception (finally)
 import Control.Applicative ((<$>))
 import Test.Hspec
 
@@ -33,16 +34,17 @@ p = hPutStrLn stderr . ("--- " ++)
 grabExp :: forall f i
            . (Bounded i, Enum i, Show i, FrontInputDevice f i, FrontEventSource f ActiveWindow i)
            => f -> i -> Expectation
-grabExp front grab_input = do
-  mapM_ (unsetGrab front) (enumFromTo minBound maxBound :: [i])
-  setGrab front grab_input
-  p ("Press some numpad keys (grab="++ show grab_input ++")..")
-  ev <- nextEvent front :: IO (FrontEvent ActiveWindow i)
-  p ("Got event: " ++ show ev)
-  case ev of
-    FEChange _ -> expectationFailure "FEChange is caught. not expected"
-    FEInput _ got -> do
-      got `shouldBe` grab_input
+grabExp front grab_input = grabExpMain `finally` releaseAll where
+  grabExpMain = do
+    setGrab front grab_input
+    p ("Press some numpad keys (grab="++ show grab_input ++")..")
+    ev <- nextEvent front :: IO (FrontEvent ActiveWindow i)
+    p ("Got event: " ++ show ev)
+    case ev of
+      FEChange _ -> expectationFailure "FEChange is caught. not expected"
+      FEInput _ got -> do
+        got `shouldBe` grab_input
+  releaseAll = mapM_ (unsetGrab front) (enumFromTo minBound maxBound :: [i])
 
 spec :: Spec
 spec = do
