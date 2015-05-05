@@ -19,7 +19,7 @@ import WildBind (FrontState, FrontInput, FrontInputDevice(..), FrontEventSource(
 import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUnlocked, descriptionForLocked)
 
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike, xEventToKeySymLike, xGrabKey, xUngrabKey)
-import WildBind.X11.Internal.Window (ActiveWindow,emptyWindow)
+import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow)
 
 -- | The X11 front-end
 data X11Front = X11Front {
@@ -40,13 +40,16 @@ initX11Front = do
 releaseX11Front :: X11Front -> IO ()
 releaseX11Front = Xlib.closeDisplay . x11Display
 
-convertEvent :: (KeySymLike k) => Xlib.XEventPtr -> IO (Maybe (FrontEvent ActiveWindow k))
-convertEvent xev = convert' =<< Xlib.get_EventType xev
+convertEvent :: (KeySymLike k) => Xlib.Display -> Xlib.XEventPtr -> IO (Maybe (FrontEvent ActiveWindow k))
+convertEvent disp xev = do
+  xtype <- Xlib.get_EventType xev
+  awin <- getActiveWindow disp
+  convert' awin xtype
   where
-    convert' xtype
+    convert' awin xtype
       | xtype == Xlib.keyRelease = do
         mkey <- xEventToKeySymLike xev
-        return (FEInput emptyWindow <$> mkey)
+        return (FEInput awin <$> mkey)
       | otherwise = return Nothing
 
 grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front -> k -> IO ()
@@ -66,5 +69,5 @@ instance FrontInputDevice X11Front NumPadLockedInput where
 instance (FrontInput k, KeySymLike k) => FrontEventSource X11Front ActiveWindow k where
   nextEvent handle = Xlib.allocaXEvent $ \xev -> do
     Xlib.nextEvent (x11Display handle) xev
-    maybe (nextEvent handle) return =<< convertEvent xev
+    maybe (nextEvent handle) return =<< convertEvent (x11Display handle) xev
     
