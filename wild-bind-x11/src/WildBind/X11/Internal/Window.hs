@@ -9,9 +9,9 @@ module WildBind.X11.Internal.Window (
   Window,
   ActiveWindow,
   -- * Accessor functions for 'Window'
-  winAppName,
-  winAppClass,
-  winTitle,
+  winInstance,
+  winClass,
+  winName,
   -- * Functions
   getActiveWindow
 ) where
@@ -25,8 +25,8 @@ import qualified Graphics.X11.Xlib.Extras as XlibE
 
 import WildBind (FrontState)
 
--- | Information about window. You can inspect properties 'winAppName'
--- and 'winAppClass' by @wmctrl@ command.
+-- | Information about window. You can inspect properties 'winInstance'
+-- and 'winClass' by @wmctrl@ command.
 --
 -- > $ wmctrl -lx
 -- > 0x01400004 -1 xfce4-panel.Xfce4-panel  mydesktop xfce4-panel
@@ -36,11 +36,11 @@ import WildBind (FrontState)
 -- > 0x03e010fc  0 Navigator.Firefox     mydesktop debug-ito (Toshio Ito) - Mozilla Firefox
 -- > 0x02600003  0 totem.Totem           mydesktop Movie Player
 --
--- In the above example, the third column shows @winAppName.winAppClass@.
+-- In the above example, the third column shows @winInstance.winClass@.
 data Window = Window {
-  winAppName :: Text,  -- ^ name of the application
-  winAppClass :: Text, -- ^ class name of the application
-  winTitle :: Text  -- ^ what's shown in the title bar
+  winInstance :: Text,  -- ^ name of the application instance (part of @WM_CLASS@ property)
+  winClass :: Text, -- ^ name of the application class (part of @WM_CLASS@ property)
+  winName :: Text  -- ^ what's shown in the title bar
 } deriving (Eq,Ord,Show)
 instance FrontState Window
 
