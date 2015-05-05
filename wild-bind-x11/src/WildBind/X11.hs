@@ -11,9 +11,11 @@ module WildBind.X11 (
   releaseX11Front
 ) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>),empty)
 
 import qualified Graphics.X11.Xlib as Xlib
+import Control.Monad.Trans.Maybe (MaybeT,runMaybeT)
+import Control.Monad.IO.Class (liftIO)
 
 import WildBind (FrontState, FrontInput, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput,FEChange))
 import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUnlocked, descriptionForLocked)
@@ -40,17 +42,16 @@ initX11Front = do
 releaseX11Front :: X11Front -> IO ()
 releaseX11Front = Xlib.closeDisplay . x11Display
 
-convertEvent :: (KeySymLike k) => Xlib.Display -> Xlib.XEventPtr -> IO (Maybe (FrontEvent ActiveWindow k))
+convertEvent :: (KeySymLike k) => Xlib.Display -> Xlib.XEventPtr -> MaybeT IO (FrontEvent ActiveWindow k)
 convertEvent disp xev = do
-  xtype <- Xlib.get_EventType xev
-  awin <- getActiveWindow disp
+  xtype <- liftIO $ Xlib.get_EventType xev
+  awin <- liftIO $ getActiveWindow disp
   convert' awin xtype
   where
     convert' awin xtype
-      | xtype == Xlib.keyRelease = do
-        mkey <- xEventToKeySymLike xev
-        return (FEInput awin <$> mkey)
-      | otherwise = return Nothing
+      | xtype == Xlib.keyRelease = FEInput awin <$> xEventToKeySymLike xev
+      | xtype == Xlib.configureNotify || xtype == Xlib.destroyNotify = return $ FEChange awin
+      | otherwise = empty
 
 grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front -> k -> IO ()
 grabDef func front key = func (x11Display front) (x11RootWindow front) key
@@ -69,5 +70,5 @@ instance FrontInputDevice X11Front NumPadLockedInput where
 instance (FrontInput k, KeySymLike k) => FrontEventSource X11Front ActiveWindow k where
   nextEvent handle = Xlib.allocaXEvent $ \xev -> do
     Xlib.nextEvent (x11Display handle) xev
-    maybe (nextEvent handle) return =<< convertEvent (x11Display handle) xev
+    maybe (nextEvent handle) return =<< (runMaybeT $ convertEvent (x11Display handle) xev)
     

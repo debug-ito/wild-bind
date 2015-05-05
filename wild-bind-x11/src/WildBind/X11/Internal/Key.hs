@@ -22,6 +22,7 @@ import Data.Maybe (mapMaybe, listToMaybe)
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
 import qualified Data.Map as M
+import Control.Monad.Trans.Maybe (MaybeT(MaybeT))
 
 import qualified WildBind.NumPad as NumPad
 
@@ -90,14 +91,12 @@ instance KeySymLike NumPad.NumPadLockedInput where
 
 
 -- | Extract the KeySym associated with the XEvent.
-xEventToKeySym :: Xlib.XEventPtr -> IO (Maybe Xlib.KeySym)
-xEventToKeySym xev = fst <$> (Xlib.lookupString $ Xlib.asKeyEvent xev)
+xEventToKeySym :: Xlib.XEventPtr -> MaybeT IO Xlib.KeySym
+xEventToKeySym xev = MaybeT (fst <$> (Xlib.lookupString $ Xlib.asKeyEvent xev))
 
 -- | Extract the 'KeySymLike' associated with the XEvent.
-xEventToKeySymLike :: KeySymLike k => Xlib.XEventPtr -> IO (Maybe k)
-xEventToKeySymLike xev = do
-  mks <- xEventToKeySym xev
-  return (fromKeySym =<< mks)
+xEventToKeySymLike :: KeySymLike k => Xlib.XEventPtr -> MaybeT IO k
+xEventToKeySymLike xev = (MaybeT . return . fromKeySym) =<< xEventToKeySym xev
 
 -- | Internal abstract of key modifiers
 data ModifierKey = ModNumLock deriving (Eq,Ord,Show,Bounded,Enum)
