@@ -17,7 +17,7 @@ module WildBind.X11.Internal.Window (
 ) where
 
 import Data.Maybe (listToMaybe)
-import Control.Applicative ((<$>),(<|>))
+import Control.Applicative ((<$>),(<|>),empty)
 
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -56,8 +56,12 @@ emptyWindow = Window "" "" ""
 
 -- | Get currently active 'Window'.
 getActiveWindow :: Xlib.Display -> IO ActiveWindow
-getActiveWindow = undefined
-
+getActiveWindow disp = maybe emptyWindow id <$> runMaybeT getActiveWindowM where
+  getActiveWindowM = do
+    awin <- xGetActiveWindow disp
+    name <- xGetWindowName disp awin
+    class_hint <- liftIO $ xGetClassHint disp awin
+    return $ (uncurry Window) class_hint name
 
 -- | Check whether specified feature is supported by the window
 -- manager(?) Port of libxdo's @_xdo_ewmh_is_supported()@ function.
@@ -72,16 +76,19 @@ ewmhIsSupported disp feature_str = do
 
 -- | Get X11 Window handle for the active window. Port of libxdo's
 -- @xdo_window_get_active()@ function.
-xGetActiveWindow :: Xlib.Display -> IO (Maybe Xlib.Window)
+xGetActiveWindow :: Xlib.Display -> MaybeT IO Xlib.Window
 xGetActiveWindow disp = do
   let req_str = "_NET_ACTIVE_WINDOW"
-  supported <- ewmhIsSupported disp req_str
+  supported <- liftIO $ ewmhIsSupported disp req_str
   if not supported
-    then return Nothing
+    then empty
     else do
-    req <- Xlib.internAtom disp req_str False
-    result <- XlibE.getWindowProperty32 disp req (Xlib.defaultRootWindow disp)
-    return (fromIntegral <$> maybe Nothing listToMaybe result)
+    req <- liftIO $ Xlib.internAtom disp req_str False
+    result <- MaybeT $ XlibE.getWindowProperty32 disp req (Xlib.defaultRootWindow disp)
+    case result of
+      [] -> empty
+      (val:_) -> return $ fromIntegral val
+
 
 xGetClassHint :: Xlib.Display -> Xlib.Window -> IO (Text, Text)
 xGetClassHint disp win = do
@@ -95,8 +102,5 @@ xGetTextProperty disp win prop_name = do
 
 -- | Get the window name for the X11 window. The window name refers to
 -- @_NET_WM_NAME@ or @WM_NAME@.
-xGetWindowName :: Xlib.Display -> Xlib.Window -> IO Text
-xGetWindowName disp win = do
-  got_name <- runMaybeT (xGetTextProperty disp win "_NET_WM_NAME" <|> xGetTextProperty disp win "WM_NAME")
-  return $ maybe "" id got_name
-
+xGetWindowName :: Xlib.Display -> Xlib.Window -> MaybeT IO Text
+xGetWindowName disp win = xGetTextProperty disp win "_NET_WM_NAME" <|> xGetTextProperty disp win "WM_NAME"
