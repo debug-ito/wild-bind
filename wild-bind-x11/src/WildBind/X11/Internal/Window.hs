@@ -5,10 +5,19 @@
 --
 {-# LANGUAGE OverloadedStrings #-}
 module WildBind.X11.Internal.Window (
-  Window(winName,winDesc),
+  -- * The 'Window' data type
+  Window,
   ActiveWindow,
+  -- * Accessor functions for 'Window'
+  winName,
+  winClass,
+  winTitle,
+  -- * Functions
   getActiveWindow
 ) where
+
+import Data.Maybe (listToMaybe)
+import Control.Applicative ((<$>))
 
 import Data.Text (Text)
 import qualified Graphics.X11.Xlib as Xlib
@@ -16,10 +25,22 @@ import qualified Graphics.X11.Xlib.Extras as XlibE
 
 import WildBind (FrontState)
 
--- | Information about window
+-- | Information about window. You can inspect properties 'winName'
+-- and 'winClass' by @wmctrl@ command.
+--
+-- > $ wmctrl -lx
+-- > 0x01400004 -1 xfce4-panel.Xfce4-panel  mydesktop xfce4-panel
+-- > 0x01800003 -1 xfdesktop.Xfdesktop   mydesktop desktop
+-- > 0x03800004  0 xfce4-terminal.Xfce4-terminal  mydesktop Terminal - toshio@mydesktop - byobu
+-- > 0x03a000a7  0 emacs.Emacs23         mydesktop emacs@mydesktop
+-- > 0x03e010fc  0 Navigator.Firefox     mydesktop debug-ito (Toshio Ito) - Mozilla Firefox
+-- > 0x02600003  0 totem.Totem           mydesktop Movie Player
+--
+-- In the above example, the third column shows @winName.winClass@.
 data Window = Window {
-  winName :: Text, -- ^ name of the window
-  winDesc :: Text  -- ^ description of the window
+  winName :: Text,  -- ^ name of the window (WM_NAME)
+  winClass :: Text, -- ^ window class (WM_CLASS)
+  winTitle :: Text  -- ^ what's shown in the title bar
 } deriving (Eq,Ord,Show)
 instance FrontState Window
 
@@ -28,7 +49,7 @@ type ActiveWindow = Window
 
 -- | An empty Window instance used for fallback
 emptyWindow :: Window
-emptyWindow = Window "" ""
+emptyWindow = Window "" "" ""
 
 -- | Get currently active 'Window'.
 getActiveWindow :: Xlib.Display -> IO ActiveWindow
