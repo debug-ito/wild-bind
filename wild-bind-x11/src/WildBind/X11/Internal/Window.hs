@@ -9,8 +9,8 @@ module WildBind.X11.Internal.Window (
   Window,
   ActiveWindow,
   -- * Accessor functions for 'Window'
-  winName,
-  winClass,
+  winAppName,
+  winAppClass,
   winTitle,
   -- * Functions
   getActiveWindow
@@ -25,8 +25,8 @@ import qualified Graphics.X11.Xlib.Extras as XlibE
 
 import WildBind (FrontState)
 
--- | Information about window. You can inspect properties 'winName'
--- and 'winClass' by @wmctrl@ command.
+-- | Information about window. You can inspect properties 'winAppName'
+-- and 'winAppClass' by @wmctrl@ command.
 --
 -- > $ wmctrl -lx
 -- > 0x01400004 -1 xfce4-panel.Xfce4-panel  mydesktop xfce4-panel
@@ -36,10 +36,10 @@ import WildBind (FrontState)
 -- > 0x03e010fc  0 Navigator.Firefox     mydesktop debug-ito (Toshio Ito) - Mozilla Firefox
 -- > 0x02600003  0 totem.Totem           mydesktop Movie Player
 --
--- In the above example, the third column shows @winName.winClass@.
+-- In the above example, the third column shows @winAppName.winAppClass@.
 data Window = Window {
-  winName :: Text,  -- ^ name of the window (WM_NAME)
-  winClass :: Text, -- ^ window class (WM_CLASS)
+  winAppName :: Text,  -- ^ name of the application
+  winAppClass :: Text, -- ^ class name of the application
   winTitle :: Text  -- ^ what's shown in the title bar
 } deriving (Eq,Ord,Show)
 instance FrontState Window
@@ -79,3 +79,16 @@ xGetActiveWindow disp = do
     req <- Xlib.internAtom disp req_str False
     result <- XlibE.getWindowProperty32 disp req (Xlib.defaultRootWindow disp)
     return (fromIntegral <$> maybe Nothing listToMaybe result)
+
+-- Doesn't it actually get window "title", does it? WM_NAME (or
+-- _NET_WM_NAME) is supposed to be shown in the title bar.
+--
+-- -- | Get the window name for the X11 window. The window name refers to
+-- -- @_NET_WM_NAME@ or @WM_NAME@. Port of libxdo's xdo_get_window_name()
+-- -- function.
+-- xGetWindowName :: Xlib.Display -> Xlib.Window -> IO Text
+-- xGetWindowName disp win = do
+--   req <- Xlib.internAtom disp "_NET_WM_NAME" False
+--   prop <- XlibE.getTextProperty disp win req
+
+
