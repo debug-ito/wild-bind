@@ -45,3 +45,16 @@ ewmhIsSupported disp feature_str = do
   case result of
     Nothing -> return False
     Just atoms -> return $ any ((feature ==) . fromIntegral) atoms
+
+-- | Get X11 Window handle for the active window. Port of libxdo's
+-- xdo_window_get_active() function.
+xGetActiveWindow :: Xlib.Display -> IO (Maybe Xlib.Window)
+xGetActiveWindow disp = do
+  let req_str = "_NET_ACTIVE_WINDOW"
+  supported <- ewmhIsSupported disp req_str
+  if not supported
+    then return Nothing
+    else do
+    req <- Xlib.internAtom disp req_str False
+    result <- XlibE.getWindowProperty32 disp req (Xlib.defaultRootWindow disp)
+    return (fromIntegral <$> maybe Nothing listToMaybe result)
