@@ -17,11 +17,14 @@ module WildBind.X11.Internal.Window (
 ) where
 
 import Data.Maybe (listToMaybe)
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>),(<|>))
 
 import Data.Text (Text)
+import qualified Data.Text as Text
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
+import Control.Monad.Trans.Maybe (MaybeT(MaybeT),runMaybeT)
+import Control.Monad.IO.Class (liftIO)
 
 import WildBind (FrontState)
 
@@ -57,7 +60,7 @@ getActiveWindow = undefined
 
 
 -- | Check whether specified feature is supported by the window
--- manager(?) Port of libxdo's _xdo_ewmh_is_supported() function.
+-- manager(?) Port of libxdo's @_xdo_ewmh_is_supported()@ function.
 ewmhIsSupported :: Xlib.Display -> String -> IO Bool
 ewmhIsSupported disp feature_str = do
   req <- Xlib.internAtom disp "_NET_SUPPORTED" False
@@ -68,7 +71,7 @@ ewmhIsSupported disp feature_str = do
     Just atoms -> return $ any ((feature ==) . fromIntegral) atoms
 
 -- | Get X11 Window handle for the active window. Port of libxdo's
--- xdo_window_get_active() function.
+-- @xdo_window_get_active()@ function.
 xGetActiveWindow :: Xlib.Display -> IO (Maybe Xlib.Window)
 xGetActiveWindow disp = do
   let req_str = "_NET_ACTIVE_WINDOW"
@@ -80,15 +83,20 @@ xGetActiveWindow disp = do
     result <- XlibE.getWindowProperty32 disp req (Xlib.defaultRootWindow disp)
     return (fromIntegral <$> maybe Nothing listToMaybe result)
 
--- Doesn't it actually get window "title", does it? WM_NAME (or
--- _NET_WM_NAME) is supposed to be shown in the title bar.
---
--- -- | Get the window name for the X11 window. The window name refers to
--- -- @_NET_WM_NAME@ or @WM_NAME@. Port of libxdo's xdo_get_window_name()
--- -- function.
--- xGetWindowName :: Xlib.Display -> Xlib.Window -> IO Text
--- xGetWindowName disp win = do
---   req <- Xlib.internAtom disp "_NET_WM_NAME" False
---   prop <- XlibE.getTextProperty disp win req
+xGetClassHint :: Xlib.Display -> Xlib.Window -> IO (Text, Text)
+xGetClassHint disp win = do
+  hint <- XlibE.getClassHint disp win
+  return (Text.pack $ XlibE.resName hint, Text.pack $ XlibE.resClass hint)
 
+xGetTextProperty :: Xlib.Display -> Xlib.Window -> String -> MaybeT IO Text
+xGetTextProperty disp win prop_name = do
+  req <- liftIO $ Xlib.internAtom disp prop_name False
+  Text.pack <$> MaybeT (listToMaybe <$> (XlibE.wcTextPropertyToTextList disp =<< XlibE.getTextProperty disp win req))
+
+-- | Get the window name for the X11 window. The window name refers to
+-- @_NET_WM_NAME@ or @WM_NAME@.
+xGetWindowName :: Xlib.Display -> Xlib.Window -> IO Text
+xGetWindowName disp win = do
+  got_name <- runMaybeT (xGetTextProperty disp win "_NET_WM_NAME" <|> xGetTextProperty disp win "WM_NAME")
+  return $ maybe "" id got_name
 
