@@ -3,6 +3,7 @@
 -- Description: types and functions related to X11 windows
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
+-- This is an internal module. Package users should not rely on this.
 {-# LANGUAGE OverloadedStrings #-}
 module WildBind.X11.Internal.Window (
   -- * The 'Window' data type
