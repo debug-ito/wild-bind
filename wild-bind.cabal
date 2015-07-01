@@ -5,10 +5,13 @@ maintainer:             Toshio Ito <debug.ito@gmail.com>
 license:                BSD3
 license-file:           LICENSE
 synopsis:               Dynamic key binding framework
--- description:            
+description:            Dynamic key binding framework
+category:               UserInterface
 cabal-version:          >= 1.10
 build-type:             Simple
 extra-source-files:     README.md, ChangeLog.md
+homepage:               https://github.com/debug-ito/wild-bind
+bug-reports:            https://github.com/debug-ito/wild-bind/issues
 
 library
   default-language:     Haskell2010
@@ -43,4 +46,4 @@ test-suite spec
 
 source-repository head
   type:                 git
---  location:             
+  location:             https://github.com/debug-ito/wild-bind.git
