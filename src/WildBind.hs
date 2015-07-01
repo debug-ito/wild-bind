@@ -3,7 +3,6 @@
 -- Description: WildBind main module
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
-{-# LANGUAGE MultiParamTypeClasses #-}
 module WildBind (
   -- * Common types
   ActionDescription,

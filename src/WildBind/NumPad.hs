@@ -4,7 +4,6 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 -- Input types for number pad keys.
-{-# LANGUAGE OverloadedStrings #-}
 module WildBind.NumPad (
   -- * NumLock disabled
   NumPadUnlockedInput(..),
