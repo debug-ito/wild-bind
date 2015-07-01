@@ -21,13 +21,14 @@ library
   exposed-modules:      WildBind.X11,
                         WildBind.X11.Internal.Key,
                         WildBind.X11.Internal.Window
-  -- other-modules:
+  other-modules:        WildBind.X11.Internal.NotificationDebouncer
   build-depends:        base >=4.6.0 && <4.7,
                         wild-bind >=0.0.0 && <0.1,
                         text >=1.2.0 && <1.3,
                         X11 >=1.6.1 && <1.7,
                         containers >=0.5.0 && <0.6,
-                        transformers >=0.3.0 && <0.4
+                        transformers >=0.3.0 && <0.4,
+                        fold-debounce >=0.2.0 && <0.3
 
 -- executable wild-bind-x11
 --   default-language:     Haskell2010
