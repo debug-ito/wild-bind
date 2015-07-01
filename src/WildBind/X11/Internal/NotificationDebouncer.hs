@@ -33,7 +33,7 @@
 -- Toshio's personal note: 2015/05/06, 2010/12/05 - 19
 
 module WildBind.X11.Internal.NotificationDebouncer (
-  new, close, notify
+  new, close, notify, isDebouncedEvent
 ) where
 
 import Control.Applicative ((<$>))
@@ -59,13 +59,22 @@ newTrigger :: Xlib.Display -> IO (Fdeb.Trigger () ())
 newTrigger disp = Fdeb.new (Fdeb.forVoid $ sendClientMessage disp)
                            Fdeb.def { Fdeb.delay = 50000, Fdeb.alwaysResetTimer = True }
 
-messageType :: String
-messageType = "_WILDBIND_NOTIFY_CHANGE"
+messageType :: Xlib.Display -> IO Xlib.Atom
+messageType disp = Xlib.internAtom disp "_WILDBIND_NOTIFY_CHANGE" False
 
 sendClientMessage :: Xlib.Display -> IO ()
 sendClientMessage disp = Xlib.allocaXEvent $ \xev -> do
   let root_win = Xlib.defaultRootWindow disp
-  mtype <- Xlib.internAtom disp messageType False
+  mtype <- messageType disp
   XlibE.setEventType xev Xlib.clientMessage
   XlibE.setClientMessageEvent xev root_win mtype 8 0 0
   Xlib.sendEvent disp root_win False Xlib.substructureNotifyMask xev
+
+-- | Check if the given event is the debounced event.
+isDebouncedEvent :: Xlib.Display -> Xlib.XEventPtr -> IO Bool
+isDebouncedEvent disp xev = do
+  ev <- XlibE.getEvent xev
+  exp_type <- messageType disp
+  case ev of
+    XlibE.ClientMessageEvent _ _ _ _ _ got_type _ -> return (got_type == exp_type)
+    _ -> return False
