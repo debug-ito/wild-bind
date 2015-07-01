@@ -4,7 +4,6 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 -- This is an internal module. Package users should not rely on this.
-{-# LANGUAGE TypeSynonymInstances #-}
 module WildBind.X11.Internal.Key (
   -- * Conversion between key types
   KeySymLike(..), 

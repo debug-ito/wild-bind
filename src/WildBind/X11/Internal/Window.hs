@@ -4,7 +4,6 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 -- This is an internal module. Package users should not rely on this.
-{-# LANGUAGE OverloadedStrings #-}
 module WildBind.X11.Internal.Window (
   -- * The 'Window' data type
   Window,

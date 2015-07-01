@@ -3,7 +3,6 @@
 -- Description: X11-specific implementation for WildBind
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
-{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings, FlexibleInstances #-}
 module WildBind.X11 (
   X11Front,
   ActiveWindow,
