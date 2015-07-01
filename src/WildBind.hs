@@ -36,10 +36,11 @@ class Ord i => FrontInput i
 -- | Human-readable description of an action.
 type ActionDescription = Text
 
--- | Something that knows about and controls the input device.
+-- | Something that knows about and controls the input device. @f@ is
+-- the device, @i@ is the 'FrontInput' data it generates.
 class (FrontInput i) => FrontInputDevice f i where
   defaultActionDescription :: f -> i -> ActionDescription
-  -- | Grab (or capture) the specified input symbol. 
+  -- | Grab (or capture) the specified input symbol on the device. 
   setGrab :: f -> i -> IO ()
   -- | Release the grab for the input symbol.
   unsetGrab :: f -> i -> IO ()
