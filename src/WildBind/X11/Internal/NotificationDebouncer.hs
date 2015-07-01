@@ -38,6 +38,7 @@ module WildBind.X11.Internal.NotificationDebouncer (
 
 import Control.Applicative ((<$>))
 import qualified Graphics.X11.Xlib as Xlib
+import qualified Graphics.X11.Xlib.Extras as XlibE
 import qualified Control.FoldDebounce as Fdeb
 
 newtype Debouncer = Debouncer { ndTrigger :: Fdeb.Trigger () () }
@@ -58,5 +59,13 @@ newTrigger :: Xlib.Display -> IO (Fdeb.Trigger () ())
 newTrigger disp = Fdeb.new (Fdeb.forVoid $ sendClientMessage disp)
                            Fdeb.def { Fdeb.delay = 50000, Fdeb.alwaysResetTimer = True }
 
+messageType :: String
+messageType = "_WILDBIND_NOTIFY_CHANGE"
+
 sendClientMessage :: Xlib.Display -> IO ()
-sendClientMessage = undefined
+sendClientMessage disp = Xlib.allocaXEvent $ \xev -> do
+  let root_win = Xlib.defaultRootWindow disp
+  mtype <- Xlib.internAtom disp messageType False
+  XlibE.setEventType xev Xlib.clientMessage
+  XlibE.setClientMessageEvent xev root_win mtype 8 0 0
+  Xlib.sendEvent disp root_win False Xlib.substructureNotifyMask xev
