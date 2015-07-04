@@ -13,17 +13,17 @@ spec = do
       disp <- Xlib.openDisplay ""
       deb <- Deb.new =<< Xlib.openDisplay ""
       Deb.notify deb
-      (Xlib.allocaXEvent $ waitForDebouncedEvent disp) `shouldReturn` True
+      (Xlib.allocaXEvent $ waitForDebouncedEvent deb disp) `shouldReturn` True
       Deb.close deb
         
         
 
-waitForDebouncedEvent :: Xlib.Display -> Xlib.XEventPtr -> IO Bool
-waitForDebouncedEvent disp xev = doit 0 where
+waitForDebouncedEvent :: Deb.Debouncer -> Xlib.Display -> Xlib.XEventPtr -> IO Bool
+waitForDebouncedEvent deb disp xev = doit 0 where
   doit :: Int -> IO Bool
   doit count = do
     Xlib.nextEvent disp xev
-    ret <- Deb.isDebouncedEvent disp xev -- is it ok to use 'disp' (different Display from the one Debouncer uses)
+    ret <- Deb.isDebouncedEvent deb xev -- is it ok to use 'disp' (different Display from the one Debouncer uses)
     if ret || (count > 20)
       then return ret
       else do

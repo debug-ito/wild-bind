@@ -33,20 +33,25 @@
 -- Toshio's personal note: 2015/05/06, 2010/12/05 - 19
 
 module WildBind.X11.Internal.NotificationDebouncer (
-  new, close, notify, isDebouncedEvent
+  Debouncer, new, close, notify, isDebouncedEvent
 ) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>), (<*>))
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
 import qualified Control.FoldDebounce as Fdeb
 
-newtype Debouncer = Debouncer { ndTrigger :: Fdeb.Trigger () () }
+data Debouncer = Debouncer {
+  ndTrigger :: Fdeb.Trigger () (),
+  ndMessageType :: Xlib.Atom
+}
 
 new :: Xlib.Display -- ^ a handle to send ClientMessage event.
                     -- It should be a different handle from the one held by 'X11Front'
     -> IO Debouncer
-new disp = Debouncer <$> newTrigger disp
+new disp = do
+  mtype <- Xlib.internAtom disp "_WILDBIND_NOTIFY_CHANGE" False
+  Debouncer <$> newTrigger disp mtype <*> return mtype
 
 close :: Debouncer -> IO ()
 close = Fdeb.close . ndTrigger
@@ -55,26 +60,22 @@ close = Fdeb.close . ndTrigger
 notify :: Debouncer -> IO ()
 notify deb = Fdeb.send (ndTrigger deb) ()
 
-newTrigger :: Xlib.Display -> IO (Fdeb.Trigger () ())
-newTrigger disp = Fdeb.new (Fdeb.forVoid $ sendClientMessage disp)
+newTrigger :: Xlib.Display -> Xlib.Atom -> IO (Fdeb.Trigger () ())
+newTrigger disp mtype = Fdeb.new (Fdeb.forVoid $ sendClientMessage disp mtype)
                            Fdeb.def { Fdeb.delay = 50000, Fdeb.alwaysResetTimer = True }
 
-messageType :: Xlib.Display -> IO Xlib.Atom
-messageType disp = Xlib.internAtom disp "_WILDBIND_NOTIFY_CHANGE" False
-
-sendClientMessage :: Xlib.Display -> IO ()
-sendClientMessage disp = Xlib.allocaXEvent $ \xev -> do
+sendClientMessage :: Xlib.Display -> Xlib.Atom -> IO ()
+sendClientMessage disp mtype = Xlib.allocaXEvent $ \xev -> do
   let root_win = Xlib.defaultRootWindow disp
-  mtype <- messageType disp
   XlibE.setEventType xev Xlib.clientMessage
   XlibE.setClientMessageEvent xev root_win mtype 8 0 0
   Xlib.sendEvent disp root_win False Xlib.substructureNotifyMask xev
 
 -- | Check if the given event is the debounced event.
-isDebouncedEvent :: Xlib.Display -> Xlib.XEventPtr -> IO Bool
-isDebouncedEvent disp xev = do
+isDebouncedEvent :: Debouncer -> Xlib.XEventPtr -> IO Bool
+isDebouncedEvent deb xev = do
   ev <- XlibE.getEvent xev
-  exp_type <- messageType disp
+  let exp_type = ndMessageType deb
   case ev of
     XlibE.ClientMessageEvent _ _ _ _ _ got_type _ -> return (got_type == exp_type)
     _ -> return False
