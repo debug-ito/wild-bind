@@ -6,18 +6,21 @@ import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
 import qualified WildBind.X11.Internal.NotificationDebouncer as Deb
 
-
 spec :: Spec
 spec = do
   describe "notify" $ do
     it "should create an X event that passes isDeboucedEvent" $ do
       disp <- Xlib.openDisplay ""
       Xlib.selectInput disp (Xlib.defaultRootWindow disp) Deb.xEventMask
-      deb <- Deb.new =<< Xlib.openDisplay ""
+      debdisp <- Xlib.openDisplay ""
+      putStrLn ("caller disp: " ++ showDisplay disp ++ ", deb disp: " ++ showDisplay debdisp)
+      deb <- Deb.new debdisp
       Deb.notify deb
       (Xlib.allocaXEvent $ waitForDebouncedEvent deb disp) `shouldReturn` True
       Deb.close deb
 
+showDisplay :: Xlib.Display -> String
+showDisplay disp = show disp ++ "(conn number = "++ show (Xlib.connectionNumber disp) ++")"
         
 waitForDebouncedEvent :: Deb.Debouncer -> Xlib.Display -> Xlib.XEventPtr -> IO Bool
 waitForDebouncedEvent deb disp xev = doit 0 where
@@ -25,11 +28,10 @@ waitForDebouncedEvent deb disp xev = doit 0 where
   doit count = do
     Xlib.nextEvent disp xev
     ret <- Deb.isDebouncedEvent deb xev -- is it ok to use 'disp' (different Display from the one Debouncer uses)
+    showXEvent disp xev >>= \xev_str -> putStrLn ("Got event: " ++ xev_str)
     if ret || (count > 20)
       then return ret
-      else do
-        showXEvent disp xev >>= \xev_str -> putStrLn ("Unexpected event: " ++ xev_str)
-        doit (count + 1)
+      else doit (count + 1)
 
 
 showAtom :: Xlib.Display -> Xlib.Atom -> IO String
