@@ -82,6 +82,7 @@ sendClientMessage disp mtype = Xlib.allocaXEvent $ \xev -> do
   XlibE.setEventType xev Xlib.clientMessage
   XlibE.setClientMessageEvent xev root_win mtype 8 0 0
   Xlib.sendEvent disp root_win False xEventMask xev
+  Xlib.flush disp
 
 -- | Check if the given event is the debounced event.
 isDebouncedEvent :: Debouncer -> Xlib.XEventPtr -> IO Bool
