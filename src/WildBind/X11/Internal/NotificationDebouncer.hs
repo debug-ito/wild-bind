@@ -19,15 +19,16 @@
 --   of exceptions (it just crashes the entire process and it's
 --   practically impossible to catch the exceptions).
 --
--- Personally, I have experienced even weirder baheviors when I did
+-- Personally, I have experienced even weirder behaviors when I did
 -- some X11 operations at arrivals of notification events.
 --
 -- * Sometimes I could not obtain the current active window. Instead,
 --   I ended up with getting the previous active window.
+-- 
 -- * Sometimes GetWindowProperty blocked forever.
 -- 
 -- So, as a workaround, we debouce the raw notification events and
--- generates a ClientMessage X11 event. When we get the ClientMessage,
+-- generate a ClientMessage X11 event. When we get the ClientMessage,
 -- we update the state.
 
 -- Toshio's personal note: 2015/05/06, 2010/12/05 - 19
