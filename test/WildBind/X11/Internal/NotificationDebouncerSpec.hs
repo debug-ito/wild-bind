@@ -12,8 +12,7 @@ spec = do
     it "should create an X event that passes isDeboucedEvent" $ do
       disp <- Xlib.openDisplay ""
       Xlib.selectInput disp (Xlib.defaultRootWindow disp) Deb.xEventMask
-      deb <- Deb.new disp
-      -- deb <- Deb.new =<< Xlib.openDisplay ""
+      deb <- Deb.new =<< Xlib.openDisplay ""
       Deb.notify deb
       (Xlib.allocaXEvent $ waitForDebouncedEvent deb disp) `shouldReturn` True
       Deb.close deb
