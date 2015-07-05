@@ -12,22 +12,20 @@ spec = do
     it "should create an X event that passes isDeboucedEvent" $ do
       disp <- Xlib.openDisplay ""
       Xlib.selectInput disp (Xlib.defaultRootWindow disp) Deb.xEventMask
-      debdisp <- Xlib.openDisplay ""
-      putStrLn ("caller disp: " ++ showDisplay disp ++ ", deb disp: " ++ showDisplay debdisp)
-      deb <- Deb.new debdisp
+      deb <- Deb.new =<< Xlib.openDisplay ""
       Deb.notify deb
       (Xlib.allocaXEvent $ waitForDebouncedEvent deb disp) `shouldReturn` True
       Deb.close deb
 
-showDisplay :: Xlib.Display -> String
-showDisplay disp = show disp ++ "(conn number = "++ show (Xlib.connectionNumber disp) ++")"
+-- showDisplay :: Xlib.Display -> String
+-- showDisplay disp = show disp ++ "(conn number = "++ show (Xlib.connectionNumber disp) ++")"
         
 waitForDebouncedEvent :: Deb.Debouncer -> Xlib.Display -> Xlib.XEventPtr -> IO Bool
 waitForDebouncedEvent deb disp xev = doit 0 where
   doit :: Int -> IO Bool
   doit count = do
     Xlib.nextEvent disp xev
-    ret <- Deb.isDebouncedEvent deb xev -- is it ok to use 'disp' (different Display from the one Debouncer uses)
+    ret <- Deb.isDebouncedEvent deb xev
     showXEvent disp xev >>= \xev_str -> putStrLn ("Got event: " ++ xev_str)
     if ret || (count > 20)
       then return ret
