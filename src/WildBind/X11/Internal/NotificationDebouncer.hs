@@ -33,7 +33,12 @@
 -- Toshio's personal note: 2015/05/06, 2010/12/05 - 19
 
 module WildBind.X11.Internal.NotificationDebouncer (
-  Debouncer, new, close, notify, isDebouncedEvent
+  Debouncer,
+  new,
+  close,
+  notify,
+  xEventMask,
+  isDebouncedEvent
 ) where
 
 import Control.Applicative ((<$>), (<*>))
@@ -64,12 +69,18 @@ newTrigger :: Xlib.Display -> Xlib.Atom -> IO (Fdeb.Trigger () ())
 newTrigger disp mtype = Fdeb.new (Fdeb.forVoid $ sendClientMessage disp mtype)
                            Fdeb.def { Fdeb.delay = 50000, Fdeb.alwaysResetTimer = True }
 
+-- | The Xlib EventMask for sending the ClientMessage. You have to
+-- select this mask by 'selectInput' function to receive the
+-- ClientMessage.
+xEventMask :: Xlib.EventMask
+xEventMask = Xlib.substructureNotifyMask
+
 sendClientMessage :: Xlib.Display -> Xlib.Atom -> IO ()
 sendClientMessage disp mtype = Xlib.allocaXEvent $ \xev -> do
   let root_win = Xlib.defaultRootWindow disp
   XlibE.setEventType xev Xlib.clientMessage
   XlibE.setClientMessageEvent xev root_win mtype 8 0 0
-  Xlib.sendEvent disp root_win False Xlib.substructureNotifyMask xev
+  Xlib.sendEvent disp root_win False xEventMask xev
 
 -- | Check if the given event is the debounced event.
 isDebouncedEvent :: Debouncer -> Xlib.XEventPtr -> IO Bool
