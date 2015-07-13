@@ -35,14 +35,13 @@
 
 module WildBind.X11.Internal.NotificationDebouncer (
   Debouncer,
-  new,
-  close,
+  withDebouncer,
   notify,
   xEventMask,
   isDebouncedEvent
 ) where
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Exception (bracket)
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
 import qualified Control.FoldDebounce as Fdeb
@@ -52,15 +51,11 @@ data Debouncer = Debouncer {
   ndMessageType :: Xlib.Atom
 }
 
-new :: Xlib.Display -- ^ a handle to send ClientMessage event.
-                    -- It should be a different handle from the one held by 'X11Front'
-    -> IO Debouncer
-new disp = do
+-- | Create a Debouncer and run the specified action.
+withDebouncer :: Xlib.Display -> (Debouncer -> IO a) -> IO a
+withDebouncer disp action = do
   mtype <- Xlib.internAtom disp "_WILDBIND_NOTIFY_CHANGE" False
-  Debouncer <$> newTrigger disp mtype <*> return mtype
-
-close :: Debouncer -> IO ()
-close = Fdeb.close . ndTrigger
+  bracket (newTrigger disp mtype) (Fdeb.close) $ \trigger -> action (Debouncer trigger mtype)
 
 -- | Notify the 'Debouncer' that a notification event arrives.
 notify :: Debouncer -> IO ()
