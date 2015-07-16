@@ -3,13 +3,13 @@ module WildBind.X11Spec (main, spec) where
 
 import System.IO (hPutStrLn,stderr)
 import System.Environment (lookupEnv)
-import Control.Exception (finally,bracket)
+import Control.Exception (finally)
 import Control.Applicative ((<$>))
 import Test.Hspec
 
 import WildBind (setGrab,unsetGrab,nextEvent,FrontEvent(FEChange,FEInput),FrontInputDevice,FrontEventSource)
 import qualified WildBind.NumPad as NumPad
-import WildBind.X11 (initX11Front,releaseX11Front,ActiveWindow,X11Front)
+import WildBind.X11 (withX11Front,ActiveWindow)
 
 main :: IO ()
 main = hspec spec
@@ -45,9 +45,6 @@ grabExp front grab_input = grabExpMain `finally` releaseAll where
       FEInput _ got -> do
         got `shouldBe` grab_input
   releaseAll = mapM_ (unsetGrab front) (enumFromTo minBound maxBound :: [i])
-
-withX11Front :: (X11Front -> Expectation) -> Expectation
-withX11Front act = bracket initX11Front releaseX11Front act
 
 spec :: Spec
 spec = do

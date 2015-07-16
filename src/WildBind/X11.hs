@@ -6,10 +6,10 @@
 module WildBind.X11 (
   X11Front,
   ActiveWindow,
-  initX11Front,
-  releaseX11Front
+  withX11Front
 ) where
 
+import Control.Exception (bracket)
 import Control.Applicative ((<$>),empty)
 
 import qualified Graphics.X11.Xlib as Xlib
@@ -30,16 +30,12 @@ data X11Front = X11Front {
 x11RootWindow :: X11Front -> Xlib.Window
 x11RootWindow = Xlib.defaultRootWindow . x11Display
 
--- | Initialize and obtain 'X11Front' object.
-initX11Front :: IO X11Front
-initX11Front = do
-  disp <- Xlib.openDisplay ""
+-- | Initialize and obtain 'X11Front' object, and run the given
+-- action.
+withX11Front :: (X11Front -> IO a) -> IO a
+withX11Front action = bracket  (Xlib.openDisplay "") Xlib.closeDisplay $ \disp -> do
   Xlib.selectInput disp (Xlib.defaultRootWindow disp) Xlib.substructureNotifyMask
-  return $ X11Front disp
-
--- | Release all resource associated with 'X11Front'.
-releaseX11Front :: X11Front -> IO ()
-releaseX11Front = Xlib.closeDisplay . x11Display
+  action $ X11Front disp
 
 convertEvent :: (KeySymLike k) => Xlib.Display -> Xlib.XEventPtr -> MaybeT IO (FrontEvent ActiveWindow k)
 convertEvent disp xev = do
