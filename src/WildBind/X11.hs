@@ -10,10 +10,11 @@ module WildBind.X11 (
 ) where
 
 import Control.Exception (bracket)
-import Control.Applicative ((<$>),empty)
+import Control.Applicative ((<$>), (<*>), empty)
 import Data.Bits ((.|.))
 
 import qualified Graphics.X11.Xlib as Xlib
+import qualified Graphics.X11.Xlib.Extras as XlibE
 import Control.Monad.Trans.Maybe (MaybeT,runMaybeT)
 import Control.Monad.IO.Class (liftIO)
 
@@ -49,20 +50,21 @@ withX11Front action =
 
 convertEvent :: (KeySymLike k) => X11Front -> Xlib.XEventPtr -> MaybeT IO (FrontEvent ActiveWindow k)
 convertEvent front xev = do
-  awin <- liftIO $ getActiveWindow disp
   xtype <- liftIO $ Xlib.get_EventType xev
+  let disp = x11Display front
+      deb = x11Debouncer front
+      is_key_event = xtype == Xlib.keyRelease
+      is_awin_event = xtype == Xlib.configureNotify || xtype == Xlib.destroyNotify
+      getAWin = liftIO $ getActiveWindow disp
   is_deb_event <- liftIO $ Ndeb.isDebouncedEvent deb xev
-  convert' is_deb_event awin xtype
-  where
-    disp = x11Display front
-    deb = x11Debouncer front
-    convert' is_deb_event awin xtype
-      | is_deb_event = return $ FEChange awin
-      | xtype == Xlib.keyRelease = FEInput awin <$> xEventToKeySymLike xev
-      | xtype == Xlib.configureNotify || xtype == Xlib.destroyNotify = do
-        liftIO (Ndeb.notify deb)
-        empty
-      | otherwise = empty
+  if is_key_event
+    then FEInput <$> getAWin <*> xEventToKeySymLike xev
+  else if is_deb_event
+    then FEChange <$> getAWin
+  else if is_awin_event
+    then liftIO (Ndeb.notify deb) >> empty
+  else empty
+
 
 grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front -> k -> IO ()
 grabDef func front key = func (x11Display front) (x11RootWindow front) key
