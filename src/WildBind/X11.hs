@@ -11,6 +11,7 @@ module WildBind.X11 (
 
 import Control.Exception (bracket)
 import Control.Applicative ((<$>),empty)
+import Data.Bits ((.|.))
 
 import qualified Graphics.X11.Xlib as Xlib
 import Control.Monad.Trans.Maybe (MaybeT,runMaybeT)
@@ -21,12 +22,12 @@ import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUn
 
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike, xEventToKeySymLike, xGrabKey, xUngrabKey)
 import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow)
-import WildBind.X11.Internal.NotificationDebouncer (Debouncer, withDebouncer)
+import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
 
 -- | The X11 front-end
 data X11Front = X11Front {
   x11Display :: Xlib.Display,
-  x11Debouncer :: Debouncer
+  x11Debouncer :: Ndeb.Debouncer
 }
 
 x11RootWindow :: X11Front -> Xlib.Window
@@ -41,19 +42,26 @@ withX11Front :: (X11Front -> IO a) -> IO a
 withX11Front action =
   bracket openMyDisplay Xlib.closeDisplay $ \disp ->
     bracket openMyDisplay Xlib.closeDisplay $ \notif_disp ->
-      withDebouncer notif_disp $ \debouncer -> do
-        Xlib.selectInput disp (Xlib.defaultRootWindow disp) Xlib.substructureNotifyMask
+      Ndeb.withDebouncer notif_disp $ \debouncer -> do
+        Xlib.selectInput disp (Xlib.defaultRootWindow disp)
+          (Xlib.substructureNotifyMask .|. Ndeb.xEventMask)
         action $ X11Front disp debouncer
 
-convertEvent :: (KeySymLike k) => Xlib.Display -> Xlib.XEventPtr -> MaybeT IO (FrontEvent ActiveWindow k)
-convertEvent disp xev = do
-  xtype <- liftIO $ Xlib.get_EventType xev
+convertEvent :: (KeySymLike k) => X11Front -> Xlib.XEventPtr -> MaybeT IO (FrontEvent ActiveWindow k)
+convertEvent front xev = do
   awin <- liftIO $ getActiveWindow disp
-  convert' awin xtype
+  xtype <- liftIO $ Xlib.get_EventType xev
+  is_deb_event <- liftIO $ Ndeb.isDebouncedEvent deb xev
+  convert' is_deb_event awin xtype
   where
-    convert' awin xtype
+    disp = x11Display front
+    deb = x11Debouncer front
+    convert' is_deb_event awin xtype
+      | is_deb_event = return $ FEChange awin
       | xtype == Xlib.keyRelease = FEInput awin <$> xEventToKeySymLike xev
-      | xtype == Xlib.configureNotify || xtype == Xlib.destroyNotify = return $ FEChange awin
+      | xtype == Xlib.configureNotify || xtype == Xlib.destroyNotify = do
+        liftIO (Ndeb.notify deb)
+        empty
       | otherwise = empty
 
 grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front -> k -> IO ()
@@ -73,5 +81,5 @@ instance FrontInputDevice X11Front NumPadLockedInput where
 instance (FrontInput k, KeySymLike k) => FrontEventSource X11Front ActiveWindow k where
   nextEvent handle = Xlib.allocaXEvent $ \xev -> do
     Xlib.nextEvent (x11Display handle) xev
-    maybe (nextEvent handle) return =<< (runMaybeT $ convertEvent (x11Display handle) xev)
+    maybe (nextEvent handle) return =<< (runMaybeT $ convertEvent handle xev)
     
