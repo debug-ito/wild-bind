@@ -61,9 +61,12 @@ withDebouncer disp action = do
 notify :: Debouncer -> IO ()
 notify deb = Fdeb.send (ndTrigger deb) ()
 
+debounceDelay :: Int
+debounceDelay = 50000
+
 newTrigger :: Xlib.Display -> Xlib.Atom -> IO (Fdeb.Trigger () ())
 newTrigger disp mtype = Fdeb.new (Fdeb.forVoid $ sendClientMessage disp mtype)
-                           Fdeb.def { Fdeb.delay = 50000, Fdeb.alwaysResetTimer = True }
+                           Fdeb.def { Fdeb.delay = debounceDelay, Fdeb.alwaysResetTimer = True }
 
 -- | The Xlib EventMask for sending the ClientMessage. You have to
 -- select this mask by 'selectInput' function to receive the
