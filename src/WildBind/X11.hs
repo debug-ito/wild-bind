@@ -21,21 +21,29 @@ import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUn
 
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike, xEventToKeySymLike, xGrabKey, xUngrabKey)
 import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow)
+import WildBind.X11.Internal.NotificationDebouncer (Debouncer, withDebouncer)
 
 -- | The X11 front-end
 data X11Front = X11Front {
-  x11Display :: Xlib.Display
+  x11Display :: Xlib.Display,
+  x11Debouncer :: Debouncer
 }
 
 x11RootWindow :: X11Front -> Xlib.Window
 x11RootWindow = Xlib.defaultRootWindow . x11Display
 
+openMyDisplay :: IO Xlib.Display
+openMyDisplay = Xlib.openDisplay ""
+
 -- | Initialize and obtain 'X11Front' object, and run the given
 -- action.
 withX11Front :: (X11Front -> IO a) -> IO a
-withX11Front action = bracket  (Xlib.openDisplay "") Xlib.closeDisplay $ \disp -> do
-  Xlib.selectInput disp (Xlib.defaultRootWindow disp) Xlib.substructureNotifyMask
-  action $ X11Front disp
+withX11Front action =
+  bracket openMyDisplay Xlib.closeDisplay $ \disp ->
+    bracket openMyDisplay Xlib.closeDisplay $ \notif_disp ->
+      withDebouncer notif_disp $ \debouncer -> do
+        Xlib.selectInput disp (Xlib.defaultRootWindow disp) Xlib.substructureNotifyMask
+        action $ X11Front disp debouncer
 
 convertEvent :: (KeySymLike k) => Xlib.Display -> Xlib.XEventPtr -> MaybeT IO (FrontEvent ActiveWindow k)
 convertEvent disp xev = do
