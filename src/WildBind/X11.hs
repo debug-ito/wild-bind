@@ -17,6 +17,7 @@ import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import qualified Graphics.X11.Xlib as Xlib
 import Control.Monad.Trans.Maybe (MaybeT,runMaybeT)
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Cont (ContT(ContT), runContT)
 
 import WildBind (FrontInput, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput,FEChange))
 import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUnlocked, descriptionForLocked)
@@ -41,14 +42,14 @@ openMyDisplay = Xlib.openDisplay ""
 -- | Initialize and obtain 'X11Front' object, and run the given
 -- action.
 withX11Front :: (X11Front -> IO a) -> IO a
-withX11Front action =
-  bracket openMyDisplay Xlib.closeDisplay $ \disp ->  -- should we use ContT here?
-    bracket openMyDisplay Xlib.closeDisplay $ \notif_disp ->
-      Ndeb.withDebouncer notif_disp $ \debouncer -> do
-        Xlib.selectInput disp (Xlib.defaultRootWindow disp)
-          (Xlib.substructureNotifyMask .|. Ndeb.xEventMask)
-        awin_ref <- newIORef =<< getActiveWindow disp
-        action $ X11Front disp debouncer awin_ref
+withX11Front = runContT $ do
+  disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
+  notif_disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
+  debouncer <- ContT $ Ndeb.withDebouncer notif_disp
+  liftIO $ Xlib.selectInput disp (Xlib.defaultRootWindow disp)
+    (Xlib.substructureNotifyMask .|. Ndeb.xEventMask)
+  awin_ref <- liftIO $ newIORef =<< getActiveWindow disp
+  return $ X11Front disp debouncer awin_ref
 
 convertEvent :: (KeySymLike k) => Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> MaybeT IO (FrontEvent ActiveWindow k)
 convertEvent disp deb xev = do
