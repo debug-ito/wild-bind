@@ -14,11 +14,10 @@ import Control.Applicative ((<$>), (<*>), empty)
 import Data.Bits ((.|.))
 
 import qualified Graphics.X11.Xlib as Xlib
-import qualified Graphics.X11.Xlib.Extras as XlibE
 import Control.Monad.Trans.Maybe (MaybeT,runMaybeT)
 import Control.Monad.IO.Class (liftIO)
 
-import WildBind (FrontState, FrontInput, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput,FEChange))
+import WildBind (FrontInput, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput,FEChange))
 import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUnlocked, descriptionForLocked)
 
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike, xEventToKeySymLike, xGrabKey, xUngrabKey)
