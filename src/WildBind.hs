@@ -52,7 +52,8 @@ data FrontEvent s i = FEInput s i -- ^ An event that a new input is made.
 
 -- | Something that brings stream of events from the front-end.
 class (FrontState s, FrontInput i) => FrontEventSource f s i where
-  nextEvent :: f -> IO (FrontEvent s i)  -- should it be a streaming I/F, like conduit?
+  -- | Retrieve the next event. It blocks if no event is queued.
+  nextEvent :: f -> IO (FrontEvent s i)
 
 -- | Action done by WildBind
 data Action a = Action {
@@ -62,6 +63,7 @@ data Action a = Action {
 
 -- | Something that describes current bindings for the user.
 class (FrontInput i) => FrontDescriber f i where
+  -- | Describe (show) the given action to the user.
   describeAction :: f -> i -> ActionDescription -> IO ()
 
 -- | WildBind back-end binding between inputs and actions.
