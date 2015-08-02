@@ -16,6 +16,8 @@ module WildBind (
   -- * Back-end
   Action(..),
   Binding,
+  boundAction,
+  boundInputs,
   -- * Entry point
   wildBind
 ) where
@@ -68,19 +70,26 @@ class (FrontInput i) => FrontDescriber f i where
 
 -- | WildBind back-end binding between inputs and actions.
 newtype Binding s i = Binding {
-  bindingFor :: s -> M.Map i (Action (Binding s i))
+  unBinding :: s -> M.Map i (Action (Binding s i))
                 -- ^ The result of the 'Action' is the new state of
                 -- the 'Binding'.
 }
+
+-- | Get the 'Action' bound to the specified state @s@ and input @i@.
+boundAction :: (FrontInput i) => Binding s i -> s -> i -> Maybe (Action (Binding s i))
+boundAction binding state input = M.lookup input $ unBinding binding state
+
+-- | Get the list of all inputs @i@ bound to the specified state @s@.
+boundInputs :: Binding s i -> s -> [i]
+boundInputs binding state = M.keys $ unBinding binding state
 
 instance Monoid (Binding s i) where
   mempty = undefined
   mappend = undefined
 
-type GrabSet i = [i]
+------
 
-getGrabSet :: (FrontState s) => Binding s i -> s -> GrabSet i
-getGrabSet binding state = M.keys $ bindingFor binding state
+type GrabSet i = [i]
 
 updateGrab :: (FrontInputDevice f i) => f -> GrabSet i -> GrabSet i -> IO ()
 updateGrab front before after = do
@@ -99,9 +108,9 @@ type WBState s i = State.StateT (Binding s i, Maybe s) IO
 updateWBState :: (FrontInputDevice f i, FrontState s) => f -> Binding s i -> s -> WBState s i ()
 updateWBState front after_binding after_state = do
   (before_binding, before_mstate) <- State.get
-  let before_grabset = maybe [] (getGrabSet before_binding) before_mstate
+  let before_grabset = maybe [] (boundInputs before_binding) before_mstate
   State.put $ (after_binding, Just after_state)
-  liftIO $ updateGrab front before_grabset (getGrabSet after_binding after_state)
+  liftIO $ updateGrab front before_grabset (boundInputs after_binding after_state)
 
 updateFrontState :: (FrontInputDevice f i, FrontState s) => f -> s -> WBState s i ()
 updateFrontState front after_state = do
@@ -124,7 +133,7 @@ wildBindWithState front_input front_event = do
     FEInput state input -> do
       updateFrontState front_input state
       (cur_binding, _) <- State.get
-      case M.lookup input $ bindingFor cur_binding state of
+      case boundAction cur_binding state input of
         Nothing -> return ()
         Just action -> do
           next_binding <- liftIO $ actDo action
