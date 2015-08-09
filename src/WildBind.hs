@@ -22,72 +22,26 @@ module WildBind (
   wildBind
 ) where
 
-import Data.Monoid (Monoid(..))
 import Data.List ((\\))
-import Data.Text (Text)
-import qualified Data.Map as M
 import qualified Control.Monad.Trans.State as State
 import Control.Monad.IO.Class (liftIO)
 
--- | The state of the front-end. It can change with no regard with WildBind.
-class FrontState s
+import WildBind.Internal.Common (ActionDescription)
+import WildBind.Internal.FrontEnd (
+  FrontState,
+  FrontInput,
+  FrontInputDevice(..),
+  FrontEvent(..),
+  FrontEventSource(..),
+  FrontDescriber(..)
+  )
+import WildBind.Internal.BackEnd (
+  Action(..),
+  Binding,
+  boundAction,
+  boundInputs,
+  )
 
--- | The type of input symbols, like key buttons.
-class Ord i => FrontInput i
-
--- | Human-readable description of an action.
-type ActionDescription = Text
-
--- | Something that knows about and controls the input device. @f@ is
--- the device, @i@ is the 'FrontInput' data it generates.
-class (FrontInput i) => FrontInputDevice f i where
-  defaultActionDescription :: f -> i -> ActionDescription
-  -- | Grab (or capture) the specified input symbol on the device. 
-  setGrab :: f -> i -> IO ()
-  -- | Release the grab for the input symbol.
-  unsetGrab :: f -> i -> IO ()
-
--- | Event from the front-end. @s@ is the state of the front-end. @i@ is the input.
-data FrontEvent s i = FEInput s i -- ^ An event that a new input is made.
-                    | FEChange s  -- ^ An event that the front-end state is changed.
-                    deriving (Show)
-
--- | Something that brings stream of events from the front-end.
-class (FrontState s, FrontInput i) => FrontEventSource f s i where
-  -- | Retrieve the next event. It blocks if no event is queued.
-  nextEvent :: f -> IO (FrontEvent s i)
-
--- | Action done by WildBind
-data Action a = Action {
-  actDescription :: ActionDescription, -- ^ Human-readable description of the action.
-  actDo :: IO a -- ^ The actual job.
-}
-
--- | Something that describes current bindings for the user.
-class (FrontInput i) => FrontDescriber f i where
-  -- | Describe (show) the given action to the user.
-  describeAction :: f -> i -> ActionDescription -> IO ()
-
--- | WildBind back-end binding between inputs and actions.
-newtype Binding s i = Binding {
-  unBinding :: s -> M.Map i (Action (Binding s i))
-                -- ^ The result of the 'Action' is the new state of
-                -- the 'Binding'.
-}
-
--- | Get the 'Action' bound to the specified state @s@ and input @i@.
-boundAction :: (FrontInput i) => Binding s i -> s -> i -> Maybe (Action (Binding s i))
-boundAction binding state input = M.lookup input $ unBinding binding state
-
--- | Get the list of all inputs @i@ bound to the specified state @s@.
-boundInputs :: Binding s i -> s -> [i]
-boundInputs binding state = M.keys $ unBinding binding state
-
-instance Monoid (Binding s i) where
-  mempty = undefined
-  mappend = undefined
-
-------
 
 type GrabSet i = [i]
 
