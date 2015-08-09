@@ -32,7 +32,7 @@ p :: String -> IO ()
 p = hPutStrLn stderr . ("--- " ++)
 
 grabExp :: forall f i
-           . (Bounded i, Enum i, Show i, FrontInputDevice f i, FrontEventSource f ActiveWindow i)
+           . (Bounded i, Enum i, Show i, Eq i, FrontInputDevice f i, FrontEventSource f ActiveWindow i)
            => f -> i -> Expectation
 grabExp front grab_input = grabExpMain `finally` releaseAll where
   grabExpMain = do

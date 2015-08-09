@@ -19,7 +19,7 @@ import Control.Monad.Trans.Maybe (MaybeT,runMaybeT)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Cont (ContT(ContT), runContT)
 
-import WildBind (FrontInput, FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput,FEChange))
+import WildBind (FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput,FEChange))
 import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUnlocked, descriptionForLocked)
 
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike, xEventToKeySymLike, xGrabKey, xUngrabKey)
@@ -93,7 +93,7 @@ instance FrontInputDevice X11Front NumPadLockedInput where
   defaultActionDescription _ = descriptionForLocked
 
 
-instance (FrontInput k, KeySymLike k) => FrontEventSource X11Front ActiveWindow k where
+instance (KeySymLike k) => FrontEventSource X11Front ActiveWindow k where
   nextEvent handle = Xlib.allocaXEvent $ \xev -> do
     Xlib.nextEvent (x11Display handle) xev
     maybe (nextEvent handle) return =<< (runMaybeT $ processEvent xev)

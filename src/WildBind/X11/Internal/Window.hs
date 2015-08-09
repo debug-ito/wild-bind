@@ -26,8 +26,6 @@ import qualified Graphics.X11.Xlib.Extras as XlibE
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT),runMaybeT)
 import Control.Monad.IO.Class (liftIO)
 
-import WildBind (FrontState)
-
 -- | Information about window. You can inspect properties 'winInstance'
 -- and 'winClass' by @wmctrl@ command.
 --
@@ -45,7 +43,6 @@ data Window = Window {
   winClass :: Text, -- ^ name of the application class (part of @WM_CLASS@ property)
   winName :: Text  -- ^ what's shown in the title bar
 } deriving (Eq,Ord,Show)
-instance FrontState Window
 
 -- | Use this type especially when the 'Window' is active.
 type ActiveWindow = Window
