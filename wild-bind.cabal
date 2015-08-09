@@ -19,7 +19,8 @@ library
   ghc-options:          -Wall
   default-extensions:   MultiParamTypeClasses OverloadedStrings
   exposed-modules:      WildBind,
-                        WildBind.NumPad
+                        WildBind.NumPad,
+                        WildBind.Binding
   other-modules:        WildBind.Internal.Common,
                         WildBind.Internal.FrontEnd,
                         WildBind.Internal.BackEnd
