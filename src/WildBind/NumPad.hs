@@ -13,7 +13,7 @@ module WildBind.NumPad (
   descriptionForLocked
 ) where
 
-import WildBind (FrontInput, ActionDescription)
+import WildBind (ActionDescription)
 
 -- | Number pad key input with NumLock disabled.
 data NumPadUnlockedInput
@@ -35,7 +35,6 @@ data NumPadUnlockedInput
   | NumDelete
   deriving (Eq,Ord,Show,Bounded,Enum)
 
-instance FrontInput NumPadUnlockedInput
 
 -- | default description for unlocked numpad keys
 descriptionForUnlocked :: NumPadUnlockedInput -> ActionDescription
@@ -78,7 +77,6 @@ data NumPadLockedInput
   | NumLPeriod
   deriving (Eq,Ord,Show,Bounded,Enum)
 
-instance FrontInput NumPadLockedInput
 
 -- | default description for locked numpad keys
 descriptionForLocked :: NumPadLockedInput -> ActionDescription

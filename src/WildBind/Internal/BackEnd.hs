@@ -16,7 +16,6 @@ import qualified Data.Map as M
 import Data.Monoid (Monoid(..))
 
 import WildBind.Internal.Common (ActionDescription)
-import WildBind.Internal.FrontEnd (FrontInput)
 
 -- | Action done by WildBind
 data Action a = Action {
@@ -32,7 +31,7 @@ newtype Binding s i = Binding {
 }
 
 -- | Get the 'Action' bound to the specified state @s@ and input @i@.
-boundAction :: (FrontInput i) => Binding s i -> s -> i -> Maybe (Action (Binding s i))
+boundAction :: (Ord i) => Binding s i -> s -> i -> Maybe (Action (Binding s i))
 boundAction binding state input = M.lookup input $ unBinding binding state
 
 -- | Get the list of all inputs @i@ bound to the specified state @s@.
