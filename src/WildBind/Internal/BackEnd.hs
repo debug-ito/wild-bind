@@ -7,9 +7,7 @@
 -- directly. Use "WildBind" instead.
 module WildBind.Internal.BackEnd (
   Action(..),
-  Binding(..),
-  boundAction,
-  boundInputs
+  Binding(..)
 ) where
 
 import qualified Data.Map as M
@@ -29,14 +27,6 @@ newtype Binding s i = Binding {
                 -- ^ The result of the 'Action' is the new state of
                 -- the 'Binding'.
 }
-
--- | Get the 'Action' bound to the specified state @s@ and input @i@.
-boundAction :: (Ord i) => Binding s i -> s -> i -> Maybe (Action (Binding s i))
-boundAction binding state input = M.lookup input $ unBinding binding state
-
--- | Get the list of all inputs @i@ bound to the specified state @s@.
-boundInputs :: Binding s i -> s -> [i]
-boundInputs binding state = M.keys $ unBinding binding state
 
 instance Monoid (Binding s i) where
   mempty = undefined

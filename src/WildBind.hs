@@ -31,7 +31,7 @@ import WildBind.Internal.FrontEnd (
   FrontEventSource(..),
   FrontDescriber(..)
   )
-import WildBind.Internal.BackEnd (
+import WildBind.Binding (
   Action(..),
   Binding,
   boundAction,

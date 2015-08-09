@@ -4,7 +4,12 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 module WildBind.Binding (
+  -- * Types
   Binding,
+  Action(Action,actDescription,actDo),
+  -- * Execution
+  boundAction,
+  boundInputs,
   -- * Construction
   bindList,
   on',
@@ -15,10 +20,20 @@ module WildBind.Binding (
   mapI
 ) where
 
+import qualified Data.Map as M 
+
 import WildBind.Internal.Common (ActionDescription)
 import WildBind.Internal.BackEnd (
-  Binding(Binding), Action(Action)
+  Binding(Binding,unBinding), Action(Action,actDescription,actDo)
   )
+
+-- | Get the 'Action' bound to the specified state @s@ and input @i@.
+boundAction :: (Ord i) => Binding s i -> s -> i -> Maybe (Action (Binding s i))
+boundAction binding state input = M.lookup input $ unBinding binding state
+
+-- | Get the list of all inputs @i@ bound to the specified state @s@.
+boundInputs :: Binding s i -> s -> [i]
+boundInputs binding state = M.keys $ unBinding binding state
 
 -- | Build a 'Binding' from a list.
 bindList :: [(i, Action (Binding s i))] -- ^ Bound pairs of input symbol and 'Action'
