@@ -72,12 +72,15 @@ on' :: i -> ActionDescription -> IO a -> (i, Action a)
 on' = undefined
 
 -- | Add a condition to 'Binding'.
-whenS :: (s -> Bool) -- ^ Condition about the front-end state.
-      -> Binding s i -- ^ Original Binding.
-      -> Binding s i -- ^ Result Binding where the original Binding is
-                     -- activated only when the given condition is
-                     -- 'True'.
-whenS = undefined
+whenS :: (fs -> Bool) -- ^ Condition about the front-end state.
+      -> Binding' bs fs i -- ^ Original Binding.
+      -> Binding' bs fs i -- ^ Result Binding where the original
+                          -- Binding is activated only when the given
+                          -- condition is 'True'.
+whenS cond orig_bind = Binding' $ \bs fs ->
+  if cond fs
+  then unBinding' orig_bind bs fs
+  else M.empty
 
 -- infixr version of 'whenS' may be useful, too.
 
