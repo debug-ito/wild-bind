@@ -16,8 +16,9 @@ module WildBind.Binding (
   -- * Condition
   whenS,
   -- * Conversion
-  mapS,
-  mapI,
+  contramapFrontState,
+  mapInput,
+  invmapBackState,
   -- * Explicitly Stateful Bindings
   Binding',
   stateful
@@ -80,15 +81,23 @@ whenS = undefined
 
 -- infixr version of 'whenS' may be useful, too.
 
+mapResult :: (a -> a') -> (b -> b') -> M.Map i (Action (a, b)) -> M.Map i (Action (a',b'))
+mapResult amapper bmapper = (fmap . fmap) (\(a, b) -> (amapper a, bmapper b))
 
 -- | Contramap the front-end state.
-mapS :: (s -> s') -> Binding s' i -> Binding s i
-mapS = undefined
+contramapFrontState :: (fs -> fs') -> Binding' bs fs' i -> Binding' bs fs i
+contramapFrontState cmapper orig_bind = Binding' $ \bs fs ->
+  mapResult (contramapFrontState cmapper) id $ unBinding' orig_bind bs (cmapper fs)
 
--- | contramap the front-end input.
-mapI :: (i -> i') -> Binding s i' -> Binding s i
-mapI = undefined
+-- | Map the front-end input.
+mapInput :: Ord i' => (i -> i') -> Binding' bs fs i -> Binding' bs fs i'
+mapInput mapper orig_bind = Binding' $ \bs fs ->
+  mapResult (mapInput mapper) id $ M.mapKeys mapper $ unBinding' orig_bind bs fs
 
+-- | Invariant-map the back-end state.
+invmapBackState :: (bs -> bs') -> (bs' -> bs) -> Binding' bs fs i -> Binding' bs' fs i
+invmapBackState mapper cmapper orig_bind = Binding' $ \bs fs ->
+  mapResult (invmapBackState mapper cmapper) mapper $ unBinding' orig_bind (cmapper bs) fs
 
 -- | Convert 'Binding'' to 'Binding' by hiding the explicit state
 -- @bs@.
