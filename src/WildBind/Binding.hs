@@ -37,26 +37,29 @@ data Action a = Action {
 instance Functor Action where
   fmap f a = a { actDo = fmap f (actDo a) }
 
--- | WildBind back-end binding between inputs and actions. @s@ is the
--- front-end state type, and @i@ is the input type.
-newtype Binding s i = Binding {
-  unBinding :: s -> M.Map i (Action (Binding s i))
-                -- ^ The result of the 'Action' is the new state of
-                -- the 'Binding'.
+-- | WildBind back-end binding with both explicit and implicit
+-- states. @bs@ is the explicit back-end state, @fs@ is the front-end
+-- state, and @i@ is the input type.
+newtype Binding' bs fs i = Binding' {
+  unBinding' :: bs -> fs -> M.Map i (Action (Binding' bs fs i, bs))
 }
 
-instance Monoid (Binding s i) where
+-- | WildBind back-end binding between inputs and actions. @s@ is the
+-- front-end state type, and @i@ is the input type.
+type Binding s i = Binding' () s i
+
+instance Monoid (Binding' bs fs i) where
   mempty = undefined
   mappend = undefined
 
 
 -- | Get the 'Action' bound to the specified state @s@ and input @i@.
 boundAction :: (Ord i) => Binding s i -> s -> i -> Maybe (Action (Binding s i))
-boundAction binding state input = M.lookup input $ unBinding binding state
+boundAction binding state input = (fmap . fmap) fst $ M.lookup input $ unBinding' binding () state
 
 -- | Get the list of all inputs @i@ bound to the specified state @s@.
 boundInputs :: Binding s i -> s -> [i]
-boundInputs binding state = M.keys $ unBinding binding state
+boundInputs binding state = M.keys $ unBinding' binding () state
 
 -- | Build a 'Binding' from a list.
 bindList :: [(i, Action (Binding s i))] -- ^ Bound pairs of input symbol and 'Action'
@@ -87,17 +90,12 @@ mapI :: (i -> i') -> Binding s i' -> Binding s i
 mapI = undefined
 
 
--- | WildBind back-end binding with explicit state.
-newtype Binding' bs fs i = Binding' {
-  unBinding' :: bs -> fs -> M.Map i (Action bs)
-}
-
 -- | Convert 'Binding'' to 'Binding' by hiding the explicit state
 -- @bs@.
 stateful :: bs -- ^ Initial state
          -> Binding' bs fs i -- ^ Binding' with explicit state
          -> Binding fs i -- ^ Binding containing the state inside
-stateful init_state b' = Binding $ \front_state ->
+stateful init_state b' = Binding' $ \() front_state ->
   (fmap . fmap) toB $ unBinding' b' init_state front_state
   where
-    toB bs = stateful bs b'
+    toB (next_b', next_state) = (stateful next_state next_b', ())
