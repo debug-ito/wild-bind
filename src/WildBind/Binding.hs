@@ -31,7 +31,11 @@ data Action a = Action {
   actDo :: IO a -- ^ The actual job.
 }
 
--- | WildBind back-end binding between inputs and actions.
+instance Functor Action where
+  fmap f a = a { actDo = fmap f (actDo a) }
+
+-- | WildBind back-end binding between inputs and actions. @s@ is the
+-- front-end state type, and @i@ is the input type.
 newtype Binding s i = Binding {
   unBinding :: s -> M.Map i (Action (Binding s i))
                 -- ^ The result of the 'Action' is the new state of
