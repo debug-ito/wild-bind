@@ -50,13 +50,19 @@ newtype Binding' bs fs i = Binding' {
 type Binding s i = Binding' () s i
 
 instance Monoid (Binding' bs fs i) where
-  mempty = undefined
-  mappend = undefined
-
+  mempty = Binding' $ \_ _ -> M.empty
+  mappend abind bbind = Binding' $ \bs fs ->
+    let amap = unBinding' abind bs fs
+        bmap = unBinding' bbind bs fs
+    in undefined  -- how do we (recursively) combine the values of M.Map??
+    
 
 -- | Get the 'Action' bound to the specified state @s@ and input @i@.
 boundAction :: (Ord i) => Binding s i -> s -> i -> Maybe (Action (Binding s i))
-boundAction binding state input = (fmap . fmap) fst $ M.lookup input $ unBinding' binding () state
+boundAction binding state input = (fmap . fmap) fst $ boundAction' binding () state input
+
+boundAction' :: (Ord i) => Binding' bs fs i -> bs -> fs -> i -> Maybe (Action (Binding' bs fs i, bs))
+boundAction' binding bs fs input = M.lookup input $ unBinding' binding bs fs
 
 -- | Get the list of all inputs @i@ bound to the specified state @s@.
 boundInputs :: Binding s i -> s -> [i]
