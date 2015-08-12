@@ -6,13 +6,17 @@
 -- This is an internal module. End-users should not use this module
 -- directly. Use "WildBind" instead.
 module WildBind.Internal.FrontEnd (
+  ActionDescription,
   FrontInputDevice(..),
   FrontEvent(..),
   FrontEventSource(..),
   FrontDescriber(..)
 ) where
 
-import WildBind.Internal.Common (ActionDescription)
+import Data.Text (Text)
+
+-- | Human-readable description of an action.
+type ActionDescription = Text
 
 -- | Something that knows about and controls the input device. @f@ is
 -- the device, @i@ is the input symbol it generates.

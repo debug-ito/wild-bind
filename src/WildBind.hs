@@ -24,8 +24,8 @@ import Data.List ((\\))
 import qualified Control.Monad.Trans.State as State
 import Control.Monad.IO.Class (liftIO)
 
-import WildBind.Internal.Common (ActionDescription)
 import WildBind.Internal.FrontEnd (
+  ActionDescription,
   FrontInputDevice(..),
   FrontEvent(..),
   FrontEventSource(..),
