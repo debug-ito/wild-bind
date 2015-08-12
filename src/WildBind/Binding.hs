@@ -17,7 +17,10 @@ module WildBind.Binding (
   whenS,
   -- * Conversion
   mapS,
-  mapI
+  mapI,
+  -- * Explicitly Stateful Bindings
+  Binding',
+  stateful
 ) where
 
 import qualified Data.Map as M
@@ -82,3 +85,19 @@ mapS = undefined
 -- | contramap the front-end input.
 mapI :: (i -> i') -> Binding s i' -> Binding s i
 mapI = undefined
+
+
+-- | WildBind back-end binding with explicit state.
+newtype Binding' bs fs i = Binding' {
+  unBinding' :: bs -> fs -> M.Map i (Action bs)
+}
+
+-- | Convert 'Binding'' to 'Binding' by hiding the explicit state
+-- @bs@.
+stateful :: bs -- ^ Initial state
+         -> Binding' bs fs i -- ^ Binding' with explicit state
+         -> Binding fs i -- ^ Binding containing the state inside
+stateful init_state b' = Binding $ \front_state ->
+  (fmap . fmap) toB $ unBinding' b' init_state front_state
+  where
+    toB bs = stateful bs b'
