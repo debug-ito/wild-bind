@@ -11,7 +11,7 @@ module WildBind.Binding (
   boundAction,
   boundInputs,
   -- * Construction
-  bindList,
+  rawBinds,
   on',
   -- * Condition
   whenS,
@@ -84,14 +84,19 @@ boundInputs binding state = boundInputs' binding () state
 boundInputs' :: Binding' bs fs i -> bs -> fs -> [i]
 boundInputs' binding bs fs = M.keys $ unBinding' binding bs fs
 
--- | Build a 'Binding' from a list.
-bindList :: [(i, Action (Binding s i))] -- ^ Bound pairs of input symbol and 'Action'
-         -> Binding s i -- ^ Result Binding. The given bindings are activated regardless of front-end state.
-bindList = undefined
+-- | Build a 'Binding' from a list. This is a raw-level function to
+-- build a 'Binding'. 'stateless' and 'stateful' are recommended.
+rawBinds :: Ord i
+         => [(i, Action (Binding s i))] -- ^ Bound pairs of input symbol and 'Action'
+         -> Binding s i
+            -- ^ Result Binding. The given bindings are activated
+            -- regardless of the front-end state.
+rawBinds blist = Binding' $ \_ _ ->
+  (fmap . fmap) (\b -> (b, ())) $ M.fromList blist
 
 -- | Build a single pair of binding.
 on' :: i -> ActionDescription -> IO a -> (i, Action a)
-on' = undefined
+on' input desc act = (input, Action { actDescription = desc, actDo = act })
 
 -- | Add a condition to 'Binding'.
 whenS :: (fs -> Bool) -- ^ Condition about the front-end state.
