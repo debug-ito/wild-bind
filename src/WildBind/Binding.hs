@@ -25,11 +25,13 @@ module WildBind.Binding (
   boundAction',
   boundInputs',
   startFrom,
-  stateIgnored
+  stateIgnored,
+  stateful
 ) where
 
 import qualified Data.Map as M
 import Data.Monoid (Monoid(..))
+import Control.Monad.Trans.State (StateT, runStateT)
 
 import WildBind.Internal.FrontEnd (ActionDescription)
 
@@ -154,3 +156,19 @@ startFrom init_state b' = Binding' $ \() front_state ->
 stateIgnored :: Binding fs i -> Binding' bs fs i
 stateIgnored b = Binding' $ \bs fs ->
   mapResult stateIgnored (const bs) $ unBinding' b () fs
+
+-- | Build a 'Binding'' with an explicit state (but no implicit
+-- state).
+stateful :: Ord i
+         => (bs -> [(i, Action (StateT bs IO) ())]) -- ^ stateful binding lists
+         -> Binding' bs fs i
+         -- ^ The result 'Binding''. The given bindings are activated
+         -- regardless of the front-end state.
+stateful blists' = Binding' $ \bs _ ->
+  fmap (runStatefulAction (stateful blists') bs) $ M.fromList $ blists' bs
+
+runStatefulAction :: Binding' bs fs i -> bs -> Action (StateT bs IO) () -> Action IO (Binding' bs fs i, bs)
+runStatefulAction next_b' cur_bs state_action =
+  let io = runStateT (actDo state_action) cur_bs
+      io_with_next = (\(_, next_bs) -> return (next_b', next_bs)) =<< io
+  in state_action { actDo = io_with_next }
