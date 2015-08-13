@@ -51,12 +51,12 @@ newtype Binding' bs fs i = Binding' {
 -- front-end state type, and @i@ is the input type.
 type Binding s i = Binding' () s i
 
-instance Monoid (Binding' bs fs i) where
+instance Ord i => Monoid (Binding' bs fs i) where
   mempty = Binding' $ \_ _ -> M.empty
   mappend abind bbind = Binding' $ \bs fs ->
-    let amap = unBinding' abind bs fs
-        bmap = unBinding' bbind bs fs
-    in undefined  -- how do we (recursively) combine the values of M.Map??
+    let amap = mapResult (`mappend` bbind) id $ unBinding' abind bs fs
+        bmap = mapResult (abind `mappend`) id $ unBinding' bbind bs fs
+    in M.unionWith (\_ b -> b) amap bmap
     
 
 -- | Get the 'Action' bound to the specified state @s@ and input @i@.
