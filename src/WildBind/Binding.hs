@@ -85,13 +85,14 @@ boundInputs binding state = boundInputs' binding () state
 boundInputs' :: Binding' bs fs i -> bs -> fs -> [i]
 boundInputs' binding bs fs = M.keys $ unBinding' binding bs fs
 
--- | Build a 'Binding' with no internal state.
+-- | Build a 'Binding' with no explicit or implicit state.
 stateless :: Ord i
           => [(i, Action IO ())] -- ^ Bound pairs of input symbols and 'Action'.
           -> Binding s i
           -- ^ Result Binding. The given bindings are activated
           -- regardless of the front-end state.
-stateless blist = rawBinds $ fmap (\(i,a) -> (i, fmap (const $ stateless blist) a)) blist
+stateless blist = rawBinds $ fmap (mapSnd $ fmap (const $ stateless blist)) blist
+  where mapSnd f (a,b) = (a, f b)
 
 -- | Build a 'Binding' from a list. This is a raw-level function to
 -- build a 'Binding'. 'stateless' and 'stateful' are recommended.
