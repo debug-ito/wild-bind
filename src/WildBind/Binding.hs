@@ -51,6 +51,12 @@ newtype Binding' bs fs i = Binding' {
 -- front-end state type, and @i@ is the input type.
 type Binding s i = Binding' () s i
 
+-- | 'mempty' returns a 'Binding' where no binding is
+-- defined. 'mappend' combines two 'Binding's while preserving their
+-- individual implicit states. The right-hand 'Binding' has precedence
+-- over the left-hand one. That is, if the two 'Binding's both have a
+-- binding to the same key in the same front-end and back-end state,
+-- the binding from the right-hand one is used.
 instance Ord i => Monoid (Binding' bs fs i) where
   mempty = Binding' $ \_ _ -> M.empty
   mappend abind bbind = Binding' $ \bs fs ->
