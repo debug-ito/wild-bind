@@ -11,6 +11,7 @@ module WildBind.Binding (
   boundAction,
   boundInputs,
   -- * Construction
+  stateless,
   rawBinds,
   on',
   -- * Condition
@@ -84,13 +85,21 @@ boundInputs binding state = boundInputs' binding () state
 boundInputs' :: Binding' bs fs i -> bs -> fs -> [i]
 boundInputs' binding bs fs = M.keys $ unBinding' binding bs fs
 
+-- | Build a 'Binding' with no internal state.
+stateless :: Ord i
+          => [(i, Action ())] -- ^ Bound pairs of input symbols and 'Action'.
+          -> Binding s i
+          -- ^ Result Binding. The given bindings are activated
+          -- regardless of the front-end state.
+stateless blist = rawBinds $ fmap (\(i,a) -> (i, fmap (const $ stateless blist) a)) blist
+
 -- | Build a 'Binding' from a list. This is a raw-level function to
 -- build a 'Binding'. 'stateless' and 'stateful' are recommended.
 rawBinds :: Ord i
          => [(i, Action (Binding s i))] -- ^ Bound pairs of input symbol and 'Action'
          -> Binding s i
-            -- ^ Result Binding. The given bindings are activated
-            -- regardless of the front-end state.
+         -- ^ Result Binding. The given bindings are activated
+         -- regardless of the front-end state.
 rawBinds blist = Binding' $ \_ _ ->
   (fmap . fmap) (\b -> (b, ())) $ M.fromList blist
 
