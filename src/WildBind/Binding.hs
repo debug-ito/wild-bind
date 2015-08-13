@@ -21,7 +21,9 @@ module WildBind.Binding (
   invmapBackState,
   -- * Explicitly Stateful Bindings
   Binding',
-  stateful
+  stateful,
+  boundAction',
+  boundInputs'
 ) where
 
 import qualified Data.Map as M
@@ -61,12 +63,19 @@ instance Monoid (Binding' bs fs i) where
 boundAction :: (Ord i) => Binding s i -> s -> i -> Maybe (Action (Binding s i))
 boundAction binding state input = (fmap . fmap) fst $ boundAction' binding () state input
 
+-- | Get the 'Action' bound to the specified back-end state @bs@,
+-- front-end state @fs@ and input @i@
 boundAction' :: (Ord i) => Binding' bs fs i -> bs -> fs -> i -> Maybe (Action (Binding' bs fs i, bs))
 boundAction' binding bs fs input = M.lookup input $ unBinding' binding bs fs
 
 -- | Get the list of all inputs @i@ bound to the specified state @s@.
 boundInputs :: Binding s i -> s -> [i]
-boundInputs binding state = M.keys $ unBinding' binding () state
+boundInputs binding state = boundInputs' binding () state
+
+-- | Get the list of all inputs @i@ bound to the specified back-end
+-- state @bs@ and front-end state @fs@.
+boundInputs' :: Binding' bs fs i -> bs -> fs -> [i]
+boundInputs' binding bs fs = M.keys $ unBinding' binding bs fs
 
 -- | Build a 'Binding' from a list.
 bindList :: [(i, Action (Binding s i))] -- ^ Bound pairs of input symbol and 'Action'
