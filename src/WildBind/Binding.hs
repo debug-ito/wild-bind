@@ -21,9 +21,10 @@ module WildBind.Binding (
   invmapBackState,
   -- * Explicitly Stateful Bindings
   Binding',
-  stateful,
   boundAction',
-  boundInputs'
+  boundInputs',
+  startFrom,
+  stateIgnored
 ) where
 
 import qualified Data.Map as M
@@ -125,10 +126,16 @@ invmapBackState mapper cmapper orig_bind = Binding' $ \bs fs ->
 
 -- | Convert 'Binding'' to 'Binding' by hiding the explicit state
 -- @bs@.
-stateful :: bs -- ^ Initial state
-         -> Binding' bs fs i -- ^ Binding' with explicit state
-         -> Binding fs i -- ^ Binding containing the state inside
-stateful init_state b' = Binding' $ \() front_state ->
+startFrom :: bs -- ^ Initial state
+          -> Binding' bs fs i -- ^ Binding' with explicit state
+          -> Binding fs i -- ^ Binding containing the state inside
+startFrom init_state b' = Binding' $ \() front_state ->
   (fmap . fmap) toB $ unBinding' b' init_state front_state
   where
-    toB (next_b', next_state) = (stateful next_state next_b', ())
+    toB (next_b', next_state) = (startFrom next_state next_b', ())
+
+-- | Extend 'Binding' to 'Binding''. The explicit back-end state is
+-- unmodified.
+stateIgnored :: Binding fs i -> Binding' bs fs i
+stateIgnored b = Binding' $ \bs fs ->
+  mapResult stateIgnored (const bs) $ unBinding' b () fs
