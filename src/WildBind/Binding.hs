@@ -34,19 +34,19 @@ import Data.Monoid (Monoid(..))
 import WildBind.Internal.FrontEnd (ActionDescription)
 
 -- | Action done by WildBind
-data Action a = Action {
+data Action m a = Action {
   actDescription :: ActionDescription, -- ^ Human-readable description of the action.
-  actDo :: IO a -- ^ The actual job.
+  actDo :: m a -- ^ The actual job.
 }
 
-instance Functor Action where
+instance Functor m => Functor (Action m) where
   fmap f a = a { actDo = fmap f (actDo a) }
 
 -- | WildBind back-end binding with both explicit and implicit
 -- states. @bs@ is the explicit back-end state, @fs@ is the front-end
 -- state, and @i@ is the input type.
 newtype Binding' bs fs i = Binding' {
-  unBinding' :: bs -> fs -> M.Map i (Action (Binding' bs fs i, bs))
+  unBinding' :: bs -> fs -> M.Map i (Action IO (Binding' bs fs i, bs))
 }
 
 -- | WildBind back-end binding between inputs and actions. @s@ is the
@@ -68,12 +68,12 @@ instance Ord i => Monoid (Binding' bs fs i) where
     
 
 -- | Get the 'Action' bound to the specified state @s@ and input @i@.
-boundAction :: (Ord i) => Binding s i -> s -> i -> Maybe (Action (Binding s i))
+boundAction :: (Ord i) => Binding s i -> s -> i -> Maybe (Action IO (Binding s i))
 boundAction binding state input = (fmap . fmap) fst $ boundAction' binding () state input
 
 -- | Get the 'Action' bound to the specified back-end state @bs@,
 -- front-end state @fs@ and input @i@
-boundAction' :: (Ord i) => Binding' bs fs i -> bs -> fs -> i -> Maybe (Action (Binding' bs fs i, bs))
+boundAction' :: (Ord i) => Binding' bs fs i -> bs -> fs -> i -> Maybe (Action IO (Binding' bs fs i, bs))
 boundAction' binding bs fs input = M.lookup input $ unBinding' binding bs fs
 
 -- | Get the list of all inputs @i@ bound to the specified state @s@.
@@ -87,7 +87,7 @@ boundInputs' binding bs fs = M.keys $ unBinding' binding bs fs
 
 -- | Build a 'Binding' with no internal state.
 stateless :: Ord i
-          => [(i, Action ())] -- ^ Bound pairs of input symbols and 'Action'.
+          => [(i, Action IO ())] -- ^ Bound pairs of input symbols and 'Action'.
           -> Binding s i
           -- ^ Result Binding. The given bindings are activated
           -- regardless of the front-end state.
@@ -96,7 +96,7 @@ stateless blist = rawBinds $ fmap (\(i,a) -> (i, fmap (const $ stateless blist) 
 -- | Build a 'Binding' from a list. This is a raw-level function to
 -- build a 'Binding'. 'stateless' and 'stateful' are recommended.
 rawBinds :: Ord i
-         => [(i, Action (Binding s i))] -- ^ Bound pairs of input symbol and 'Action'
+         => [(i, Action IO (Binding s i))] -- ^ Bound pairs of input symbol and 'Action'
          -> Binding s i
          -- ^ Result Binding. The given bindings are activated
          -- regardless of the front-end state.
@@ -104,7 +104,7 @@ rawBinds blist = Binding' $ \_ _ ->
   (fmap . fmap) (\b -> (b, ())) $ M.fromList blist
 
 -- | Build a single pair of binding.
-on' :: i -> ActionDescription -> IO a -> (i, Action a)
+on' :: i -> ActionDescription -> m a -> (i, Action m a)
 on' input desc act = (input, Action { actDescription = desc, actDo = act })
 
 -- | Add a condition to 'Binding'.
@@ -120,7 +120,7 @@ whenS cond orig_bind = Binding' $ \bs fs ->
 
 -- infixr version of 'whenS' may be useful, too.
 
-mapResult :: (a -> a') -> (b -> b') -> M.Map i (Action (a, b)) -> M.Map i (Action (a',b'))
+mapResult :: Functor m => (a -> a') -> (b -> b') -> M.Map i (Action m (a, b)) -> M.Map i (Action m (a',b'))
 mapResult amapper bmapper = (fmap . fmap) (\(a, b) -> (amapper a, bmapper b))
 
 -- | Contramap the front-end state.
