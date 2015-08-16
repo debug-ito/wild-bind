@@ -17,7 +17,7 @@ library
   default-language:     Haskell2010
   hs-source-dirs:       src
   ghc-options:          -Wall
-  default-extensions:   MultiParamTypeClasses OverloadedStrings
+  default-extensions:   MultiParamTypeClasses OverloadedStrings RankNTypes
   exposed-modules:      WildBind,
                         WildBind.NumPad,
                         WildBind.Binding
@@ -25,7 +25,8 @@ library
   build-depends:        base >=4.6.0 && <4.7,
                         text >=1.2.0 && <1.3,
                         containers >=0.5.0 && <0.6,
-                        transformers >=0.3.0 && <0.4
+                        transformers >=0.3.0 && <0.4,
+                        microlens >=0.3.0 && <0.4
 
 -- executable wild-bind
 --   default-language:     Haskell2010

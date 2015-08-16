@@ -20,6 +20,7 @@ module WildBind.Binding (
   contramapFrontState,
   mapInput,
   invmapBackState,
+  inside,
   -- * Explicitly Stateful Bindings
   Binding',
   boundAction',
@@ -32,6 +33,7 @@ module WildBind.Binding (
 import qualified Data.Map as M
 import Data.Monoid (Monoid(..))
 import Control.Monad.Trans.State (StateT, runStateT)
+import Lens.Micro (Lens',(^.),(.~),(&))
 
 import WildBind.Internal.FrontEnd (ActionDescription)
 
@@ -140,6 +142,14 @@ mapInput mapper orig_bind = Binding' $ \bs fs ->
 invmapBackState :: (bs -> bs') -> (bs' -> bs) -> Binding' bs fs i -> Binding' bs' fs i
 invmapBackState mapper cmapper orig_bind = Binding' $ \bs fs ->
   mapResult (invmapBackState mapper cmapper) mapper $ unBinding' orig_bind (cmapper bs) fs
+
+-- | Convert the given 'Binding'' with the given 'Lens'', so that the
+-- 'Binding'' can be part of a 'Binding'' with the bigger state @bs'@
+inside :: Lens' bs' bs -- ^ a lens that focuses on @bs@, which is part of the bigger state @bs'@.
+       -> Binding' bs fs i
+       -> Binding' bs' fs i
+inside lens orig_bind = Binding' $ \bs' fs ->
+  mapResult (inside lens) (\bs -> bs' & lens .~ bs) $ unBinding' orig_bind (bs' ^. lens) fs
 
 -- | Convert 'Binding'' to 'Binding' by hiding the explicit state
 -- @bs@.
