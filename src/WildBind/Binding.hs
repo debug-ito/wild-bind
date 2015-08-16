@@ -33,7 +33,8 @@ module WildBind.Binding (
 import qualified Data.Map as M
 import Data.Monoid (Monoid(..))
 import Control.Monad.Trans.State (StateT, runStateT)
-import Lens.Micro (Lens',(^.),(.~),(&))
+import Lens.Micro ((^.), (.~), (&))
+import qualified Lens.Micro as Lens
 
 import WildBind.Internal.FrontEnd (ActionDescription)
 
@@ -140,12 +141,11 @@ mapInput mapper orig_bind = Binding' $ \bs fs ->
 
 -- | Invariant-map the back-end state.
 invmapBackState :: (bs -> bs') -> (bs' -> bs) -> Binding' bs fs i -> Binding' bs' fs i
-invmapBackState mapper cmapper orig_bind = Binding' $ \bs fs ->
-  mapResult (invmapBackState mapper cmapper) mapper $ unBinding' orig_bind (cmapper bs) fs
+invmapBackState mapper cmapper = inside $ Lens.lens cmapper (\_ bs -> mapper bs)
 
 -- | Convert the given 'Binding'' with the given 'Lens'', so that the
 -- 'Binding'' can be part of a 'Binding'' with the bigger state @bs'@
-inside :: Lens' bs' bs -- ^ a lens that focuses on @bs@, which is part of the bigger state @bs'@.
+inside :: Lens.Lens' bs' bs -- ^ a lens that focuses on @bs@, which is part of the bigger state @bs'@.
        -> Binding' bs fs i
        -> Binding' bs' fs i
 inside lens orig_bind = Binding' $ \bs' fs ->
