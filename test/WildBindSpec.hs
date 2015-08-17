@@ -7,6 +7,6 @@ main = hspec spec
 
 spec :: Spec
 spec = do
-  describe "someFunction" $ do
-    it "should work fine" $ do
+  describe "wildBind" $ do
+    it "TODO: check wildBind's expected behavior, like, updating grab-sets according to Binding." $ do
       True `shouldBe` False
