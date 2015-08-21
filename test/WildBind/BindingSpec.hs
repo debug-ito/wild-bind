@@ -44,8 +44,8 @@ genStatelessBinding out_list = do
 generate :: Gen a -> IO a
 generate = fmap head . sample'
 
-inputAll :: Ord i => WB.Binding s i -> s -> [i] -> IO ()
-inputAll _ _ [] = return ()
+inputAll :: Ord i => WB.Binding s i -> s -> [i] -> IO (WB.Binding s i)
+inputAll b _ [] = return b
 inputAll binding state (i:rest) = case WB.boundAction binding state i of
   Nothing -> inputAll binding state rest
   Just act -> join $ inputAll <$> WB.actDo act <*> return state <*> return rest
@@ -57,7 +57,7 @@ checkMappend :: (WB.Binding SampleState SampleInput -> WB.Binding SampleState Sa
 checkMappend append_op = do
   out_ref <- newStrRef
   rand_binding <- generate $ genStatelessBinding out_ref
-  let execute b = inputAll b (SS "") =<< generate (listOf arbitrary)
+  let execute b = void $ inputAll b (SS "") =<< generate (listOf arbitrary)
   execute rand_binding
   out_orig <- readIORef out_ref
   writeIORef out_ref []
