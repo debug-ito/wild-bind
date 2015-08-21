@@ -9,6 +9,8 @@ import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
 import Test.Hspec
 import Test.QuickCheck (Gen, Arbitrary(arbitrary,shrink), arbitraryBoundedEnum, property,
                         listOf, sample')
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import qualified Control.Monad.Trans.State as State
 
 import qualified WildBind.Binding as WB
 
@@ -28,11 +30,24 @@ instance Arbitrary SampleState where
   arbitrary = SS <$> arbitrary
   shrink (SS s) = SS <$> shrink s
 
+data SampleBackState = SB { unSB :: Int }
+                     deriving (Show, Eq, Ord)
+
+instance Enum SampleBackState where
+  toEnum = SB
+  fromEnum = unSB
+
+
 newStrRef :: IO (IORef [Char])
 newStrRef = newIORef []
 
-outOn :: IORef [a] -> i -> a -> (i, WB.Action IO ())
-outOn out_ref input out_elem = WB.on' input "" $ modifyIORef out_ref (out_elem :)
+outOn :: MonadIO m => IORef [a] -> i -> a -> (i, WB.Action m ())
+outOn out_ref input out_elem = WB.on' input "" $ liftIO $ modifyIORef out_ref (out_elem :)
+
+outOnS :: MonadIO m => IORef [a] -> i -> a -> (s -> s) -> (i, WB.Action (State.StateT s m) ())
+outOnS out_ref input out_elem modifier = WB.on' input "" $ do
+  State.modify modifier
+  liftIO $ modifyIORef out_ref (out_elem :)
 
 genStatelessBinding :: Arbitrary a => IORef [a] -> Gen (WB.Binding s SampleInput)
 genStatelessBinding out_list = do
@@ -152,5 +167,12 @@ spec = do
       readIORef out `shouldReturn` "A"
   describe "convBackState" $ do
     it "TODO" $ (undefined :: IO ())
-
-
+  describe "stateful" $ do
+    it "returns a stateful Binding" $ do
+      out <- newStrRef
+      let b = WB.stateful $ \bs ->
+            [outOnS out SIa (head $ show $ unSB bs) succ]
+      WB.boundInputs' b (SB 0)  (SS "") `shouldBe` [SIa]
+      WB.boundInputs' b (SB 10) (SS "hoge") `shouldBe` [SIa]
+      void $ inputAll (WB.startFrom (SB 0) b) (SS "") $ replicate 12 SIa
+      readIORef out `shouldReturn` "119876543210"
