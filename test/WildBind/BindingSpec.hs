@@ -80,6 +80,7 @@ spec = do
     it "returns a stateless Binding" $ do
       out <- newStrRef
       let b = WB.stateless [outOn out SIa 'A', outOn out SIb 'B']
+      WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
       WB.boundAction b (SS "") SIc `shouldSatisfy` isNothing
       actRun $ WB.boundAction b (SS "") SIa
       readIORef out `shouldReturn` "A"
@@ -89,15 +90,21 @@ spec = do
     it "adds a condition on the front-end state" $ do
       out <- newStrRef
       let b = WB.whenS (\(SS s) -> s == "hoge") $ WB.stateless [outOn out SIa 'A']
+      WB.boundInputs b (SS "") `shouldMatchList` []
       WB.boundAction b (SS "") SIa `shouldSatisfy` isNothing
+      WB.boundInputs b (SS "foobar") `shouldMatchList` []
       WB.boundAction b (SS "foobar") SIa `shouldSatisfy` isNothing
+      WB.boundInputs b (SS "hoge") `shouldMatchList` [SIa]
       actRun $ WB.boundAction b (SS "hoge") SIa
       readIORef out `shouldReturn` "A"
     it "is AND condition" $ do
       out <- newStrRef
       let raw_b = WB.stateless [outOn out SIa 'A']
           b = WB.whenS ((<= 5) . length . unSS) $ WB.whenS ((3 <=) . length . unSS) $ raw_b
+      WB.boundInputs b (SS "ho") `shouldMatchList` []
       WB.boundAction b (SS "ho") SIa `shouldSatisfy` isNothing
+      WB.boundInputs b (SS "hogehoge") `shouldMatchList` []
       WB.boundAction b (SS "hogehoge") SIa `shouldSatisfy` isNothing
+      WB.boundInputs b (SS "hoge") `shouldMatchList` [SIa]
       actRun $ WB.boundAction b (SS "hoge") SIa
       readIORef out `shouldReturn` "A"
