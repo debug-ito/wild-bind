@@ -3,7 +3,7 @@ module WildBind.BindingSpec (main, spec) where
 import Control.Applicative ((<$>), (<*>), pure)
 import Control.Monad (void, forM_, join)
 import Data.Monoid (mempty, mappend)
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing, fromJust)
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
 
 import Test.Hspec
@@ -28,6 +28,12 @@ instance Arbitrary SampleState where
   arbitrary = SS <$> arbitrary
   shrink (SS s) = SS <$> shrink s
 
+newStrRef :: IO (IORef [Char])
+newStrRef = newIORef []
+
+outOn :: IORef [a] -> i -> a -> (i, WB.Action IO ())
+outOn out_ref input out_elem = WB.on' input "" $ modifyIORef out_ref (out_elem :)
+
 genStatelessBinding :: Arbitrary a => IORef [a] -> Gen (WB.Binding s SampleInput)
 genStatelessBinding out_list = do
   let outputRandomElem = do
@@ -44,21 +50,12 @@ inputAll binding state (i:rest) = case WB.boundAction binding state i of
   Nothing -> inputAll binding state rest
   Just act -> join $ inputAll <$> WB.actDo act <*> return state <*> return rest
 
--- randomBindingOutput :: Arbitrary a => IO [a]
--- randomBindingOutput = do
---   output_list <- newIORef []
---   binding <- generate $ genStatelessBinding output_list
---   inputs <- generate $ listOf arbitrary
---   forM_ inputs $ \input -> do
---     maybe (return ()) (void . WB.actDo) $ WB.boundAction binding (SS "") input
---   readIORef output_list
-
 mempty_stateless :: WB.Binding SampleState SampleInput
 mempty_stateless = mempty
 
 checkMappend :: (WB.Binding SampleState SampleInput -> WB.Binding SampleState SampleInput) -> IO ()
 checkMappend append_op = do
-  out_ref <- newIORef [] :: IO (IORef [Char])
+  out_ref <- newStrRef
   rand_binding <- generate $ genStatelessBinding out_ref
   let execute b = inputAll b (SS "") =<< generate (listOf arbitrary)
   execute rand_binding
@@ -76,3 +73,12 @@ spec = do
       checkMappend (mempty `mappend`)
     it "random `mappend` mempty == mempty" $ do
       checkMappend (`mappend` mempty)
+  describe "stateless" $ do
+    it "returns a stateless Binding" $ do
+      out <- newStrRef
+      let b = WB.stateless [outOn out SIa 'A', outOn out SIb 'B']
+      WB.boundAction b (SS "") SIc `shouldSatisfy` isNothing
+      WB.actDo $ fromJust $ WB.boundAction b (SS "") SIa
+      readIORef out `shouldReturn` "A"
+      WB.actDo $ fromJust $ WB.boundAction b (SS "") SIb
+      readIORef out `shouldReturn` "BA"

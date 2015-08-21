@@ -44,6 +44,9 @@ data Action m a = Action {
   actDo :: m a -- ^ The actual job.
 }
 
+instance Show (Action m a) where
+  show a = "Action " ++ show (actDescription a)
+
 instance Functor m => Functor (Action m) where
   fmap f a = a { actDo = fmap f (actDo a) }
 
