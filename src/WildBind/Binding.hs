@@ -17,9 +17,9 @@ module WildBind.Binding (
   -- * Condition
   whenS,
   -- * Conversion
-  contramapFrontState,
-  mapInput,
-  invmapBackState,
+  convFrontState,
+  convInput,
+  convBackState,
   inside,
   -- * Explicitly Stateful Bindings
   Binding',
@@ -133,18 +133,18 @@ mapResult :: Functor m => (a -> a') -> (b -> b') -> M.Map i (Action m (a, b)) ->
 mapResult amapper bmapper = (fmap . fmap) (\(a, b) -> (amapper a, bmapper b))
 
 -- | Contramap the front-end state.
-contramapFrontState :: (fs -> fs') -> Binding' bs fs' i -> Binding' bs fs i
-contramapFrontState cmapper orig_bind = Binding' $ \bs fs ->
-  mapResult (contramapFrontState cmapper) id $ unBinding' orig_bind bs (cmapper fs)
+convFrontState :: (fs -> fs') -> Binding' bs fs' i -> Binding' bs fs i
+convFrontState cmapper orig_bind = Binding' $ \bs fs ->
+  mapResult (convFrontState cmapper) id $ unBinding' orig_bind bs (cmapper fs)
 
 -- | Map the front-end input.
-mapInput :: Ord i' => (i -> i') -> Binding' bs fs i -> Binding' bs fs i'
-mapInput mapper orig_bind = Binding' $ \bs fs ->
-  mapResult (mapInput mapper) id $ M.mapKeys mapper $ unBinding' orig_bind bs fs
+convInput :: Ord i' => (i -> i') -> Binding' bs fs i -> Binding' bs fs i'
+convInput mapper orig_bind = Binding' $ \bs fs ->
+  mapResult (convInput mapper) id $ M.mapKeys mapper $ unBinding' orig_bind bs fs
 
 -- | Invariant-map the back-end state.
-invmapBackState :: (bs -> bs') -> (bs' -> bs) -> Binding' bs fs i -> Binding' bs' fs i
-invmapBackState mapper cmapper = inside $ Lens.lens cmapper (\_ bs -> mapper bs)
+convBackState :: (bs -> bs') -> (bs' -> bs) -> Binding' bs fs i -> Binding' bs' fs i
+convBackState mapper cmapper = inside $ Lens.lens cmapper (\_ bs -> mapper bs)
 
 -- | Convert the given 'Binding'' with the given 'Lens'', so that the
 -- 'Binding'' can be part of a 'Binding'' with the bigger state @bs'@
