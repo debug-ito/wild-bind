@@ -2,7 +2,7 @@ module WildBind.BindingSpec (main, spec) where
 
 import Control.Applicative ((<$>), (<*>), pure)
 import Control.Monad (void, join)
-import Data.Monoid (mempty, mappend)
+import Data.Monoid (mempty, (<>))
 import Data.Maybe (isNothing, fromJust)
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
 
@@ -73,9 +73,9 @@ spec = do
     it "mempty returns empty binding" $ property
       ( isNothing <$> (WB.boundAction mempty_stateless <$> arbitrary <*> arbitrary) )
     it "mempty `mappend` random == mempty" $ do
-      checkMappend (mempty `mappend`)
+      checkMappend (mempty <>)
     it "random `mappend` mempty == mempty" $ do
-      checkMappend (`mappend` mempty)
+      checkMappend (<> mempty)
   describe "stateless" $ do
     it "returns a stateless Binding" $ do
       out <- newStrRef
@@ -108,3 +108,29 @@ spec = do
       WB.boundInputs b (SS "hoge") `shouldMatchList` [SIa]
       actRun $ WB.boundAction b (SS "hoge") SIa
       readIORef out `shouldReturn` "A"
+  describe "Binding (mappend)" $ do
+    it "combines two stateless Bindings" $ do
+      out <- newStrRef
+      let b1 = WB.stateless [outOn out SIa 'A']
+          b2 = WB.stateless [outOn out SIb 'B']
+          b = b1 <> b2
+      WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
+      void $ inputAll b (SS "") [SIa, SIb]
+      readIORef out `shouldReturn` "BA"
+    it "front-end conditions are preserved" $ do
+      out <- newStrRef
+      let b1 = WB.whenS ((3 <=) . length . unSS) $ WB.stateless [outOn out SIa 'A']
+          b2 = WB.whenS ((<= 5) . length . unSS) $ WB.stateless [outOn out SIb 'B']
+          b = b1 <> b2
+      WB.boundInputs b (SS "aa") `shouldMatchList` [SIb]
+      WB.boundInputs b (SS "aabb") `shouldMatchList` [SIa, SIb]
+      WB.boundInputs b (SS "aabbcc") `shouldMatchList` [SIa]
+    it "prefers the latter Binding" $ do
+      out <- newStrRef
+      let b1 = WB.stateless [outOn out SIa '1']
+          b2 = WB.stateless [outOn out SIa '2']
+          b = b1 <> b2
+      WB.boundInputs b (SS "") `shouldMatchList` [SIa]
+      actRun $ WB.boundAction b (SS "") SIa
+      readIORef out `shouldReturn` "2"
+
