@@ -1,7 +1,7 @@
 module WildBind.BindingSpec (main, spec) where
 
 import Control.Applicative ((<$>), (<*>), pure)
-import Control.Monad (void, forM_, join)
+import Control.Monad (void, join)
 import Data.Monoid (mempty, mappend)
 import Data.Maybe (isNothing, fromJust)
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
@@ -45,7 +45,7 @@ generate :: Gen a -> IO a
 generate = fmap head . sample'
 
 inputAll :: Ord i => WB.Binding s i -> s -> [i] -> IO ()
-inputAll binding _ [] = return ()
+inputAll _ _ [] = return ()
 inputAll binding state (i:rest) = case WB.boundAction binding state i of
   Nothing -> inputAll binding state rest
   Just act -> join $ inputAll <$> WB.actDo act <*> return state <*> return rest
@@ -78,7 +78,7 @@ spec = do
       out <- newStrRef
       let b = WB.stateless [outOn out SIa 'A', outOn out SIb 'B']
       WB.boundAction b (SS "") SIc `shouldSatisfy` isNothing
-      WB.actDo $ fromJust $ WB.boundAction b (SS "") SIa
+      void $ WB.actDo $ fromJust $ WB.boundAction b (SS "") SIa
       readIORef out `shouldReturn` "A"
-      WB.actDo $ fromJust $ WB.boundAction b (SS "") SIb
+      void $ WB.actDo $ fromJust $ WB.boundAction b (SS "") SIb
       readIORef out `shouldReturn` "BA"
