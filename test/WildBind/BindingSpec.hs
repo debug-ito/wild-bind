@@ -21,7 +21,7 @@ data SampleInput = SIa | SIb | SIc
 instance Arbitrary SampleInput where
   arbitrary = arbitraryBoundedEnum
 
-data SampleState = SS String
+data SampleState = SS { unSS :: String }
                  deriving (Show, Eq, Ord)
 
 instance Arbitrary SampleState where
@@ -64,6 +64,9 @@ checkMappend append_op = do
   execute (append_op rand_binding)
   readIORef out_ref `shouldReturn` out_orig
 
+actRun :: Maybe (WB.Action IO a) -> IO ()
+actRun = void . WB.actDo . fromJust
+
 spec :: Spec
 spec = do
   describe "Binding (Monoid instances)" $ do
@@ -78,7 +81,23 @@ spec = do
       out <- newStrRef
       let b = WB.stateless [outOn out SIa 'A', outOn out SIb 'B']
       WB.boundAction b (SS "") SIc `shouldSatisfy` isNothing
-      void $ WB.actDo $ fromJust $ WB.boundAction b (SS "") SIa
+      actRun $ WB.boundAction b (SS "") SIa
       readIORef out `shouldReturn` "A"
-      void $ WB.actDo $ fromJust $ WB.boundAction b (SS "") SIb
+      actRun $ WB.boundAction b (SS "") SIb
       readIORef out `shouldReturn` "BA"
+  describe "whenS" $ do
+    it "adds a condition on the front-end state" $ do
+      out <- newStrRef
+      let b = WB.whenS (\(SS s) -> s == "hoge") $ WB.stateless [outOn out SIa 'A']
+      WB.boundAction b (SS "") SIa `shouldSatisfy` isNothing
+      WB.boundAction b (SS "foobar") SIa `shouldSatisfy` isNothing
+      actRun $ WB.boundAction b (SS "hoge") SIa
+      readIORef out `shouldReturn` "A"
+    it "is AND condition" $ do
+      out <- newStrRef
+      let raw_b = WB.stateless [outOn out SIa 'A']
+          b = WB.whenS ((<= 5) . length . unSS) $ WB.whenS ((3 <=) . length . unSS) $ raw_b
+      WB.boundAction b (SS "ho") SIa `shouldSatisfy` isNothing
+      WB.boundAction b (SS "hogehoge") SIa `shouldSatisfy` isNothing
+      actRun $ WB.boundAction b (SS "hoge") SIa
+      readIORef out `shouldReturn` "A"
