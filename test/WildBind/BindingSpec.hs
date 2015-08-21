@@ -133,4 +133,24 @@ spec = do
       WB.boundInputs b (SS "") `shouldMatchList` [SIa]
       actRun $ WB.boundAction b (SS "") SIa
       readIORef out `shouldReturn` "2"
+  describe "convFrontState" $ do
+    it "converts front-end state" $ do
+      out <- newStrRef
+      let orig_b = WB.whenS (("hoge" ==) . unSS) $ WB.stateless [outOn out SIa 'A']
+          b = WB.convFrontState SS orig_b
+      WB.boundInputs b "" `shouldMatchList` []
+      WB.boundInputs b "hoge" `shouldMatchList` [SIa]
+      actRun $ WB.boundAction b "hoge" SIa
+      readIORef out `shouldReturn` "A"
+  describe "convInput" $ do
+    it "converts input symbols" $ do
+      out <- newStrRef
+      let orig_b = WB.stateless [outOn out SIa 'A']
+          b = WB.convInput show orig_b
+      WB.boundInputs b (SS "") `shouldMatchList` ["SIa"]
+      actRun $ WB.boundAction b (SS "") "SIa"
+      readIORef out `shouldReturn` "A"
+  describe "convBackState" $ do
+    it "TODO" $ (undefined :: IO ())
+
 
