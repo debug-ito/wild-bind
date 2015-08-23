@@ -12,6 +12,7 @@ import Test.QuickCheck (Gen, Arbitrary(arbitrary,shrink), arbitraryBoundedEnum, 
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.State as State
+import qualified Lens.Micro as Lens
 
 import qualified WildBind.Binding as WB
 
@@ -38,6 +39,14 @@ instance Enum SampleBackState where
   toEnum = SB
   fromEnum = unSB
 
+data BiggerSampleBackState = BSB { _lSB :: SampleBackState, _rSB :: SampleBackState }
+                           deriving (Show, Eq, Ord)
+
+lSB :: Lens.Lens' BiggerSampleBackState SampleBackState
+lSB = Lens.lens _lSB (\bsb sb -> bsb { _lSB = sb })
+
+rSB :: Lens.Lens' BiggerSampleBackState SampleBackState
+rSB = Lens.lens _rSB (\bsb sb -> bsb { _rSB = sb })
 
 newStrRef :: MonadIO m => m (IORef [Char])
 newStrRef = liftIO $ newIORef []
@@ -260,7 +269,7 @@ spec = do
       execAll (SS "") [SIc]
       checkOut "CbADA"
       checkInputsS (SS "") [SIa]
-      
+
 -- test for 'inside' (<- rename?) + mappend
 -- test for 'stateIgnored' (<- rename?) + mappend
 -- rename 'whenS'?

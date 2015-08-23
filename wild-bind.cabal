@@ -45,7 +45,7 @@ test-suite spec
   main-is:              Spec.hs
   default-extensions:   OverloadedStrings
   build-depends:        base, wild-bind,
-                        transformers,
+                        transformers, microlens,
                         hspec >=2.1.7 && <2.2,
                         QuickCheck >=2.6 && <2.7
 
