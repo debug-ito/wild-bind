@@ -142,10 +142,10 @@ spec = do
       WB.boundInputs b (SS "aabbcc") `shouldMatchList` [SIa]
     it "prefers the latter Binding" $ do
       out <- newStrRef
-      let b1 = WB.stateless [outOn out SIa '1']
+      let b1 = WB.stateless [outOn out SIa '1', outOn out SIb 'B']
           b2 = WB.stateless [outOn out SIa '2']
           b = b1 <> b2
-      WB.boundInputs b (SS "") `shouldMatchList` [SIa]
+      WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
       actRun $ WB.boundAction b (SS "") SIa
       readIORef out `shouldReturn` "2"
   describe "convFrontState" $ do
