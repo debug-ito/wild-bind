@@ -10,6 +10,7 @@ import Test.Hspec
 import Test.QuickCheck (Gen, Arbitrary(arbitrary,shrink), arbitraryBoundedEnum, property,
                         listOf, sample')
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.State as State
 
 import qualified WildBind.Binding as WB
@@ -38,8 +39,8 @@ instance Enum SampleBackState where
   fromEnum = unSB
 
 
-newStrRef :: IO (IORef [Char])
-newStrRef = newIORef []
+newStrRef :: MonadIO m => m (IORef [Char])
+newStrRef = liftIO $ newIORef []
 
 outOn :: MonadIO m => IORef [a] -> i -> a -> (i, WB.Action m ())
 outOn out_ref input out_elem = WB.on' input "" $ liftIO $ modifyIORef out_ref (out_elem :)
@@ -64,6 +65,12 @@ inputAll b _ [] = return b
 inputAll binding state (i:rest) = case WB.boundAction binding state i of
   Nothing -> inputAll binding state rest
   Just act -> join $ inputAll <$> WB.actDo act <*> return state <*> return rest
+
+execAll :: Ord i => s -> [i] -> State.StateT (WB.Binding s i) IO ()
+execAll state inputs = do
+  b <- State.get
+  next_b <- liftIO $ inputAll b state inputs
+  State.put next_b
 
 mempty_stateless :: WB.Binding SampleState SampleInput
 mempty_stateless = mempty
@@ -176,3 +183,27 @@ spec = do
       WB.boundInputs' b (SB 10) (SS "hoge") `shouldBe` [SIa]
       void $ inputAll (WB.startFrom (SB 0) b) (SS "") $ replicate 12 SIa
       readIORef out `shouldReturn` "119876543210"
+    it "can create a stateful Binding with different bound inputs for different back-end state" $ flip State.evalStateT mempty_stateless $ do
+      out <- newStrRef
+      State.put $ WB.startFrom (SB 0) $ WB.stateful $ \bs -> case bs of
+        SB 0 -> [outOnS out SIa 'A' (const $ SB 1)]
+        SB 1 -> [outOnS out SIb 'B' (const $ SB 2)]
+        SB 2 -> [outOnS out SIc 'C' (const $ SB 0)]
+        _ -> error "this should never happen"
+      let checkInputs exp_in = State.get >>= \b -> lift $ WB.boundInputs b (SS "") `shouldMatchList` exp_in
+          checkOut exp_out = lift $ readIORef out `shouldReturn` exp_out
+      checkOut ""
+      checkInputs [SIa]
+      execAll (SS "") [SIa]
+      checkOut "A"
+      checkInputs [SIb]
+      execAll (SS "") [SIb]
+      checkOut "BA"
+      checkInputs [SIc]
+      execAll (SS "") [SIc]
+      checkOut "CBA"
+      checkInputs [SIa]
+      
+      
+      
+      
