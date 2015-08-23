@@ -89,6 +89,9 @@ checkMappend append_op = do
 actRun :: Maybe (WB.Action IO a) -> IO ()
 actRun = void . WB.actDo . fromJust
 
+checkInputsS :: (Show i, Eq i) => s -> [i] -> State.StateT (WB.Binding s i) IO ()
+checkInputsS state exp_in = State.get >>= \b -> lift $ WB.boundInputs b state `shouldMatchList` exp_in
+
 spec :: Spec
 spec = do
   describe "Binding (Monoid instances)" $ do
@@ -186,24 +189,48 @@ spec = do
     it "can create a stateful Binding with different bound inputs for different back-end state" $ flip State.evalStateT mempty_stateless $ do
       out <- newStrRef
       State.put $ WB.startFrom (SB 0) $ WB.stateful $ \bs -> case bs of
-        SB 0 -> [outOnS out SIa 'A' (const $ SB 1)]
-        SB 1 -> [outOnS out SIb 'B' (const $ SB 2)]
-        SB 2 -> [outOnS out SIc 'C' (const $ SB 0)]
-        _ -> error "this should never happen"
-      let checkInputs exp_in = State.get >>= \b -> lift $ WB.boundInputs b (SS "") `shouldMatchList` exp_in
-          checkOut exp_out = lift $ readIORef out `shouldReturn` exp_out
+        SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
+        SB 1 -> [outOnS out SIb 'B' (\_ -> SB 2)]
+        SB 2 -> [outOnS out SIc 'C' (\_ -> SB 0)]
+        _ -> []
+      let checkOut exp_out = lift $ readIORef out `shouldReturn` exp_out
       checkOut ""
-      checkInputs [SIa]
+      checkInputsS (SS "") [SIa]
       execAll (SS "") [SIa]
       checkOut "A"
-      checkInputs [SIb]
+      checkInputsS (SS "") [SIb]
       execAll (SS "") [SIb]
       checkOut "BA"
-      checkInputs [SIc]
+      checkInputsS (SS "") [SIc]
       execAll (SS "") [SIc]
       checkOut "CBA"
-      checkInputs [SIa]
-      
-      
-      
+      checkInputsS (SS "") [SIa]
+  describe "Binding (mappend, stateful)" $ do
+    it "shares the explicit back-end state" $ flip State.evalStateT mempty_stateless $ do
+      out <- newStrRef
+      let b1 = WB.stateful $ \bs -> case bs of
+            SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
+            SB 1 -> [outOnS out SIb 'B' (\_ -> SB 2),
+                     outOnS out SIc 'b' (\_ -> SB 2)]
+            SB 2 -> [outOnS out SIc 'C' (\_ -> SB 0)]
+            _ -> []
+          b2 = WB.stateful $ \bs -> case bs of
+            SB 1 -> [outOnS out SIb 'D' (\_ -> SB 0)]
+            _ -> []
+          b = b1 <> b2
+      let checkOut exp_out = lift $ readIORef out `shouldReturn` exp_out
+      State.put $ WB.startFrom (SB 0) b
+      checkInputsS (SS "") [SIa]
+      execAll (SS "") [SIa]
+      checkOut "A"
+      checkInputsS (SS "") [SIb, SIc]
+      execAll (SS "") [SIb]
+      checkOut "DA"
+      checkInputsS (SS "") [SIa]
+      execAll (SS "") [SIa, SIc]
+      checkOut "bADA"
+      checkInputsS (SS "") [SIc]
+      execAll (SS "") [SIc]
+      checkOut "CbADA"
+      checkInputsS (SS "") [SIa]
       
