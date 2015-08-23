@@ -158,6 +158,33 @@ spec = do
       WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
       actRun $ WB.boundAction b (SS "") SIa
       readIORef out `shouldReturn` "2"
+    it "preserves implicit back-end states" $ flip State.evalStateT mempty_stateless $ do
+      out <- newStrRef
+      let b1 = WB.startFrom (SB 0) $ WB.stateful $ \bs -> case bs of
+            SB 0 -> [outOnS out SIa '0' (\_ -> SB 1)]
+            SB 1 -> [outOnS out SIa '1' (\_ -> SB 0)]
+            _ -> []
+          b2 = WB.startFrom (SB 0) $ WB.stateful $ \bs -> case bs of
+            SB 0 -> [outOnS out SIb '2' (\_ -> SB 1)]
+            SB 1 -> [outOnS out SIb '3' (\_ -> SB 0)]
+            _ -> []
+      State.put (b1 <> b2)
+      let checkOut exp_out = lift $ readIORef out `shouldReturn` exp_out
+      checkInputsS (SS "") [SIa, SIb]
+      execAll (SS "") [SIa]
+      checkOut "0"
+      checkInputsS (SS "") [SIa, SIb]
+      execAll (SS "") [SIb]
+      checkOut "20"
+      checkInputsS (SS "") [SIa, SIb]
+      execAll (SS "") [SIa]
+      checkOut "120"
+      checkInputsS (SS "") [SIa, SIb]
+      execAll (SS "") [SIb]
+      checkOut "3120"
+      checkInputsS (SS "") [SIa, SIb]
+      execAll (SS "") [SIa]
+      checkOut "03120"
   describe "convFrontState" $ do
     it "converts front-end state" $ do
       out <- newStrRef
@@ -234,3 +261,7 @@ spec = do
       checkOut "CbADA"
       checkInputsS (SS "") [SIa]
       
+-- test for 'inside' (<- rename?) + mappend
+-- test for 'stateIgnored' (<- rename?) + mappend
+-- rename 'whenS'?
+-- add condition function to back-end state? like 'whenBS'
