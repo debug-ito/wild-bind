@@ -17,6 +17,7 @@ module WildBind.Binding (
   -- * Condition
   whenFront,
   whenBack,
+  whenBoth,
   -- * Conversion
   convFrontState,
   convInput,
@@ -123,10 +124,7 @@ whenFront :: (fs -> Bool) -- ^ Condition about the front-end state.
           -> Binding' bs fs i -- ^ Result Binding where the original
                               -- Binding is activated only when the
                               -- given condition is 'True'.
-whenFront cond orig_bind = Binding' $ \bs fs ->
-  if cond fs
-  then unBinding' orig_bind bs fs
-  else M.empty
+whenFront cond = whenBoth $ \_ fs -> cond fs
 
 -- infixr version of 'whenFront' may be useful, too.
 
@@ -136,9 +134,18 @@ whenBack :: (bs -> Bool) -- ^ Condition about the back-end state.
          -> Binding' bs fs i -- ^ Result Binding where the original
                              -- Binding is activated only when the
                              -- given condition is 'True'.
-whenBack cond orig_bind = Binding' $ \bs fs ->
-  if cond bs
-  then mapResult (whenBack cond) id $ unBinding' orig_bind bs fs
+whenBack cond = whenBoth $ \bs _ -> cond bs
+
+-- | Add a condition on the back-end and front-end states to
+-- 'Binding'.
+whenBoth :: (bs -> fs -> Bool) -- ^ Condition about the back-end and front-end states.
+         -> Binding' bs fs i -- ^ Original Binding.
+         -> Binding' bs fs i -- ^ Result Binding where the original
+                             -- Binding is activated only when the
+                             -- given condition is 'True'.
+whenBoth cond orig_bind = Binding' $ \bs fs ->
+  if cond bs fs
+  then mapResult (whenBoth cond) id $ unBinding' orig_bind bs fs
   else M.empty
 
 mapResult :: Functor m => (a -> a') -> (b -> b') -> M.Map i (Action m (a, b)) -> M.Map i (Action m (a',b'))
