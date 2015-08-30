@@ -87,6 +87,9 @@ execAll state inputs = do
   next_b <- liftIO $ inputAll b state inputs
   State.put next_b
 
+execAll' :: Ord i => [i] -> State.StateT (WB.Binding SampleState i) IO ()
+execAll' = execAll (SS "")
+
 mempty_stateless :: WB.Binding SampleState SampleInput
 mempty_stateless = mempty
 
@@ -106,6 +109,9 @@ actRun = void . WB.actDo . fromJust
 
 checkInputsS :: (Show i, Eq i) => s -> [i] -> State.StateT (WB.Binding s i) IO ()
 checkInputsS state exp_in = State.get >>= \b -> lift $ WB.boundInputs b state `shouldMatchList` exp_in
+
+checkInputsS' :: (Show i, Eq i) => [i] -> State.StateT (WB.Binding SampleState i) IO ()
+checkInputsS' = checkInputsS (SS "")
 
 evalStateEmpty :: State.StateT (WB.Binding SampleState SampleInput) IO () -> IO ()
 evalStateEmpty s = State.evalStateT s mempty_stateless
@@ -279,8 +285,6 @@ spec = do
             _ -> []
           b = (WB.extendAt lSB bl) <> (WB.extendAt rSB br) <> bg
       State.put $ WB.startFrom (BSB (SB 0) (SB 0)) b
-      let checkInputsS' = checkInputsS (SS "")
-          execAll' = execAll (SS "")
       checkInputsS' [SIa, SIb, SIc]
       execAll' [SIa]
       checkOut "0"
