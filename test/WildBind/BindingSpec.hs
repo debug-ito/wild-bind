@@ -349,10 +349,12 @@ spec = do
       checkOut "CbaBcaAcb"
 
   describe "whenBoth" $ do
+    let incr' out ret = outOnS out SIa ret (\(SB num) -> SB (num + 1))
+        decr' out ret = outOnS out SIb ret (\(SB num) -> SB (num - 1))
     it "adds a condition to both front-end and back-end states" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      let incr = outOnS out SIa '+' (\(SB num) -> SB (num + 1))
-          decr = outOnS out SIb '-' (\(SB num) -> SB (num - 1))
-          raw_b = WB.stateful $ \(SB num) -> if num == 0 then [incr] else [incr, decr]
+      let incr = incr' out
+          decr = decr' out
+          raw_b = WB.stateful $ \(SB num) -> if num == 0 then [incr '+'] else [incr '+', decr '-']
           b = WB.whenBoth (\(SB num) (SS str) -> length str == num) $ raw_b
       State.put $ WB.startFrom (SB 0) $ b
       checkInputsS (SS "hoge") []
@@ -368,6 +370,28 @@ spec = do
       execAll (SS "eg") [SIb]
       checkOut "-++"
       checkInputsS (SS "e") [SIa, SIb]
-
+    it "creates independent conditions when combined with <>" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let incr = incr' out
+          decr = decr' out
+          bn = WB.stateful $ \(SB num) -> if num == 0 then [incr '+'] else [incr '+', decr '-']
+          bn' = WB.whenBoth (\(SB num) (SS str) -> length str == num) bn
+          ba = WB.stateful $ \(SB num) -> if num == 0 then [incr 'p'] else [incr 'p', decr 'm']
+          ba' = WB.whenBoth (\(SB num) (SS str) -> read str == num) ba
+      State.put $ WB.startFrom (SB 1) (bn' <> ba')
+      checkInputsS (SS "10") []
+      checkInputsS (SS "4") [SIa, SIb]
+      execAll (SS "4") [SIa]
+      checkOut "+"
+      checkInputsS (SS "2") [SIa, SIb]
+      execAll (SS "2") [SIa]
+      checkOut "p+"
+      checkInputsS (SS "342") [SIa, SIb]
+      execAll (SS "342") [SIb]
+      checkOut "-p+"
+      execAll (SS "2") [SIb]
+      checkOut "m-p+"
+      checkInputsS (SS "1") [SIa, SIb]
+      execAll (SS "1") [SIb]
+      checkOut "mm-p+"
       
 
