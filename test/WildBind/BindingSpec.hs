@@ -305,10 +305,27 @@ spec = do
       checkOut "3141320"
 
   describe "extend" $ do
-    it "extends a stateless Binding" $ evalStateEmpty $ do
-      return ()
+    it "extends a stateless Binding" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let bl = WB.stateless [
+            outOn out SIa 'a',
+            outOn out SIb 'b',
+            outOn out SIc 'c']
+          bs = WB.stateful $ \bs -> case bs of
+            SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
+            SB 1 -> [outOnS out SIb 'B' (\_ -> SB 2)]
+            SB 2 -> [outOnS out SIc 'C' (\_ -> SB 0)]
+            _ -> []
+      State.put $ WB.startFrom (SB 0) $ (WB.extend bl <> bs)
+      checkInputsS' [SIa, SIb, SIc]
+      execAll' [SIb, SIc, SIa]
+      checkOut "Acb"
+      checkInputsS' [SIa, SIb, SIc]
+      execAll' [SIa, SIc, SIb]
+      checkOut "BcaAcb"
+      checkInputsS' [SIa, SIb, SIc]
+      execAll' [SIa, SIb, SIc]
+      checkOut "CbaBcaAcb"
       
 
--- test for 'stateIgnored' (<- rename?) + mappend
 -- rename 'whenS'?
 -- add condition function to back-end state? like 'whenBS'
