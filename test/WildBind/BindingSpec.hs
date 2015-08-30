@@ -310,7 +310,7 @@ spec = do
             outOn out SIa 'a',
             outOn out SIb 'b',
             outOn out SIc 'c']
-          bs = WB.stateful $ \bs -> case bs of
+          bs = WB.stateful $ \bstate -> case bstate of
             SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
             SB 1 -> [outOnS out SIb 'B' (\_ -> SB 2)]
             SB 2 -> [outOnS out SIc 'C' (\_ -> SB 0)]
