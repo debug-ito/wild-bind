@@ -138,7 +138,7 @@ whenBack :: (bs -> Bool) -- ^ Condition about the back-end state.
                              -- given condition is 'True'.
 whenBack cond orig_bind = Binding' $ \bs fs ->
   if cond bs
-  then unBinding' orig_bind bs fs
+  then mapResult (whenBack cond) id $ unBinding' orig_bind bs fs
   else M.empty
 
 mapResult :: Functor m => (a -> a') -> (b -> b') -> M.Map i (Action m (a, b)) -> M.Map i (Action m (a',b'))
