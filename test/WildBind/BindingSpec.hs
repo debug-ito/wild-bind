@@ -134,9 +134,9 @@ spec = do
       checkOut "A"
       actRun $ WB.boundAction b (SS "") SIb
       checkOut "BA"
-  describe "whenS" $ do
+  describe "whenFront" $ do
     it "adds a condition on the front-end state" $ withStrRef $ \out checkOut -> do
-      let b = WB.whenS (\(SS s) -> s == "hoge") $ WB.stateless [outOn out SIa 'A']
+      let b = WB.whenFront (\(SS s) -> s == "hoge") $ WB.stateless [outOn out SIa 'A']
       WB.boundInputs b (SS "") `shouldMatchList` []
       WB.boundAction b (SS "") SIa `shouldSatisfy` isNothing
       WB.boundInputs b (SS "foobar") `shouldMatchList` []
@@ -146,7 +146,7 @@ spec = do
       checkOut "A"
     it "is AND condition" $ withStrRef $ \out checkOut -> do
       let raw_b = WB.stateless [outOn out SIa 'A']
-          b = WB.whenS ((<= 5) . length . unSS) $ WB.whenS ((3 <=) . length . unSS) $ raw_b
+          b = WB.whenFront ((<= 5) . length . unSS) $ WB.whenFront ((3 <=) . length . unSS) $ raw_b
       WB.boundInputs b (SS "ho") `shouldMatchList` []
       WB.boundAction b (SS "ho") SIa `shouldSatisfy` isNothing
       WB.boundInputs b (SS "hogehoge") `shouldMatchList` []
@@ -163,8 +163,8 @@ spec = do
       void $ inputAll b (SS "") [SIa, SIb]
       checkOut "BA"
     it "front-end conditions are preserved" $ withStrRef $ \out _ -> do
-      let b1 = WB.whenS ((3 <=) . length . unSS) $ WB.stateless [outOn out SIa 'A']
-          b2 = WB.whenS ((<= 5) . length . unSS) $ WB.stateless [outOn out SIb 'B']
+      let b1 = WB.whenFront ((3 <=) . length . unSS) $ WB.stateless [outOn out SIa 'A']
+          b2 = WB.whenFront ((<= 5) . length . unSS) $ WB.stateless [outOn out SIb 'B']
           b = b1 <> b2
       WB.boundInputs b (SS "aa") `shouldMatchList` [SIb]
       WB.boundInputs b (SS "aabb") `shouldMatchList` [SIa, SIb]
@@ -203,7 +203,7 @@ spec = do
       checkOut "03120"
   describe "convFrontState" $ do
     it "converts front-end state" $ withStrRef $ \out checkOut -> do
-      let orig_b = WB.whenS (("hoge" ==) . unSS) $ WB.stateless [outOn out SIa 'A']
+      let orig_b = WB.whenFront (("hoge" ==) . unSS) $ WB.stateless [outOn out SIa 'A']
           b = WB.convFrontState SS orig_b
       WB.boundInputs b "" `shouldMatchList` []
       WB.boundInputs b "hoge" `shouldMatchList` [SIa]
@@ -327,5 +327,4 @@ spec = do
       checkOut "CbaBcaAcb"
       
 
--- rename 'whenS'?
 -- add condition function to back-end state? like 'whenBS'
