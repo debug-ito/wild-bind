@@ -20,13 +20,13 @@ module WildBind.Binding (
   convFrontState,
   convInput,
   convBackState,
-  inside,
+  extendAt,
   -- * Explicitly Stateful Bindings
   Binding',
   boundAction',
   boundInputs',
   startFrom,
-  stateIgnored,
+  extend,
   stateful
 ) where
 
@@ -144,15 +144,15 @@ convInput mapper orig_bind = Binding' $ \bs fs ->
 
 -- | Invariant-map the back-end state.
 convBackState :: (bs -> bs') -> (bs' -> bs) -> Binding' bs fs i -> Binding' bs' fs i
-convBackState mapper cmapper = inside $ Lens.lens cmapper (\_ bs -> mapper bs)
+convBackState mapper cmapper = extendAt $ Lens.lens cmapper (\_ bs -> mapper bs)
 
--- | Convert the given 'Binding'' with the given 'Lens'', so that the
+-- | Extend the given 'Binding'' with the given 'Lens'', so that the
 -- 'Binding'' can be part of a 'Binding'' with the bigger state @bs'@
-inside :: Lens.Lens' bs' bs -- ^ a lens that focuses on @bs@, which is part of the bigger state @bs'@.
-       -> Binding' bs fs i
-       -> Binding' bs' fs i
-inside lens orig_bind = Binding' $ \bs' fs ->
-  mapResult (inside lens) (\bs -> bs' & lens .~ bs) $ unBinding' orig_bind (bs' ^. lens) fs
+extendAt :: Lens.Lens' bs' bs -- ^ a lens that focuses on @bs@, which is part of the bigger state @bs'@.
+         -> Binding' bs fs i
+         -> Binding' bs' fs i
+extendAt lens orig_bind = Binding' $ \bs' fs ->
+  mapResult (extendAt lens) (\bs -> bs' & lens .~ bs) $ unBinding' orig_bind (bs' ^. lens) fs
 
 -- | Convert 'Binding'' to 'Binding' by hiding the explicit state
 -- @bs@.
@@ -166,9 +166,9 @@ startFrom init_state b' = Binding' $ \() front_state ->
 
 -- | Extend 'Binding' to 'Binding''. The explicit back-end state is
 -- unmodified.
-stateIgnored :: Binding fs i -> Binding' bs fs i
-stateIgnored b = Binding' $ \bs fs ->
-  mapResult stateIgnored (const bs) $ unBinding' b () fs
+extend :: Binding fs i -> Binding' bs fs i
+extend b = Binding' $ \bs fs ->
+  mapResult extend (const bs) $ unBinding' b () fs
 
 -- | Build a 'Binding'' with an explicit state (but no implicit
 -- state).
