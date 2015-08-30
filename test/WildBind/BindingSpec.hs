@@ -210,10 +210,10 @@ spec = do
       checkInputsS (SS "") [SIa, SIb]
       execAll (SS "") [SIa]
       checkOut "03120"
-  describe "convFrontState" $ do
+  describe "convFront" $ do
     it "converts front-end state" $ withStrRef $ \out checkOut -> do
       let orig_b = WB.whenFront (("hoge" ==) . unSS) $ WB.stateless [outOn out SIa 'A']
-          b = WB.convFrontState SS orig_b
+          b = WB.convFront SS orig_b
       WB.boundInputs b "" `shouldMatchList` []
       WB.boundInputs b "hoge" `shouldMatchList` [SIa]
       actRun $ WB.boundAction b "hoge" SIa
@@ -225,10 +225,10 @@ spec = do
       WB.boundInputs b (SS "") `shouldMatchList` ["SIa"]
       actRun $ WB.boundAction b (SS "") "SIa"
       checkOut "A"
-  describe "convBackState" $ do
+  describe "convBack" $ do
     it "converts the back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       let orig_b = WB.stateful $ \(SB num) -> [outOnS out SIa (head $ show num) (\_ -> SB $ num + 1)]
-          b = WB.convBackState unSB SB orig_b
+          b = WB.convBack unSB SB orig_b
       State.put $ WB.startFrom 0 b
       checkInputsS' [SIa]
       execAll' [SIa]
