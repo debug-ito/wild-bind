@@ -16,6 +16,7 @@ module WildBind.Binding (
   on',
   -- * Condition
   whenFront,
+  whenBack,
   -- * Conversion
   convFrontState,
   convInput,
@@ -116,7 +117,7 @@ rawBinds blist = Binding' $ \_ _ ->
 on' :: i -> ActionDescription -> m a -> (i, Action m a)
 on' input desc act = (input, Action { actDescription = desc, actDo = act })
 
--- | Add a condition to 'Binding'.
+-- | Add a condition on the front-end state to 'Binding'.
 whenFront :: (fs -> Bool) -- ^ Condition about the front-end state.
           -> Binding' bs fs i -- ^ Original Binding.
           -> Binding' bs fs i -- ^ Result Binding where the original
@@ -128,6 +129,17 @@ whenFront cond orig_bind = Binding' $ \bs fs ->
   else M.empty
 
 -- infixr version of 'whenFront' may be useful, too.
+
+-- | Add a condition on the back-end state to 'Binding'.
+whenBack :: (bs -> Bool) -- ^ Condition about the back-end state.
+         -> Binding' bs fs i -- ^ Original Binding.
+         -> Binding' bs fs i -- ^ Result Binding where the original
+                             -- Binding is activated only when the
+                             -- given condition is 'True'.
+whenBack cond orig_bind = Binding' $ \bs fs ->
+  if cond bs
+  then unBinding' orig_bind bs fs
+  else M.empty
 
 mapResult :: Functor m => (a -> a') -> (b -> b') -> M.Map i (Action m (a, b)) -> M.Map i (Action m (a',b'))
 mapResult amapper bmapper = (fmap . fmap) (\(a, b) -> (amapper a, bmapper b))

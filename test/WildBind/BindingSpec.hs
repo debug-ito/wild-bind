@@ -269,6 +269,19 @@ spec = do
       execAll (SS "") [SIc]
       checkOut "CbADA"
       checkInputsS (SS "") [SIa]
+      
+  describe "whenBack" $ do
+    it "adds a condition to the back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let raw_b = WB.stateful $ \bs -> case bs of
+            SB 0 -> [outOnS out SIa '0' (\_ -> SB 1)]
+            SB 1 -> [outOnS out SIb '1' (\_ -> SB 0)]
+            _ -> []
+          b = WB.whenBack (== SB 0) $ raw_b
+      State.put $ WB.startFrom (SB 0) b
+      checkInputsS' [SIa]
+      execAll' [SIa]
+      checkOut "0"
+      checkInputsS' []
 
   describe "extendAt" $ do
     it "extend the explicit state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
