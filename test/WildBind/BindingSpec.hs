@@ -48,8 +48,14 @@ lSB = Lens.lens _lSB (\bsb sb -> bsb { _lSB = sb })
 rSB :: Lens.Lens' BiggerSampleBackState SampleBackState
 rSB = Lens.lens _rSB (\bsb sb -> bsb { _rSB = sb })
 
-newStrRef :: MonadIO m => m (IORef [Char])
+newStrRef :: MonadIO m => m (IORef String)
 newStrRef = liftIO $ newIORef []
+
+withStrRef :: MonadIO m => (IORef String -> (String -> m ()) -> m ()) -> m ()
+withStrRef action = do
+  out <- newStrRef
+  let checkOut exp_str = liftIO $ readIORef out `shouldReturn` exp_str
+  action out checkOut
 
 outOn :: MonadIO m => IORef [a] -> i -> a -> (i, WB.Action m ())
 outOn out_ref input out_elem = WB.on' input "" $ liftIO $ modifyIORef out_ref (out_elem :)
@@ -114,18 +120,16 @@ spec = do
     it "random `mappend` mempty == mempty" $ do
       checkMappend (<> mempty)
   describe "stateless" $ do
-    it "returns a stateless Binding" $ do
-      out <- newStrRef
+    it "returns a stateless Binding" $ withStrRef $ \out checkOut -> do
       let b = WB.stateless [outOn out SIa 'A', outOn out SIb 'B']
       WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
       WB.boundAction b (SS "") SIc `shouldSatisfy` isNothing
       actRun $ WB.boundAction b (SS "") SIa
-      readIORef out `shouldReturn` "A"
+      checkOut "A"
       actRun $ WB.boundAction b (SS "") SIb
-      readIORef out `shouldReturn` "BA"
+      checkOut "BA"
   describe "whenS" $ do
-    it "adds a condition on the front-end state" $ do
-      out <- newStrRef
+    it "adds a condition on the front-end state" $ withStrRef $ \out checkOut -> do
       let b = WB.whenS (\(SS s) -> s == "hoge") $ WB.stateless [outOn out SIa 'A']
       WB.boundInputs b (SS "") `shouldMatchList` []
       WB.boundAction b (SS "") SIa `shouldSatisfy` isNothing
@@ -133,9 +137,8 @@ spec = do
       WB.boundAction b (SS "foobar") SIa `shouldSatisfy` isNothing
       WB.boundInputs b (SS "hoge") `shouldMatchList` [SIa]
       actRun $ WB.boundAction b (SS "hoge") SIa
-      readIORef out `shouldReturn` "A"
-    it "is AND condition" $ do
-      out <- newStrRef
+      checkOut "A"
+    it "is AND condition" $ withStrRef $ \out checkOut -> do
       let raw_b = WB.stateless [outOn out SIa 'A']
           b = WB.whenS ((<= 5) . length . unSS) $ WB.whenS ((3 <=) . length . unSS) $ raw_b
       WB.boundInputs b (SS "ho") `shouldMatchList` []
@@ -144,34 +147,30 @@ spec = do
       WB.boundAction b (SS "hogehoge") SIa `shouldSatisfy` isNothing
       WB.boundInputs b (SS "hoge") `shouldMatchList` [SIa]
       actRun $ WB.boundAction b (SS "hoge") SIa
-      readIORef out `shouldReturn` "A"
+      checkOut "A"
   describe "Binding (mappend)" $ do
-    it "combines two stateless Bindings" $ do
-      out <- newStrRef
+    it "combines two stateless Bindings" $ withStrRef $ \out checkOut -> do
       let b1 = WB.stateless [outOn out SIa 'A']
           b2 = WB.stateless [outOn out SIb 'B']
           b = b1 <> b2
       WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
       void $ inputAll b (SS "") [SIa, SIb]
-      readIORef out `shouldReturn` "BA"
-    it "front-end conditions are preserved" $ do
-      out <- newStrRef
+      checkOut "BA"
+    it "front-end conditions are preserved" $ withStrRef $ \out _ -> do
       let b1 = WB.whenS ((3 <=) . length . unSS) $ WB.stateless [outOn out SIa 'A']
           b2 = WB.whenS ((<= 5) . length . unSS) $ WB.stateless [outOn out SIb 'B']
           b = b1 <> b2
       WB.boundInputs b (SS "aa") `shouldMatchList` [SIb]
       WB.boundInputs b (SS "aabb") `shouldMatchList` [SIa, SIb]
       WB.boundInputs b (SS "aabbcc") `shouldMatchList` [SIa]
-    it "prefers the latter Binding" $ do
-      out <- newStrRef
+    it "prefers the latter Binding" $ withStrRef $ \out checkOut -> do
       let b1 = WB.stateless [outOn out SIa '1', outOn out SIb 'B']
           b2 = WB.stateless [outOn out SIa '2']
           b = b1 <> b2
       WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
       actRun $ WB.boundAction b (SS "") SIa
-      readIORef out `shouldReturn` "2"
-    it "preserves implicit back-end states" $ evalStateEmpty $ do
-      out <- newStrRef
+      checkOut "2"
+    it "preserves implicit back-end states" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       let b1 = WB.startFrom (SB 0) $ WB.stateful $ \bs -> case bs of
             SB 0 -> [outOnS out SIa '0' (\_ -> SB 1)]
             SB 1 -> [outOnS out SIa '1' (\_ -> SB 0)]
@@ -181,7 +180,6 @@ spec = do
             SB 1 -> [outOnS out SIb '3' (\_ -> SB 0)]
             _ -> []
       State.put (b1 <> b2)
-      let checkOut exp_out = lift $ readIORef out `shouldReturn` exp_out
       checkInputsS (SS "") [SIa, SIb]
       execAll (SS "") [SIa]
       checkOut "0"
@@ -198,41 +196,36 @@ spec = do
       execAll (SS "") [SIa]
       checkOut "03120"
   describe "convFrontState" $ do
-    it "converts front-end state" $ do
-      out <- newStrRef
+    it "converts front-end state" $ withStrRef $ \out checkOut -> do
       let orig_b = WB.whenS (("hoge" ==) . unSS) $ WB.stateless [outOn out SIa 'A']
           b = WB.convFrontState SS orig_b
       WB.boundInputs b "" `shouldMatchList` []
       WB.boundInputs b "hoge" `shouldMatchList` [SIa]
       actRun $ WB.boundAction b "hoge" SIa
-      readIORef out `shouldReturn` "A"
+      checkOut "A"
   describe "convInput" $ do
-    it "converts input symbols" $ do
-      out <- newStrRef
+    it "converts input symbols" $ withStrRef $ \out checkOut -> do
       let orig_b = WB.stateless [outOn out SIa 'A']
           b = WB.convInput show orig_b
       WB.boundInputs b (SS "") `shouldMatchList` ["SIa"]
       actRun $ WB.boundAction b (SS "") "SIa"
-      readIORef out `shouldReturn` "A"
+      checkOut "A"
   describe "convBackState" $ do
     it "TODO" $ (undefined :: IO ())
   describe "stateful" $ do
-    it "returns a stateful Binding" $ do
-      out <- newStrRef
+    it "returns a stateful Binding" $ withStrRef $ \out checkOut -> do
       let b = WB.stateful $ \bs ->
             [outOnS out SIa (head $ show $ unSB bs) succ]
       WB.boundInputs' b (SB 0)  (SS "") `shouldBe` [SIa]
       WB.boundInputs' b (SB 10) (SS "hoge") `shouldBe` [SIa]
       void $ inputAll (WB.startFrom (SB 0) b) (SS "") $ replicate 12 SIa
-      readIORef out `shouldReturn` "119876543210"
-    it "can create a stateful Binding with different bound inputs for different back-end state" $ evalStateEmpty $ do
-      out <- newStrRef
+      checkOut "119876543210"
+    it "can create a stateful Binding with different bound inputs for different back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       State.put $ WB.startFrom (SB 0) $ WB.stateful $ \bs -> case bs of
         SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
         SB 1 -> [outOnS out SIb 'B' (\_ -> SB 2)]
         SB 2 -> [outOnS out SIc 'C' (\_ -> SB 0)]
         _ -> []
-      let checkOut exp_out = lift $ readIORef out `shouldReturn` exp_out
       checkOut ""
       checkInputsS (SS "") [SIa]
       execAll (SS "") [SIa]
@@ -245,8 +238,7 @@ spec = do
       checkOut "CBA"
       checkInputsS (SS "") [SIa]
   describe "Binding (mappend, stateful)" $ do
-    it "shares the explicit back-end state" $ evalStateEmpty $ do
-      out <- newStrRef
+    it "shares the explicit back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       let b1 = WB.stateful $ \bs -> case bs of
             SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
             SB 1 -> [outOnS out SIb 'B' (\_ -> SB 2),
@@ -257,7 +249,6 @@ spec = do
             SB 1 -> [outOnS out SIb 'D' (\_ -> SB 0)]
             _ -> []
           b = b1 <> b2
-      let checkOut exp_out = lift $ readIORef out `shouldReturn` exp_out
       State.put $ WB.startFrom (SB 0) b
       checkInputsS (SS "") [SIa]
       execAll (SS "") [SIa]
@@ -274,8 +265,7 @@ spec = do
       checkInputsS (SS "") [SIa]
 
   describe "extendAt" $ do
-    it "extend the explicit state" $ evalStateEmpty $ do
-      out <- newStrRef
+    it "extend the explicit state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       let bl = WB.stateful $ \bs -> case bs of
             SB 0 -> [outOnS out SIa '0' (\_ -> SB 1)]
             SB 1 -> [outOnS out SIa '1' (\_ -> SB 0)]
@@ -289,8 +279,7 @@ spec = do
             _ -> []
           b = (WB.extendAt lSB bl) <> (WB.extendAt rSB br) <> bg
       State.put $ WB.startFrom (BSB (SB 0) (SB 0)) b
-      let checkOut e = lift $ readIORef out `shouldReturn` e
-          checkInputsS' = checkInputsS (SS "")
+      let checkInputsS' = checkInputsS (SS "")
           execAll' = execAll (SS "")
       checkInputsS' [SIa, SIb, SIc]
       execAll' [SIa]
