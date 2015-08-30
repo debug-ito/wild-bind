@@ -347,6 +347,27 @@ spec = do
       checkInputsS' [SIa, SIb, SIc]
       execAll' [SIa, SIb, SIc]
       checkOut "CbaBcaAcb"
+
+  describe "whenBoth" $ do
+    it "adds a condition to both front-end and back-end states" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let incr = outOnS out SIa '+' (\(SB num) -> SB (num + 1))
+          decr = outOnS out SIb '-' (\(SB num) -> SB (num - 1))
+          raw_b = WB.stateful $ \(SB num) -> if num == 0 then [incr] else [incr, decr]
+          b = WB.whenBoth (\(SB num) (SS str) -> length str == num) $ raw_b
+      State.put $ WB.startFrom (SB 0) $ b
+      checkInputsS (SS "hoge") []
+      checkInputsS (SS "") [SIa]
+      execAll (SS "") [SIa]
+      checkOut "+"
+      checkInputsS (SS "") []
+      checkInputsS (SS "e") [SIa, SIb]
+      execAll (SS "e") [SIa]
+      checkOut "++"
+      checkInputsS (SS "e") []
+      checkInputsS (SS "eg") [SIa, SIb]
+      execAll (SS "eg") [SIb]
+      checkOut "-++"
+      checkInputsS (SS "e") [SIa, SIb]
+
       
 
--- add condition function to back-end state? like 'whenBS'

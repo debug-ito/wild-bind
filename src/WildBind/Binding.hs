@@ -118,26 +118,23 @@ rawBinds blist = Binding' $ \_ _ ->
 on' :: i -> ActionDescription -> m a -> (i, Action m a)
 on' input desc act = (input, Action { actDescription = desc, actDo = act })
 
--- | Add a condition on the front-end state to 'Binding'.
+-- | Add a condition on the front-end state to 'Binding'. See 'whenBoth', too.
 whenFront :: (fs -> Bool) -- ^ Condition about the front-end state.
-          -> Binding' bs fs i -- ^ Original Binding.
-          -> Binding' bs fs i -- ^ Result Binding where the original
-                              -- Binding is activated only when the
-                              -- given condition is 'True'.
+          -> Binding' bs fs i
+          -> Binding' bs fs i
 whenFront cond = whenBoth $ \_ fs -> cond fs
 
 -- infixr version of 'whenFront' may be useful, too.
 
--- | Add a condition on the back-end state to 'Binding'.
+-- | Add a condition on the back-end state to 'Binding'. See 'whenBoth', too.
 whenBack :: (bs -> Bool) -- ^ Condition about the back-end state.
-         -> Binding' bs fs i -- ^ Original Binding.
-         -> Binding' bs fs i -- ^ Result Binding where the original
-                             -- Binding is activated only when the
-                             -- given condition is 'True'.
+         -> Binding' bs fs i
+         -> Binding' bs fs i
 whenBack cond = whenBoth $ \bs _ -> cond bs
 
 -- | Add a condition on the back-end and front-end states to
--- 'Binding'.
+-- 'Binding'. If you call this function multiple times, the conditions
+-- are combined with AND logic.
 whenBoth :: (bs -> fs -> Bool) -- ^ Condition about the back-end and front-end states.
          -> Binding' bs fs i -- ^ Original Binding.
          -> Binding' bs fs i -- ^ Result Binding where the original
