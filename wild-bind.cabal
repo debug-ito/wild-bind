@@ -43,7 +43,7 @@ test-suite spec
   hs-source-dirs:       test
   ghc-options:          -Wall
   main-is:              Spec.hs
-  default-extensions:   OverloadedStrings
+  default-extensions:   OverloadedStrings FlexibleInstances MultiParamTypeClasses
   build-depends:        base, wild-bind,
                         transformers, microlens,
                         hspec >=2.1.7 && <2.2,
