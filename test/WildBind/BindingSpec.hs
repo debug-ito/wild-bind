@@ -270,7 +270,44 @@ spec = do
       checkOut "CbADA"
       checkInputsS (SS "") [SIa]
 
--- test for 'inside' (<- rename?) + mappend
+  describe "extendAt" $ do
+    it "extend the explicit state" $ flip State.evalStateT mempty_stateless $ do
+      out <- newStrRef
+      let bl = WB.stateful $ \bs -> case bs of
+            SB 0 -> [outOnS out SIa '0' (\_ -> SB 1)]
+            SB 1 -> [outOnS out SIa '1' (\_ -> SB 0)]
+            _ -> []
+          br = WB.stateful $ \bs -> case bs of
+            SB 0 -> [outOnS out SIb '2' (\_ -> SB 1)]
+            SB 1 -> [outOnS out SIb '3' (\_ -> SB 0)]
+            _ -> []
+          bg = WB.stateful $ \bs -> case bs of
+            BSB (SB 0) (SB 0) -> [outOnS out SIc '4' (\_ -> BSB (SB 1) (SB 1))]
+            _ -> []
+          b = (WB.extendAt lSB bl) <> (WB.extendAt rSB br) <> bg
+      State.put $ WB.startFrom (BSB (SB 0) (SB 0)) b
+      let checkOut e = lift $ readIORef out `shouldReturn` e
+          checkInputsS' = checkInputsS (SS "")
+          execAll' = execAll (SS "")
+      checkInputsS' [SIa, SIb, SIc]
+      execAll' [SIa]
+      checkOut "0"
+      checkInputsS' [SIa, SIb]
+      execAll' [SIb]
+      checkOut "20"
+      checkInputsS' [SIa, SIb]
+      execAll' [SIb]
+      checkOut "320"
+      checkInputsS' [SIa, SIb]
+      execAll' [SIa]
+      checkOut "1320"
+      checkInputsS' [SIa, SIb, SIc]
+      execAll' [SIc]
+      checkOut "41320"
+      checkInputsS' [SIa, SIb]
+      execAll' [SIa, SIb]
+      checkOut "3141320"
+
 -- test for 'stateIgnored' (<- rename?) + mappend
 -- rename 'whenS'?
 -- add condition function to back-end state? like 'whenBS'
