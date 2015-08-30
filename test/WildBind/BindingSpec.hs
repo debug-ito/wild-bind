@@ -226,7 +226,17 @@ spec = do
       actRun $ WB.boundAction b (SS "") "SIa"
       checkOut "A"
   describe "convBackState" $ do
-    it "TODO" $ (undefined :: IO ())
+    it "converts the back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let orig_b = WB.stateful $ \(SB num) -> [outOnS out SIa (head $ show num) (\_ -> SB $ num + 1)]
+          b = WB.convBackState unSB SB orig_b
+      State.put $ WB.startFrom 0 b
+      checkInputsS' [SIa]
+      execAll' [SIa]
+      checkOut "0"
+      execAll' [SIa]
+      checkOut "10"
+      execAll' [SIa]
+      checkOut "210"
   describe "stateful" $ do
     it "returns a stateful Binding" $ withStrRef $ \out checkOut -> do
       let b = WB.stateful $ \bs ->
