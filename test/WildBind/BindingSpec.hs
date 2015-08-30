@@ -101,6 +101,9 @@ actRun = void . WB.actDo . fromJust
 checkInputsS :: (Show i, Eq i) => s -> [i] -> State.StateT (WB.Binding s i) IO ()
 checkInputsS state exp_in = State.get >>= \b -> lift $ WB.boundInputs b state `shouldMatchList` exp_in
 
+evalStateEmpty :: State.StateT (WB.Binding SampleState SampleInput) IO () -> IO ()
+evalStateEmpty s = State.evalStateT s mempty_stateless
+
 spec :: Spec
 spec = do
   describe "Binding (Monoid instances)" $ do
@@ -167,7 +170,7 @@ spec = do
       WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
       actRun $ WB.boundAction b (SS "") SIa
       readIORef out `shouldReturn` "2"
-    it "preserves implicit back-end states" $ flip State.evalStateT mempty_stateless $ do
+    it "preserves implicit back-end states" $ evalStateEmpty $ do
       out <- newStrRef
       let b1 = WB.startFrom (SB 0) $ WB.stateful $ \bs -> case bs of
             SB 0 -> [outOnS out SIa '0' (\_ -> SB 1)]
@@ -222,7 +225,7 @@ spec = do
       WB.boundInputs' b (SB 10) (SS "hoge") `shouldBe` [SIa]
       void $ inputAll (WB.startFrom (SB 0) b) (SS "") $ replicate 12 SIa
       readIORef out `shouldReturn` "119876543210"
-    it "can create a stateful Binding with different bound inputs for different back-end state" $ flip State.evalStateT mempty_stateless $ do
+    it "can create a stateful Binding with different bound inputs for different back-end state" $ evalStateEmpty $ do
       out <- newStrRef
       State.put $ WB.startFrom (SB 0) $ WB.stateful $ \bs -> case bs of
         SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
@@ -242,7 +245,7 @@ spec = do
       checkOut "CBA"
       checkInputsS (SS "") [SIa]
   describe "Binding (mappend, stateful)" $ do
-    it "shares the explicit back-end state" $ flip State.evalStateT mempty_stateless $ do
+    it "shares the explicit back-end state" $ evalStateEmpty $ do
       out <- newStrRef
       let b1 = WB.stateful $ \bs -> case bs of
             SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
@@ -271,7 +274,7 @@ spec = do
       checkInputsS (SS "") [SIa]
 
   describe "extendAt" $ do
-    it "extend the explicit state" $ flip State.evalStateT mempty_stateless $ do
+    it "extend the explicit state" $ evalStateEmpty $ do
       out <- newStrRef
       let bl = WB.stateful $ \bs -> case bs of
             SB 0 -> [outOnS out SIa '0' (\_ -> SB 1)]
@@ -307,6 +310,11 @@ spec = do
       checkInputsS' [SIa, SIb]
       execAll' [SIa, SIb]
       checkOut "3141320"
+
+  describe "extend" $ do
+    it "extends a stateless Binding" $ evalStateEmpty $ do
+      return ()
+      
 
 -- test for 'stateIgnored' (<- rename?) + mappend
 -- rename 'whenS'?
