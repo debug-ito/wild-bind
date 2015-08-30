@@ -154,6 +154,15 @@ spec = do
       WB.boundInputs b (SS "hoge") `shouldMatchList` [SIa]
       actRun $ WB.boundAction b (SS "hoge") SIa
       checkOut "A"
+    it "should be effective for derived Bindings" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let raw_b = WB.stateless [outOn out SIa 'A']
+      State.put $ WB.whenFront (\(SS s) -> s == "foobar") $ raw_b
+      checkInputsS (SS "hoge") []
+      checkInputsS (SS "foobar") [SIa]
+      execAll (SS "foobar") [SIa]
+      checkOut "A"
+      checkInputsS (SS "hoge") []
+      checkInputsS (SS "foobar") [SIa]
   describe "Binding (mappend)" $ do
     it "combines two stateless Bindings" $ withStrRef $ \out checkOut -> do
       let b1 = WB.stateless [outOn out SIa 'A']
