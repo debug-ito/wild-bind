@@ -7,30 +7,17 @@ import Data.Maybe (isNothing, fromJust)
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
 
 import Test.Hspec
-import Test.QuickCheck (Gen, Arbitrary(arbitrary,shrink), arbitraryBoundedEnum, property,
-                        listOf, sample')
+import Test.QuickCheck (Gen, Arbitrary(arbitrary), property, listOf, sample')
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.State as State
 import qualified Lens.Micro as Lens
 
 import qualified WildBind.Binding as WB
+import WildBind.ForTest (SampleInput(..), SampleState(..))
 
 main :: IO ()
 main = hspec spec
-
-data SampleInput = SIa | SIb | SIc
-                 deriving (Show, Eq, Ord, Enum, Bounded)
-
-instance Arbitrary SampleInput where
-  arbitrary = arbitraryBoundedEnum
-
-data SampleState = SS { unSS :: String }
-                 deriving (Show, Eq, Ord)
-
-instance Arbitrary SampleState where
-  arbitrary = SS <$> arbitrary
-  shrink (SS s) = SS <$> shrink s
 
 data SampleBackState = SB { unSB :: Int }
                      deriving (Show, Eq, Ord)
