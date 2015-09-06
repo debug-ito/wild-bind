@@ -3,8 +3,8 @@ module WildBindSpec (main, spec) where
 import Test.Hspec
 import Control.Applicative ((<$>))
 import Control.Exception (bracket)
-import Control.Concurrent (forkIO, killThread)
-import Control.Concurrent.STM (atomically, TChan, readTChan, writeTChan, newTChanIO)
+import Control.Concurrent (forkIOWithUnmask, killThread)
+import Control.Concurrent.STM (atomically, TChan, readTChan, tryReadTChan, writeTChan, newTChanIO)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 
 import qualified WildBind as WB
@@ -16,7 +16,7 @@ newtype EventChan s i = EventChan { unEventChan :: TChan (WB.FrontEvent s i) }
 instance WB.FrontEventSource (EventChan s i) s i where
   nextEvent = atomically . readTChan . unEventChan
 
-data GrabHistory i = GSet i | GUnset i
+data GrabHistory i = GSet i | GUnset i deriving (Show, Eq, Ord)
 
 newtype GrabChan i = GrabChan { unGrabChan :: TChan (GrabHistory i) }
 
@@ -33,9 +33,22 @@ withWildBind :: Ord i => WBB.Binding s i -> (EventChan s i -> GrabChan i -> IO (
 withWildBind binding action = do
   echan <- EventChan <$> newTChanIO
   gchan <- GrabChan <$> newTChanIO
-  let spawnWildBind = forkIO $ WB.wildBind gchan echan binding
+  let spawnWildBind = forkIOWithUnmask $ \umask -> umask $ WB.wildBind gchan echan binding
   bracket spawnWildBind killThread (\_ -> action echan gchan)
-  
+
+emitEvent :: TChan (WB.FrontEvent s i) -> WB.FrontEvent s i -> IO ()
+emitEvent chan event = atomically $ writeTChan chan event
+
+shouldProduce :: (Show a, Eq a) => TChan a -> a -> IO ()
+shouldProduce chan expectation = (atomically $ readTChan chan) `shouldReturn` expectation
+
+readAll :: TChan a -> IO [a]
+readAll chan = atomically $ readAll' [] where
+  readAll' acc = do
+    mret <- tryReadTChan chan
+    case mret of
+      Nothing -> return (reverse acc)
+      Just ret -> readAll' (ret : acc)
 
 main :: IO ()
 main = hspec spec
@@ -48,5 +61,9 @@ spec = do
       let b = WBB.stateless [outChanOn ochan SIa 'A',
                              outChanOn ochan SIb 'B']
       withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
-        undefined
+        emitEvent echan $ WB.FEChange $ SS ""
+        emitEvent echan $ WB.FEInput (SS "") SIa
+        ochan `shouldProduce` 'A'
+        ghist <- readAll gchan
+        ghist `shouldMatchList` [GSet SIa, GSet SIb]
       
