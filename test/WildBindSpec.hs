@@ -2,8 +2,9 @@ module WildBindSpec (main, spec) where
 
 import Test.Hspec
 import Control.Applicative ((<$>))
+import Data.Monoid ((<>))
 import Control.Exception (bracket)
-import Control.Concurrent (forkIOWithUnmask, killThread)
+import Control.Concurrent (forkIOWithUnmask, killThread, threadDelay)
 import Control.Concurrent.STM (atomically, TChan, readTChan, tryReadTChan, writeTChan, newTChanIO)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 
@@ -50,6 +51,12 @@ readAll chan = atomically $ readAll' [] where
       Nothing -> return (reverse acc)
       Just ret -> readAll' (ret : acc)
 
+shouldNowMatch :: (Show a, Eq a) => TChan a -> [a] -> IO ()
+shouldNowMatch chan expectation = readAll chan >>= (`shouldMatchList` expectation)
+
+changeAndInput :: s -> i -> [WB.FrontEvent s i]
+changeAndInput s i = [WB.FEChange s, WB.FEInput s i]
+
 main :: IO ()
 main = hspec spec
 
@@ -66,4 +73,25 @@ spec = do
         ochan `shouldProduce` 'A'
         ghist <- readAll gchan
         ghist `shouldMatchList` [GSet SIa, GSet SIb]
+    it "should enable/disable grabs when the front-end state changes" $ do
+      ochan <- newTChanIO
+      let b = (WBB.whenFront (\(SS s) -> s == "A") $ WBB.stateless [outChanOn ochan SIa 'A'])
+              <>
+              (WBB.whenFront (\(SS s) -> s == "B") $ WBB.stateless [outChanOn ochan SIb 'B'])
+              <>
+              (WBB.whenFront (\(SS s) -> s == "C") $ WBB.stateless [outChanOn ochan SIc 'C'])
+      withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
+        mapM_ (emitEvent echan) $ changeAndInput (SS "A") SIa
+        ochan `shouldProduce` 'A'
+        gchan `shouldNowMatch` [GSet SIa]
+        mapM_ (emitEvent echan) $ changeAndInput (SS "B") SIb
+        ochan `shouldProduce` 'B'
+        gchan `shouldNowMatch` [GUnset SIa, GSet SIb]
+        mapM_ (emitEvent echan) $ changeAndInput (SS "C") SIc
+        ochan `shouldProduce` 'C'
+        gchan `shouldNowMatch` [GUnset SIb, GSet SIc]
+        emitEvent echan $ WB.FEChange (SS "")
+        threadDelay 10000
+        gchan `shouldNowMatch` [GUnset SIc]
+        
       
