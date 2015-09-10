@@ -71,8 +71,8 @@ spec = do
   describe "wildBind" $ do
     it "should enable input grabs" $ do
       ochan <- newTChanIO
-      let b = WBB.stateless [outChanOn ochan SIa 'A',
-                             outChanOn ochan SIb 'B']
+      let b = WBB.binds [outChanOn ochan SIa 'A',
+                         outChanOn ochan SIb 'B']
       withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
         emitEvent echan $ WB.FEChange $ SS ""
         emitEvent echan $ WB.FEInput (SS "") SIa
@@ -81,11 +81,11 @@ spec = do
         ghist `shouldMatchList` [GSet SIa, GSet SIb]
     it "should enable/disable grabs when the front-end state changes" $ do
       ochan <- newTChanIO
-      let b = (WBB.whenFront (\(SS s) -> s == "A") $ WBB.stateless [outChanOn ochan SIa 'A'])
+      let b = (WBB.whenFront (\(SS s) -> s == "A") $ WBB.binds [outChanOn ochan SIa 'A'])
               <>
-              (WBB.whenFront (\(SS s) -> s == "B") $ WBB.stateless [outChanOn ochan SIb 'B'])
+              (WBB.whenFront (\(SS s) -> s == "B") $ WBB.binds [outChanOn ochan SIb 'B'])
               <>
-              (WBB.whenFront (\(SS s) -> s == "C") $ WBB.stateless [outChanOn ochan SIc 'C'])
+              (WBB.whenFront (\(SS s) -> s == "C") $ WBB.binds [outChanOn ochan SIc 'C'])
       withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
         mapM_ (emitEvent echan) $ changeAndInput (SS "A") SIa
         ochan `shouldProduce` 'A'
@@ -101,7 +101,7 @@ spec = do
         gchan `shouldNowMatch` [GUnset SIc]
     it "should enable/disable grabs when the back-end state changes" $ do
       ochan <- newTChanIO
-      let b' = WBB.stateful $ \bs -> case bs of
+      let b' = WBB.binds' $ \bs -> case bs of
             (SB 0) -> [outChanOnS ochan SIa 'A' (SB 1)]
             (SB 1) -> [outChanOnS ochan SIb 'B' (SB 0)]
             _ -> []

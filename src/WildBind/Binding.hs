@@ -11,7 +11,7 @@ module WildBind.Binding (
   boundAction,
   boundInputs,
   -- * Construction
-  stateless,
+  binds,
   rawBinds,
   on,
   -- * Condition
@@ -29,7 +29,7 @@ module WildBind.Binding (
   boundInputs',
   startFrom,
   extend,
-  stateful
+  binds'
 ) where
 
 import qualified Data.Map as M
@@ -96,16 +96,16 @@ boundInputs' :: Binding' bs fs i -> bs -> fs -> [i]
 boundInputs' binding bs fs = M.keys $ unBinding' binding bs fs
 
 -- | Build a 'Binding' with no explicit or implicit state.
-stateless :: Ord i
-          => [(i, Action IO ())] -- ^ Bound pairs of input symbols and 'Action'.
-          -> Binding s i
-          -- ^ Result Binding. The given bindings are activated
-          -- regardless of the front-end state.
-stateless blist = rawBinds $ fmap (mapSnd $ fmap (const $ stateless blist)) blist
+binds :: Ord i
+         => [(i, Action IO ())] -- ^ Bound pairs of input symbols and 'Action'.
+         -> Binding s i
+         -- ^ Result Binding. The given bindings are activated
+         -- regardless of the front-end state.
+binds blist = rawBinds $ fmap (mapSnd $ fmap (const $ binds blist)) blist
   where mapSnd f (a,b) = (a, f b)
 
 -- | Build a 'Binding' from a list. This is a raw-level function to
--- build a 'Binding'. 'stateless' and 'stateful' are recommended.
+-- build a 'Binding'. 'binds' and 'binds'' are recommended.
 rawBinds :: Ord i
          => [(i, Action IO (Binding s i))] -- ^ Bound pairs of input symbol and 'Action'
          -> Binding s i
@@ -188,13 +188,13 @@ extend b = Binding' $ \bs fs ->
 
 -- | Build a 'Binding'' with an explicit state (but no implicit
 -- state).
-stateful :: Ord i
-         => (bs -> [(i, Action (StateT bs IO) ())]) -- ^ stateful binding lists
-         -> Binding' bs fs i
-         -- ^ The result 'Binding''. The given bindings are activated
-         -- regardless of the front-end state.
-stateful blists' = Binding' $ \bs _ ->
-  fmap (runStatefulAction (stateful blists') bs) $ M.fromList $ blists' bs
+binds' :: Ord i
+       => (bs -> [(i, Action (StateT bs IO) ())]) -- ^ stateful binding lists
+       -> Binding' bs fs i
+       -- ^ The result 'Binding''. The given bindings are activated
+       -- regardless of the front-end state.
+binds' blists' = Binding' $ \bs _ ->
+  fmap (runStatefulAction (binds' blists') bs) $ M.fromList $ blists' bs
 
 runStatefulAction :: Binding' bs fs i -> bs -> Action (StateT bs IO) () -> Action IO (Binding' bs fs i, bs)
 runStatefulAction next_b' cur_bs state_action =

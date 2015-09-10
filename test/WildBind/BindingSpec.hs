@@ -50,7 +50,7 @@ genStatelessBinding out_list = do
   let outputRandomElem = do
         out_elem <- arbitrary
         return $ modifyIORef out_list (out_elem :)
-  WB.stateless <$> (listOf $ WB.on <$> arbitrary <*> pure "" <*> outputRandomElem)
+  WB.binds <$> (listOf $ WB.on <$> arbitrary <*> pure "" <*> outputRandomElem)
 
 generate :: Gen a -> IO a
 generate = fmap head . sample'
@@ -107,7 +107,7 @@ spec = do
       checkMappend (<> mempty)
   describe "stateless" $ do
     it "returns a stateless Binding" $ withStrRef $ \out checkOut -> do
-      let b = WB.stateless [outOn out SIa 'A', outOn out SIb 'B']
+      let b = WB.binds [outOn out SIa 'A', outOn out SIb 'B']
       WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
       WB.boundAction b (SS "") SIc `shouldSatisfy` isNothing
       actRun $ WB.boundAction b (SS "") SIa
@@ -116,7 +116,7 @@ spec = do
       checkOut "BA"
   describe "whenFront" $ do
     it "adds a condition on the front-end state" $ withStrRef $ \out checkOut -> do
-      let b = WB.whenFront (\(SS s) -> s == "hoge") $ WB.stateless [outOn out SIa 'A']
+      let b = WB.whenFront (\(SS s) -> s == "hoge") $ WB.binds [outOn out SIa 'A']
       WB.boundInputs b (SS "") `shouldMatchList` []
       WB.boundAction b (SS "") SIa `shouldSatisfy` isNothing
       WB.boundInputs b (SS "foobar") `shouldMatchList` []
@@ -125,7 +125,7 @@ spec = do
       actRun $ WB.boundAction b (SS "hoge") SIa
       checkOut "A"
     it "is AND condition" $ withStrRef $ \out checkOut -> do
-      let raw_b = WB.stateless [outOn out SIa 'A']
+      let raw_b = WB.binds [outOn out SIa 'A']
           b = WB.whenFront ((<= 5) . length . unSS) $ WB.whenFront ((3 <=) . length . unSS) $ raw_b
       WB.boundInputs b (SS "ho") `shouldMatchList` []
       WB.boundAction b (SS "ho") SIa `shouldSatisfy` isNothing
@@ -135,7 +135,7 @@ spec = do
       actRun $ WB.boundAction b (SS "hoge") SIa
       checkOut "A"
     it "should be effective for derived Bindings" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      let raw_b = WB.stateless [outOn out SIa 'A']
+      let raw_b = WB.binds [outOn out SIa 'A']
       State.put $ WB.whenFront (\(SS s) -> s == "foobar") $ raw_b
       checkInputsS (SS "hoge") []
       checkInputsS (SS "foobar") [SIa]
@@ -145,32 +145,32 @@ spec = do
       checkInputsS (SS "foobar") [SIa]
   describe "Binding (mappend)" $ do
     it "combines two stateless Bindings" $ withStrRef $ \out checkOut -> do
-      let b1 = WB.stateless [outOn out SIa 'A']
-          b2 = WB.stateless [outOn out SIb 'B']
+      let b1 = WB.binds [outOn out SIa 'A']
+          b2 = WB.binds [outOn out SIb 'B']
           b = b1 <> b2
       WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
       void $ inputAll b (SS "") [SIa, SIb]
       checkOut "BA"
     it "front-end conditions are preserved" $ withStrRef $ \out _ -> do
-      let b1 = WB.whenFront ((3 <=) . length . unSS) $ WB.stateless [outOn out SIa 'A']
-          b2 = WB.whenFront ((<= 5) . length . unSS) $ WB.stateless [outOn out SIb 'B']
+      let b1 = WB.whenFront ((3 <=) . length . unSS) $ WB.binds [outOn out SIa 'A']
+          b2 = WB.whenFront ((<= 5) . length . unSS) $ WB.binds [outOn out SIb 'B']
           b = b1 <> b2
       WB.boundInputs b (SS "aa") `shouldMatchList` [SIb]
       WB.boundInputs b (SS "aabb") `shouldMatchList` [SIa, SIb]
       WB.boundInputs b (SS "aabbcc") `shouldMatchList` [SIa]
     it "prefers the latter Binding" $ withStrRef $ \out checkOut -> do
-      let b1 = WB.stateless [outOn out SIa '1', outOn out SIb 'B']
-          b2 = WB.stateless [outOn out SIa '2']
+      let b1 = WB.binds [outOn out SIa '1', outOn out SIb 'B']
+          b2 = WB.binds [outOn out SIa '2']
           b = b1 <> b2
       WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
       actRun $ WB.boundAction b (SS "") SIa
       checkOut "2"
     it "preserves implicit back-end states" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      let b1 = WB.startFrom (SB 0) $ WB.stateful $ \bs -> case bs of
+      let b1 = WB.startFrom (SB 0) $ WB.binds' $ \bs -> case bs of
             SB 0 -> [outOnS out SIa '0' (\_ -> SB 1)]
             SB 1 -> [outOnS out SIa '1' (\_ -> SB 0)]
             _ -> []
-          b2 = WB.startFrom (SB 0) $ WB.stateful $ \bs -> case bs of
+          b2 = WB.startFrom (SB 0) $ WB.binds' $ \bs -> case bs of
             SB 0 -> [outOnS out SIb '2' (\_ -> SB 1)]
             SB 1 -> [outOnS out SIb '3' (\_ -> SB 0)]
             _ -> []
@@ -192,7 +192,7 @@ spec = do
       checkOut "03120"
   describe "convFront" $ do
     it "converts front-end state" $ withStrRef $ \out checkOut -> do
-      let orig_b = WB.whenFront (("hoge" ==) . unSS) $ WB.stateless [outOn out SIa 'A']
+      let orig_b = WB.whenFront (("hoge" ==) . unSS) $ WB.binds [outOn out SIa 'A']
           b = WB.convFront SS orig_b
       WB.boundInputs b "" `shouldMatchList` []
       WB.boundInputs b "hoge" `shouldMatchList` [SIa]
@@ -200,14 +200,14 @@ spec = do
       checkOut "A"
   describe "convInput" $ do
     it "converts input symbols" $ withStrRef $ \out checkOut -> do
-      let orig_b = WB.stateless [outOn out SIa 'A']
+      let orig_b = WB.binds [outOn out SIa 'A']
           b = WB.convInput show orig_b
       WB.boundInputs b (SS "") `shouldMatchList` ["SIa"]
       actRun $ WB.boundAction b (SS "") "SIa"
       checkOut "A"
   describe "convBack" $ do
     it "converts the back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      let orig_b = WB.stateful $ \(SB num) -> [outOnS out SIa (head $ show num) (\_ -> SB $ num + 1)]
+      let orig_b = WB.binds' $ \(SB num) -> [outOnS out SIa (head $ show num) (\_ -> SB $ num + 1)]
           b = WB.convBack unSB SB orig_b
       State.put $ WB.startFrom 0 b
       checkInputsS' [SIa]
@@ -219,14 +219,14 @@ spec = do
       checkOut "210"
   describe "stateful" $ do
     it "returns a stateful Binding" $ withStrRef $ \out checkOut -> do
-      let b = WB.stateful $ \bs ->
+      let b = WB.binds' $ \bs ->
             [outOnS out SIa (head $ show $ unSB bs) succ]
       WB.boundInputs' b (SB 0)  (SS "") `shouldBe` [SIa]
       WB.boundInputs' b (SB 10) (SS "hoge") `shouldBe` [SIa]
       void $ inputAll (WB.startFrom (SB 0) b) (SS "") $ replicate 12 SIa
       checkOut "119876543210"
     it "can create a stateful Binding with different bound inputs for different back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      State.put $ WB.startFrom (SB 0) $ WB.stateful $ \bs -> case bs of
+      State.put $ WB.startFrom (SB 0) $ WB.binds' $ \bs -> case bs of
         SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
         SB 1 -> [outOnS out SIb 'B' (\_ -> SB 2)]
         SB 2 -> [outOnS out SIc 'C' (\_ -> SB 0)]
@@ -244,13 +244,13 @@ spec = do
       checkInputsS (SS "") [SIa]
   describe "Binding (mappend, stateful)" $ do
     it "shares the explicit back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      let b1 = WB.stateful $ \bs -> case bs of
+      let b1 = WB.binds' $ \bs -> case bs of
             SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
             SB 1 -> [outOnS out SIb 'B' (\_ -> SB 2),
                      outOnS out SIc 'b' (\_ -> SB 2)]
             SB 2 -> [outOnS out SIc 'C' (\_ -> SB 0)]
             _ -> []
-          b2 = WB.stateful $ \bs -> case bs of
+          b2 = WB.binds' $ \bs -> case bs of
             SB 1 -> [outOnS out SIb 'D' (\_ -> SB 0)]
             _ -> []
           b = b1 <> b2
@@ -271,7 +271,7 @@ spec = do
       
   describe "whenBack" $ do
     it "adds a condition to the back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      let raw_b = WB.stateful $ \bs -> case bs of
+      let raw_b = WB.binds' $ \bs -> case bs of
             SB 0 -> [outOnS out SIa '0' (\_ -> SB 1)]
             SB 1 -> [outOnS out SIb '1' (\_ -> SB 0)]
             _ -> []
@@ -284,15 +284,15 @@ spec = do
 
   describe "extendAt" $ do
     it "extend the explicit state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      let bl = WB.stateful $ \bs -> case bs of
+      let bl = WB.binds' $ \bs -> case bs of
             SB 0 -> [outOnS out SIa '0' (\_ -> SB 1)]
             SB 1 -> [outOnS out SIa '1' (\_ -> SB 0)]
             _ -> []
-          br = WB.stateful $ \bs -> case bs of
+          br = WB.binds' $ \bs -> case bs of
             SB 0 -> [outOnS out SIb '2' (\_ -> SB 1)]
             SB 1 -> [outOnS out SIb '3' (\_ -> SB 0)]
             _ -> []
-          bg = WB.stateful $ \bs -> case bs of
+          bg = WB.binds' $ \bs -> case bs of
             BSB (SB 0) (SB 0) -> [outOnS out SIc '4' (\_ -> BSB (SB 1) (SB 1))]
             _ -> []
           b = (WB.extendAt lSB bl) <> (WB.extendAt rSB br) <> bg
@@ -318,11 +318,11 @@ spec = do
 
   describe "extend" $ do
     it "extends a stateless Binding" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      let bl = WB.stateless [
+      let bl = WB.binds [
             outOn out SIa 'a',
             outOn out SIb 'b',
             outOn out SIc 'c']
-          bs = WB.stateful $ \bstate -> case bstate of
+          bs = WB.binds' $ \bstate -> case bstate of
             SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
             SB 1 -> [outOnS out SIb 'B' (\_ -> SB 2)]
             SB 2 -> [outOnS out SIc 'C' (\_ -> SB 0)]
@@ -344,7 +344,7 @@ spec = do
     it "adds a condition to both front-end and back-end states" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       let incr = incr' out
           decr = decr' out
-          raw_b = WB.stateful $ \(SB num) -> if num == 0 then [incr '+'] else [incr '+', decr '-']
+          raw_b = WB.binds' $ \(SB num) -> if num == 0 then [incr '+'] else [incr '+', decr '-']
           b = WB.whenBoth (\(SB num) (SS str) -> length str == num) $ raw_b
       State.put $ WB.startFrom (SB 0) $ b
       checkInputsS (SS "hoge") []
@@ -363,9 +363,9 @@ spec = do
     it "creates independent conditions when combined with <>" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       let incr = incr' out
           decr = decr' out
-          bn = WB.stateful $ \(SB num) -> if num == 0 then [incr '+'] else [incr '+', decr '-']
+          bn = WB.binds' $ \(SB num) -> if num == 0 then [incr '+'] else [incr '+', decr '-']
           bn' = WB.whenBoth (\(SB num) (SS str) -> length str == num) bn
-          ba = WB.stateful $ \(SB num) -> if num == 0 then [incr 'p'] else [incr 'p', decr 'm']
+          ba = WB.binds' $ \(SB num) -> if num == 0 then [incr 'p'] else [incr 'p', decr 'm']
           ba' = WB.whenBoth (\(SB num) (SS str) -> read str == num) ba
       State.put $ WB.startFrom (SB 1) (bn' <> ba')
       checkInputsS (SS "10") []
