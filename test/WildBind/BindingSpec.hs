@@ -38,10 +38,10 @@ withStrRef action = do
   action out checkOut
 
 outOn :: MonadIO m => IORef [a] -> i -> a -> (i, WB.Action m ())
-outOn out_ref input out_elem = WB.on' input "" $ liftIO $ modifyIORef out_ref (out_elem :)
+outOn out_ref input out_elem = WB.on input "" $ liftIO $ modifyIORef out_ref (out_elem :)
 
 outOnS :: MonadIO m => IORef [a] -> i -> a -> (s -> s) -> (i, WB.Action (State.StateT s m) ())
-outOnS out_ref input out_elem modifier = WB.on' input "" $ do
+outOnS out_ref input out_elem modifier = WB.on input "" $ do
   State.modify modifier
   liftIO $ modifyIORef out_ref (out_elem :)
 
@@ -50,7 +50,7 @@ genStatelessBinding out_list = do
   let outputRandomElem = do
         out_elem <- arbitrary
         return $ modifyIORef out_list (out_elem :)
-  WB.stateless <$> (listOf $ WB.on' <$> arbitrary <*> pure "" <*> outputRandomElem)
+  WB.stateless <$> (listOf $ WB.on <$> arbitrary <*> pure "" <*> outputRandomElem)
 
 generate :: Gen a -> IO a
 generate = fmap head . sample'

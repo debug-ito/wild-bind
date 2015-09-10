@@ -29,10 +29,10 @@ instance WB.FrontInputDevice (GrabChan i) i where
 
 
 outChanOn :: MonadIO m => TChan a -> i -> a -> (i, WBB.Action m ())
-outChanOn out_chan input out_elem = WBB.on' input "" (liftIO $ atomically $ writeTChan out_chan out_elem)
+outChanOn out_chan input out_elem = WBB.on input "" (liftIO $ atomically $ writeTChan out_chan out_elem)
 
 outChanOnS :: TChan a -> i -> a -> bs -> (i, WBB.Action (State.StateT bs IO) ())
-outChanOnS out_chan input out_elem next_state = WBB.on' input "" $ do
+outChanOnS out_chan input out_elem next_state = WBB.on input "" $ do
   liftIO $ atomically $ writeTChan out_chan out_elem
   State.put next_state
 

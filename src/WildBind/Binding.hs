@@ -13,7 +13,7 @@ module WildBind.Binding (
   -- * Construction
   stateless,
   rawBinds,
-  on',
+  on,
   -- * Condition
   whenFront,
   whenBack,
@@ -115,8 +115,8 @@ rawBinds blist = Binding' $ \_ _ ->
   (fmap . fmap) (\b -> (b, ())) $ M.fromList blist
 
 -- | Build a single pair of binding.
-on' :: i -> ActionDescription -> m a -> (i, Action m a)
-on' input desc act = (input, Action { actDescription = desc, actDo = act })
+on :: i -> ActionDescription -> m a -> (i, Action m a)
+on input desc act = (input, Action { actDescription = desc, actDo = act })
 
 -- | Add a condition on the front-end state to 'Binding'. See 'whenBoth', too.
 whenFront :: (fs -> Bool) -- ^ Condition about the front-end state.
