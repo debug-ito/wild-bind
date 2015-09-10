@@ -14,17 +14,10 @@ import qualified Control.Monad.Trans.State as State
 import qualified Lens.Micro as Lens
 
 import qualified WildBind.Binding as WB
-import WildBind.ForTest (SampleInput(..), SampleState(..))
+import WildBind.ForTest (SampleInput(..), SampleState(..), SampleBackState(..))
 
 main :: IO ()
 main = hspec spec
-
-data SampleBackState = SB { unSB :: Int }
-                     deriving (Show, Eq, Ord)
-
-instance Enum SampleBackState where
-  toEnum = SB
-  fromEnum = unSB
 
 data BiggerSampleBackState = BSB { _lSB :: SampleBackState, _rSB :: SampleBackState }
                            deriving (Show, Eq, Ord)

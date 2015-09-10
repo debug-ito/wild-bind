@@ -1,6 +1,7 @@
 module WildBind.ForTest (
   SampleInput(..),
-  SampleState(..)
+  SampleState(..),
+  SampleBackState(..)
 ) where
 
 import Control.Applicative ((<$>))
@@ -18,4 +19,12 @@ data SampleState = SS { unSS :: String }
 instance Arbitrary SampleState where
   arbitrary = SS <$> arbitrary
   shrink (SS s) = SS <$> shrink s
+
+
+data SampleBackState = SB { unSB :: Int }
+                     deriving (Show, Eq, Ord)
+
+instance Enum SampleBackState where
+  toEnum = SB
+  fromEnum = unSB
 
