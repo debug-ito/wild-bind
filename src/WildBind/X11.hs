@@ -4,9 +4,16 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 module WildBind.X11 (
+  -- * X11 front-end handle
   X11Front,
+  withX11Front,
+  -- * Windows in X11
+  Window,
   ActiveWindow,
-  withX11Front
+  -- ** Accessor functions for Window
+  winInstance,
+  winClass,
+  winName
 ) where
 
 import Control.Exception (bracket)
@@ -23,7 +30,7 @@ import WildBind (FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput,
 import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUnlocked, descriptionForLocked)
 
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike, xEventToKeySymLike, xGrabKey, xUngrabKey)
-import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow)
+import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winInstance, winClass, winName)
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
 
 -- | The X11 front-end
