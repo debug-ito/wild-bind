@@ -48,6 +48,12 @@ grabExp front grab_input = grabExpMain `finally` releaseAll where
         got `shouldBe` grab_input
   releaseAll = mapM_ (unsetGrab front) (enumFromTo minBound maxBound :: [i])
 
+-- The second arg is just for specifying the type.
+grabCase :: forall f i . (Bounded i, Enum i, Show i, Eq i, FrontInputDevice f i, FrontEventSource f ActiveWindow i) => f -> i -> Expectation
+grabCase front _ = do
+  _ <- nextEvent front :: IO (FrontEvent ActiveWindow i) -- discard the first FEChange event.
+  mapM_ (grabExp front) (enumFromTo minBound maxBound :: [i])
+
 stopWatchMsec :: IO a -> IO (a, Int)
 stopWatchMsec act = do
   start <- getCurrentTime
@@ -70,11 +76,11 @@ spec = do
         setGrab f1 NumPad.NumLeft `shouldReturn` ()
         setGrab f2 NumPad.NumLeft `shouldReturn` ()
   describe "X11Front - NumPadUnlockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \f ->
-      mapM_ (grabExp f) (enumFromTo minBound maxBound :: [NumPad.NumPadUnlockedInput] )
+    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \f -> do
+      grabCase f NumPad.NumCenter
   describe "X11Front - NumPadLockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \f ->
-      mapM_ (grabExp f) (enumFromTo minBound maxBound :: [NumPad.NumPadLockedInput] )
+    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \f -> do
+      grabCase f NumPad.NumL5
       
 
 
