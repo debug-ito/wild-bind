@@ -30,7 +30,7 @@ import WildBind (FrontInputDevice(..), FrontEventSource(..), FrontEvent(FEInput,
 import WildBind.NumPad (NumPadUnlockedInput, NumPadLockedInput, descriptionForUnlocked, descriptionForLocked)
 
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike, xEventToKeySymLike, xGrabKey, xUngrabKey)
-import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winInstance, winClass, winName)
+import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winInstance, winClass, winName, emptyWindow)
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
 
 -- | The X11 front-end
@@ -55,7 +55,8 @@ withX11Front = runContT $ do
   debouncer <- ContT $ Ndeb.withDebouncer notif_disp
   liftIO $ Xlib.selectInput disp (Xlib.defaultRootWindow disp)
     (Xlib.substructureNotifyMask .|. Ndeb.xEventMask)
-  awin_ref <- liftIO $ newIORef =<< getActiveWindow disp
+  awin_ref <- liftIO $ newIORef emptyWindow
+  liftIO $ Ndeb.notify debouncer 
   return $ X11Front disp debouncer awin_ref
 
 convertEvent :: (KeySymLike k) => Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> MaybeT IO (FrontEvent ActiveWindow k)

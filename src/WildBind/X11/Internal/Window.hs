@@ -8,6 +8,7 @@ module WildBind.X11.Internal.Window (
   -- * The 'Window' data type
   Window,
   ActiveWindow,
+  emptyWindow,
   -- * Accessor functions for 'Window'
   winInstance,
   winClass,
@@ -47,7 +48,7 @@ data Window = Window {
 -- | Use this type especially when the 'Window' is active.
 type ActiveWindow = Window
 
--- | An empty Window instance used for fallback
+-- | An empty Window instance used for fallback and/or default value.
 emptyWindow :: Window
 emptyWindow = Window "" "" ""
 
