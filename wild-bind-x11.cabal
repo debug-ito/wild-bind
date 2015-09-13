@@ -52,7 +52,8 @@ test-suite spec
   build-depends:        base, wild-bind-x11,
                         wild-bind, X11,
                         hspec >=2.1.7 && <2.2,
-                        QuickCheck >=2.8.1 && <2.9
+                        QuickCheck >=2.8.1 && <2.9,
+                        time >=1.4.0 && <1.5
 
 source-repository head
   type:                 git

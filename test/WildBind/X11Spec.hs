@@ -7,6 +7,8 @@ import Control.Exception (finally)
 import Control.Applicative ((<$>))
 import Test.Hspec
 
+import Data.Time.Clock (getCurrentTime, diffUTCTime)
+
 import WildBind (setGrab,unsetGrab,nextEvent,FrontEvent(FEChange,FEInput),FrontInputDevice,FrontEventSource)
 import qualified WildBind.NumPad as NumPad
 import WildBind.X11 (withX11Front,ActiveWindow)
@@ -46,19 +48,33 @@ grabExp front grab_input = grabExpMain `finally` releaseAll where
         got `shouldBe` grab_input
   releaseAll = mapM_ (unsetGrab front) (enumFromTo minBound maxBound :: [i])
 
+stopWatchMsec :: IO a -> IO (a, Int)
+stopWatchMsec act = do
+  start <- getCurrentTime
+  ret <- act
+  end <- getCurrentTime
+  return (ret, floor ((diffUTCTime end start) * 1000))
+
 spec :: Spec
 spec = do
+  describe "X11Front" $ do
+    it "should first emit FEChange event when initialized" $ withX11Front $ \f -> do
+      p "try to get the first event..."
+      (ev, time) <- stopWatchMsec $ nextEvent f :: IO (FrontEvent ActiveWindow NumPad.NumPadUnlockedInput, Int)
+      time `shouldSatisfy` (< 50)
+      case ev of
+        FEChange _ -> return ()
+        _ -> expectationFailure ("FEChange is expected, but got " ++ show ev)
+    it "should NOT throw exception when it tries to double-grab in the same process" $ withX11Front $ \f1 ->
+      withX11Front $ \f2 -> do
+        setGrab f1 NumPad.NumLeft `shouldReturn` ()
+        setGrab f2 NumPad.NumLeft `shouldReturn` ()
   describe "X11Front - NumPadUnlockedInput" $ do
     it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \f ->
       mapM_ (grabExp f) (enumFromTo minBound maxBound :: [NumPad.NumPadUnlockedInput] )
   describe "X11Front - NumPadLockedInput" $ do
     it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \f ->
       mapM_ (grabExp f) (enumFromTo minBound maxBound :: [NumPad.NumPadLockedInput] )
-  describe "X11Front" $ do
-    it "should NOT throw exception when it tries to double-grab in the same process" $ withX11Front $ \f1 ->
-      withX11Front $ \f2 -> do
-        setGrab f1 NumPad.NumLeft `shouldReturn` ()
-        setGrab f2 NumPad.NumLeft `shouldReturn` ()
       
 
 
