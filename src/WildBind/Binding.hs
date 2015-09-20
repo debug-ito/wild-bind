@@ -3,15 +3,22 @@
 -- Description: Functions to build Binding
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
+-- This module exports functions to build and manipulate 'Binding', an
+-- object binding input symbols to actions.
+-- 
 module WildBind.Binding (
   -- * Types
   Action(Action,actDescription,actDo),
   Binding,
+  Binding',
   -- * Execution
   boundAction,
+  boundAction',
   boundInputs,
+  boundInputs',
   -- * Construction
   binds,
+  binds',
   rawBinds,
   on,
   -- * Condition
@@ -19,17 +26,12 @@ module WildBind.Binding (
   whenBack,
   whenBoth,
   -- * Conversion
-  convFront,
-  convInput,
-  convBack,
-  extendAt,
-  -- * Explicitly Stateful Bindings
-  Binding',
-  boundAction',
-  boundInputs',
   startFrom,
   extend,
-  binds'
+  extendAt,
+  convFront,
+  convInput,
+  convBack
 ) where
 
 import qualified Data.Map as M
@@ -55,6 +57,9 @@ instance Functor m => Functor (Action m) where
 -- | WildBind back-end binding with both explicit and implicit
 -- states. @bs@ is the explicit back-end state, @fs@ is the front-end
 -- state, and @i@ is the input type.
+--
+-- You can make the explicit state @bs@ implicit by 'startFrom'
+-- function.
 newtype Binding' bs fs i = Binding' {
   unBinding' :: bs -> fs -> M.Map i (Action IO (Binding' bs fs i, bs))
 }
@@ -180,8 +185,8 @@ startFrom init_state b' = Binding' $ \() front_state ->
   where
     toB (next_b', next_state) = (startFrom next_state next_b', ())
 
--- | Extend 'Binding' to 'Binding''. The explicit back-end state is
--- unmodified.
+-- | Extend 'Binding' to 'Binding''. In the result 'Binding'', the
+-- explicit back-end state is just ignored and unmodified.
 extend :: Binding fs i -> Binding' bs fs i
 extend b = Binding' $ \bs fs ->
   mapResult extend (const bs) $ unBinding' b () fs
