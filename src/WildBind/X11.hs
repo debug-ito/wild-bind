@@ -92,16 +92,6 @@ updateState front fev = do
 grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front -> k -> IO ()
 grabDef func front key = func (x11Display front) (x11RootWindow front) key
 
--- instance FrontInputDevice X11Front NumPadUnlockedInput where
---   setGrab = grabDef xGrabKey
---   unsetGrab = grabDef xUngrabKey
---   defaultActionDescription _ = descriptionForUnlocked
--- 
--- instance FrontInputDevice X11Front NumPadLockedInput where
---   setGrab = grabDef xGrabKey
---   unsetGrab = grabDef xUngrabKey
---   defaultActionDescription _ = descriptionForLocked
-
 nextEvent :: (KeySymLike k) => X11Front -> IO (FrontEvent ActiveWindow k)
 nextEvent handle = Xlib.allocaXEvent $ \xev -> do
   Xlib.nextEvent (x11Display handle) xev
