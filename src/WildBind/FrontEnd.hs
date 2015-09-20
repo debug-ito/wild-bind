@@ -15,7 +15,7 @@ module WildBind.FrontEnd (
 import WildBind.Description (ActionDescription)
 
 -- | Event from the front-end. @s@ is the state of the front-end. @i@ is the input.
-data FrontEvent s i = FEInput s i -- ^ An event that a new input is made.
+data FrontEvent s i = FEInput i -- ^ An event that a new input is made.
                     | FEChange s  -- ^ An event that the front-end state is changed.
                     deriving (Show)
 

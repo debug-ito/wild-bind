@@ -64,14 +64,11 @@ wildBindWithState front = do
   case event of
     FEChange state ->
       updateFrontState front state
-    FEInput state input -> do
-      updateFrontState front state
-      (cur_binding, _) <- State.get
-      case boundAction cur_binding state input of
+    FEInput input -> do
+      (cur_binding, mcur_state) <- State.get
+      case mcur_state >>= \state -> boundAction cur_binding state input of
         Nothing -> return ()
         Just action -> do
           next_binding <- liftIO $ actDo action
           updateBinding front next_binding
   wildBindWithState front
-
-

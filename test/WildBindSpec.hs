@@ -61,7 +61,7 @@ shouldNowMatch :: (Show a, Eq a) => TChan a -> [a] -> IO ()
 shouldNowMatch chan expectation = readAll chan >>= (`shouldMatchList` expectation)
 
 changeAndInput :: s -> i -> [WBF.FrontEvent s i]
-changeAndInput s i = [WBF.FEChange s, WBF.FEInput s i]
+changeAndInput s i = [WBF.FEChange s, WBF.FEInput i]
 
 main :: IO ()
 main = hspec spec
@@ -75,7 +75,7 @@ spec = do
                          outChanOn ochan SIb 'B']
       withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
         emitEvent echan $ WBF.FEChange $ SS ""
-        emitEvent echan $ WBF.FEInput (SS "") SIa
+        emitEvent echan $ WBF.FEInput SIa
         ochan `shouldProduce` 'A'
         ghist <- readAll gchan
         ghist `shouldMatchList` [GSet SIa, GSet SIb]
@@ -110,11 +110,11 @@ spec = do
         emitEvent echan $ WBF.FEChange (SS "")
         threadDelay 10000
         gchan `shouldNowMatch` [GSet SIa]
-        emitEvent echan $ WBF.FEInput (SS "") SIa
+        emitEvent echan $ WBF.FEInput SIa
         ochan `shouldProduce` 'A'
         threadDelay 10000
         gchan `shouldNowMatch` [GUnset SIa, GSet SIb]
-        emitEvent echan $ WBF.FEInput (SS "") SIb
+        emitEvent echan $ WBF.FEInput SIb
         ochan `shouldProduce` 'B'
         threadDelay 10000
         gchan `shouldNowMatch` [GUnset SIb, GSet SIa]
