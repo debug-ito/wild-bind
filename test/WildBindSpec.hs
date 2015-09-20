@@ -10,23 +10,23 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import qualified Control.Monad.Trans.State as State
 
 import qualified WildBind as WB
+import qualified WildBind.FrontEnd as WBF
 import qualified WildBind.Binding as WBB
 import WildBind.ForTest (SampleInput(..), SampleState(..), SampleBackState(..))
 
-newtype EventChan s i = EventChan { unEventChan :: TChan (WB.FrontEvent s i) }
-
-instance WB.FrontEventSource (EventChan s i) s i where
-  nextEvent = atomically . readTChan . unEventChan
+newtype EventChan s i = EventChan { unEventChan :: TChan (WBF.FrontEvent s i) }
 
 data GrabHistory i = GSet i | GUnset i deriving (Show, Eq, Ord)
 
 newtype GrabChan i = GrabChan { unGrabChan :: TChan (GrabHistory i) }
 
-instance WB.FrontInputDevice (GrabChan i) i where
-  defaultActionDescription _ _ = ""
-  setGrab f i = atomically $ writeTChan (unGrabChan f) (GSet i)
-  unsetGrab f i = atomically $ writeTChan (unGrabChan f) (GUnset i)
-
+frontEnd :: EventChan s i -> GrabChan i -> WBF.FrontEnd s i
+frontEnd echan gchan = WBF.FrontEnd {
+  WBF.frontDefaultDescription = const "",
+  WBF.frontSetGrab = \i -> atomically $ writeTChan (unGrabChan gchan) (GSet i),
+  WBF.frontUnsetGrab = \i -> atomically $ writeTChan (unGrabChan gchan) (GUnset i),
+  WBF.frontNextEvent = atomically $ readTChan $ unEventChan echan
+  }
 
 outChanOn :: MonadIO m => TChan a -> i -> a -> (i, WBB.Action m ())
 outChanOn out_chan input out_elem = WBB.on input "" (liftIO $ atomically $ writeTChan out_chan out_elem)
@@ -40,10 +40,10 @@ withWildBind :: Ord i => WBB.Binding s i -> (EventChan s i -> GrabChan i -> IO (
 withWildBind binding action = do
   echan <- EventChan <$> newTChanIO
   gchan <- GrabChan <$> newTChanIO
-  let spawnWildBind = forkIOWithUnmask $ \umask -> umask $ WB.wildBind gchan echan binding
+  let spawnWildBind = forkIOWithUnmask $ \umask -> umask $ WB.wildBind (frontEnd echan gchan) binding
   bracket spawnWildBind killThread (\_ -> action echan gchan)
 
-emitEvent :: TChan (WB.FrontEvent s i) -> WB.FrontEvent s i -> IO ()
+emitEvent :: TChan (WBF.FrontEvent s i) -> WBF.FrontEvent s i -> IO ()
 emitEvent chan event = atomically $ writeTChan chan event
 
 shouldProduce :: (Show a, Eq a) => TChan a -> a -> IO ()
@@ -60,8 +60,8 @@ readAll chan = atomically $ readAll' [] where
 shouldNowMatch :: (Show a, Eq a) => TChan a -> [a] -> IO ()
 shouldNowMatch chan expectation = readAll chan >>= (`shouldMatchList` expectation)
 
-changeAndInput :: s -> i -> [WB.FrontEvent s i]
-changeAndInput s i = [WB.FEChange s, WB.FEInput s i]
+changeAndInput :: s -> i -> [WBF.FrontEvent s i]
+changeAndInput s i = [WBF.FEChange s, WBF.FEInput s i]
 
 main :: IO ()
 main = hspec spec
@@ -74,8 +74,8 @@ spec = do
       let b = WBB.binds [outChanOn ochan SIa 'A',
                          outChanOn ochan SIb 'B']
       withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
-        emitEvent echan $ WB.FEChange $ SS ""
-        emitEvent echan $ WB.FEInput (SS "") SIa
+        emitEvent echan $ WBF.FEChange $ SS ""
+        emitEvent echan $ WBF.FEInput (SS "") SIa
         ochan `shouldProduce` 'A'
         ghist <- readAll gchan
         ghist `shouldMatchList` [GSet SIa, GSet SIb]
@@ -96,7 +96,7 @@ spec = do
         mapM_ (emitEvent echan) $ changeAndInput (SS "C") SIc
         ochan `shouldProduce` 'C'
         gchan `shouldNowMatch` [GUnset SIb, GSet SIc]
-        emitEvent echan $ WB.FEChange (SS "")
+        emitEvent echan $ WBF.FEChange (SS "")
         threadDelay 10000
         gchan `shouldNowMatch` [GUnset SIc]
     it "should enable/disable grabs when the back-end state changes" $ do
@@ -107,14 +107,14 @@ spec = do
             _ -> []
           b = WBB.startFrom (SB 0) b'
       withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
-        emitEvent echan $ WB.FEChange (SS "")
+        emitEvent echan $ WBF.FEChange (SS "")
         threadDelay 10000
         gchan `shouldNowMatch` [GSet SIa]
-        emitEvent echan $ WB.FEInput (SS "") SIa
+        emitEvent echan $ WBF.FEInput (SS "") SIa
         ochan `shouldProduce` 'A'
         threadDelay 10000
         gchan `shouldNowMatch` [GUnset SIa, GSet SIb]
-        emitEvent echan $ WB.FEInput (SS "") SIb
+        emitEvent echan $ WBF.FEInput (SS "") SIb
         ochan `shouldProduce` 'B'
         threadDelay 10000
         gchan `shouldNowMatch` [GUnset SIb, GSet SIa]
