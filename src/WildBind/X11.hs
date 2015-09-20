@@ -16,14 +16,16 @@ module WildBind.X11 (
 ) where
 
 import Control.Exception (bracket)
-import Control.Applicative ((<$>), (<*>), empty)
+import Control.Applicative ((<$>), empty)
 import Data.Bits ((.|.))
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 
 import qualified Graphics.X11.Xlib as Xlib
-import Control.Monad.Trans.Maybe (MaybeT,runMaybeT)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Cont (ContT(ContT), runContT)
+import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
+import Control.Monad.Trans.List (ListT(ListT), runListT)
+import Control.Concurrent.STM (atomically, TChan, newTChanIO, tryReadTChan, writeTChan)
 
 import WildBind (
   FrontEnd(FrontEnd, frontDefaultDescription, frontSetGrab, frontUnsetGrab, frontNextEvent),
@@ -36,14 +38,21 @@ import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winIn
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
 
 -- | The X11 front-end
-data X11Front = X11Front {
+data X11Front k = X11Front {
   x11Display :: Xlib.Display,
   x11Debouncer :: Ndeb.Debouncer,
-  x11PrevActiveWindow :: IORef ActiveWindow
+  x11PrevActiveWindow :: IORef ActiveWindow,
+  x11PendingEvents :: TChan (FrontEvent ActiveWindow k)
 }
 
-x11RootWindow :: X11Front -> Xlib.Window
+x11RootWindow :: X11Front k -> Xlib.Window
 x11RootWindow = Xlib.defaultRootWindow . x11Display
+
+x11PopPendingEvent :: X11Front k -> IO (Maybe (FrontEvent ActiveWindow k))
+x11PopPendingEvent f = atomically $ tryReadTChan $ x11PendingEvents f
+
+x11UnshiftPendingEvent :: X11Front k -> FrontEvent ActiveWindow k -> IO ()
+x11UnshiftPendingEvent f event = atomically $ writeTChan (x11PendingEvents f) event
 
 openMyDisplay :: IO Xlib.Display
 openMyDisplay = Xlib.openDisplay ""
@@ -61,52 +70,68 @@ withX11Front = runContT $ do
   liftIO $ Xlib.selectInput disp (Xlib.defaultRootWindow disp)
     (Xlib.substructureNotifyMask .|. Ndeb.xEventMask)
   awin_ref <- liftIO $ newIORef emptyWindow
-  liftIO $ Ndeb.notify debouncer 
-  return $ makeFrontEnd $ X11Front disp debouncer awin_ref
+  pending_events <- liftIO $ newTChanIO
+  liftIO $ Ndeb.notify debouncer
+  return $ makeFrontEnd $ X11Front disp debouncer awin_ref pending_events
 
-convertEvent :: (KeySymLike k) => Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> MaybeT IO (FrontEvent ActiveWindow k)
+maybeToList :: Monad m => MaybeT m a -> ListT m a
+maybeToList mval = ListT $ maybe (return []) (\e -> return [e]) =<< runMaybeT mval
+
+convertEvent :: (KeySymLike k) => Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> ListT IO (FrontEvent ActiveWindow k)
 convertEvent disp deb xev = do
   xtype <- liftIO $ Xlib.get_EventType xev
   let is_key_event = xtype == Xlib.keyRelease
       is_awin_event = xtype == Xlib.configureNotify || xtype == Xlib.destroyNotify
-      getAWin = liftIO $ getActiveWindow disp
+      getAWin = getActiveWindow disp
   is_deb_event <- liftIO $ Ndeb.isDebouncedEvent deb xev
   if is_key_event
-    then FEInput <$> getAWin <*> xEventToKeySymLike xev
+    then do
+      input_event <- FEInput <$> (maybeToList $ xEventToKeySymLike xev)
+      awin_event <- liftIO $ FEChange <$> getAWin
+      ListT $ return [awin_event, input_event]
   else if is_deb_event
-    then FEChange <$> getAWin
+    then ListT $ sequence [FEChange <$> getAWin]
   else if is_awin_event
     then liftIO (Ndeb.notify deb) >> empty
   else empty
 
-filterUnchangedEvent :: X11Front -> FrontEvent ActiveWindow k -> MaybeT IO ()
+filterUnchangedEvent :: X11Front k -> FrontEvent ActiveWindow k -> ListT IO ()
 filterUnchangedEvent front (FEChange new_state) = do
   old_state <- liftIO $ readIORef $ x11PrevActiveWindow front
   if new_state == old_state then empty else return ()
 filterUnchangedEvent _ _ = return ()
 
-updateState :: X11Front -> FrontEvent ActiveWindow k -> IO ()
-updateState front fev = do
-  let new_state = case fev of
-        (FEInput s _) -> s
-        (FEChange s) -> s
-    in writeIORef (x11PrevActiveWindow front) new_state
+updateState :: X11Front k -> FrontEvent ActiveWindow k -> IO ()
+updateState front fev = case fev of
+  (FEInput _) -> return ()
+  (FEChange s) -> writeIORef (x11PrevActiveWindow front) s
 
-grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front -> k -> IO ()
+grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front k -> k -> IO ()
 grabDef func front key = func (x11Display front) (x11RootWindow front) key
 
-nextEvent :: (KeySymLike k) => X11Front -> IO (FrontEvent ActiveWindow k)
-nextEvent handle = Xlib.allocaXEvent $ \xev -> do
-  Xlib.nextEvent (x11Display handle) xev
-  maybe (nextEvent handle) return =<< (runMaybeT $ processEvent xev)
+nextEvent :: (KeySymLike k) => X11Front k -> IO (FrontEvent ActiveWindow k)
+nextEvent handle = do
+  mpending <- x11PopPendingEvent handle
+  case mpending of
+    Just eve -> return eve
+    Nothing -> nextEventFromX11
   where
-    processEvent xev = do
+    nextEventFromX11 = Xlib.allocaXEvent $ \xev -> do
+      Xlib.nextEvent (x11Display handle) xev
+      got_events <- processEvents xev
+      case got_events of
+        [] -> loop
+        (eve : rest) -> do
+          mapM_ (x11UnshiftPendingEvent handle) rest
+          return eve
+    processEvents xev = runListT $ do
       fevent <- convertEvent (x11Display handle) (x11Debouncer handle) xev
       filterUnchangedEvent handle fevent
       liftIO $ updateState handle fevent
       return fevent
+    loop = nextEvent handle
 
-makeFrontEnd :: (KeySymLike k, ModifierLike k, WBD.Describable k) => X11Front -> FrontEnd ActiveWindow k
+makeFrontEnd :: (KeySymLike k, ModifierLike k, WBD.Describable k) => X11Front k -> FrontEnd ActiveWindow k
 makeFrontEnd f = FrontEnd {
   frontDefaultDescription = WBD.describe,
   frontSetGrab = grabDef xGrabKey f,

@@ -47,7 +47,7 @@ grabExp front grab_input = grabExpMain `finally` releaseAll where
     p ("Got event: " ++ show ev)
     case ev of
       FEChange _ -> expectationFailure "FEChange is caught. not expected"
-      FEInput _ got -> do
+      FEInput got -> do
         got `shouldBe` grab_input
   releaseAll = mapM_ (frontUnsetGrab front) (enumFromTo minBound maxBound :: [i])
 
