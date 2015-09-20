@@ -23,7 +23,7 @@ import qualified Graphics.X11.Xlib.Extras as XlibE
 import qualified Data.Map as M
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT))
 
-import qualified WildBind.NumPad as NumPad
+import qualified WildBind.Input.NumPad as NumPad
 
 -- | Convertible to/from Xlib's 'KeySym'
 --
