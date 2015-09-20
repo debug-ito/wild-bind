@@ -5,5 +5,13 @@
 --
 -- 
 module WildBind (
-
+  module WildBind.Description,
+  module WildBind.Binding,
+  module WildBind.FrontEnd,
+  module WildBind.Exec
 ) where
+
+import WildBind.Description
+import WildBind.Binding
+import WildBind.FrontEnd
+import WildBind.Exec
