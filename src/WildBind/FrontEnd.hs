@@ -3,6 +3,10 @@
 -- Description: Data types and type classes about front-ends.
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
+-- Data types and type classes about front-ends.
+-- 
+-- You have to look at this module if you want to create a front-end
+-- implementation.
 module WildBind.FrontEnd (
   FrontEvent(..),
   FrontEnd(..)
@@ -25,5 +29,5 @@ data FrontEnd s i = FrontEnd {
   frontUnsetGrab :: i -> IO (),
   -- ^ Action to release the grab for the input symbol.
   frontNextEvent :: IO (FrontEvent s i)
-  -- ^ Action to retrieve the next event. It blocks if no event is queued.
+  -- ^ Action to retrieve the next event. It should block if no event is queued.
   }

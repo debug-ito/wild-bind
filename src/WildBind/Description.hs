@@ -10,9 +10,10 @@ module WildBind.Description (
 
 import Data.Text (Text)
 
--- | Human-readable description of an action.
+-- | Human-readable description of an action. 'ActionDescription' is
+-- used to describe the current binding to the user.
 type ActionDescription = Text
 
--- | Class for something describable
+-- | Class for something describable.
 class Describable d where
   describe :: d -> ActionDescription
