@@ -3,6 +3,7 @@
 -- Description: A simple queue implementation.
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
+-- This is an internal module. End-users should not reply on this.
 module WildBind.X11.Internal.Queue (
   Queue,
   empty, unshift, unshiftAll, pop
