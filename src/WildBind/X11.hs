@@ -25,6 +25,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Cont (ContT(ContT), runContT)
 import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
 import Control.Monad.Trans.List (ListT(ListT), runListT)
+import Control.Monad.Trans.Writer (WriterT, execWriterT, tell)
 import Control.Concurrent.STM (atomically, TChan, newTChanIO, tryReadTChan, writeTChan)
 
 import WildBind (
@@ -74,26 +75,27 @@ withX11Front = runContT $ do
   liftIO $ Ndeb.notify debouncer
   return $ makeFrontEnd $ X11Front disp debouncer awin_ref pending_events
 
-maybeToList :: Monad m => MaybeT m a -> ListT m a
-maybeToList mval = ListT $ maybe (return []) (\e -> return [e]) =<< runMaybeT mval
+tellElem :: Monad m => a -> WriterT [a] m ()
+tellElem a = tell [a]
 
 convertEvent :: (KeySymLike k) => Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> ListT IO (FrontEvent ActiveWindow k)
-convertEvent disp deb xev = do
-  xtype <- liftIO $ Xlib.get_EventType xev
-  let is_key_event = xtype == Xlib.keyRelease
-      is_awin_event = xtype == Xlib.configureNotify || xtype == Xlib.destroyNotify
-      getAWin = getActiveWindow disp
-  is_deb_event <- liftIO $ Ndeb.isDebouncedEvent deb xev
-  if is_key_event
-    then do
-      input_event <- FEInput <$> (maybeToList $ xEventToKeySymLike xev)
-      awin_event <- liftIO $ FEChange <$> getAWin
-      ListT $ return [awin_event, input_event]
-  else if is_deb_event
-    then ListT $ sequence [FEChange <$> getAWin]
-  else if is_awin_event
-    then liftIO (Ndeb.notify deb) >> empty
-  else empty
+convertEvent disp deb xev = ListT $ execWriterT $ convertEventWriter where
+  convertEventWriter :: KeySymLike k => WriterT [FrontEvent ActiveWindow k] IO ()
+  convertEventWriter = do
+    xtype <- liftIO $ Xlib.get_EventType xev
+    let is_key_event = xtype == Xlib.keyRelease
+        is_awin_event = xtype == Xlib.configureNotify || xtype == Xlib.destroyNotify
+        tellChangeEvent = (tellElem . FEChange) =<< (liftIO $ getActiveWindow disp)
+    is_deb_event <- liftIO $ Ndeb.isDebouncedEvent deb xev
+    if is_key_event
+      then do
+        tellChangeEvent
+        (maybe (return ()) tellElem) =<< (liftIO $ runMaybeT (FEInput <$> xEventToKeySymLike xev))
+    else if is_deb_event
+      then tellChangeEvent
+    else if is_awin_event
+      then liftIO (Ndeb.notify deb) >> return ()
+    else return ()
 
 filterUnchangedEvent :: X11Front k -> FrontEvent ActiveWindow k -> ListT IO ()
 filterUnchangedEvent front (FEChange new_state) = do
