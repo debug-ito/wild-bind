@@ -40,7 +40,7 @@ withWildBind :: Ord i => WBB.Binding s i -> (EventChan s i -> GrabChan i -> IO (
 withWildBind binding action = do
   echan <- EventChan <$> newTChanIO
   gchan <- GrabChan <$> newTChanIO
-  let spawnWildBind = forkIOWithUnmask $ \umask -> umask $ WBE.wildBind (frontEnd echan gchan) binding
+  let spawnWildBind = forkIOWithUnmask $ \umask -> umask $ WBE.wildBind binding (frontEnd echan gchan)
   bracket spawnWildBind killThread (\_ -> action echan gchan)
 
 emitEvent :: TChan (WBF.FrontEvent s i) -> WBF.FrontEvent s i -> IO ()

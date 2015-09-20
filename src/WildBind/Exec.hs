@@ -31,8 +31,8 @@ updateGrab f before after = do
   mapM_ (frontSetGrab f) (after \\ before)
 
 -- | Combines the 'FrontEnd' and the 'Binding' and returns the executable.
-wildBind :: (Ord i) => FrontEnd s i -> Binding s i -> IO ()
-wildBind front binding =
+wildBind :: (Ord i) => Binding s i -> FrontEnd s i -> IO ()
+wildBind binding front =
   State.evalStateT (wildBindWithState front) (binding, Nothing)
 
 ---
