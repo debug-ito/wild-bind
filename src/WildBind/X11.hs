@@ -50,6 +50,9 @@ openMyDisplay = Xlib.openDisplay ""
 
 -- | Initialize and obtain 'FrontEnd' for X11, and run the given
 -- action.
+--
+-- For now, 'NumPadUnlockedInput' and 'NumPadLockedInput' are
+-- supported as type @i@.
 withX11Front :: (KeySymLike i, ModifierLike i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
 withX11Front = runContT $ do
   disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
