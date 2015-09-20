@@ -9,9 +9,9 @@ import Control.Concurrent.STM (atomically, TChan, readTChan, tryReadTChan, write
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import qualified Control.Monad.Trans.State as State
 
-import qualified WildBind as WB
 import qualified WildBind.FrontEnd as WBF
 import qualified WildBind.Binding as WBB
+import qualified WildBind.Exec as WBE
 import WildBind.ForTest (SampleInput(..), SampleState(..), SampleBackState(..))
 
 newtype EventChan s i = EventChan { unEventChan :: TChan (WBF.FrontEvent s i) }
@@ -40,7 +40,7 @@ withWildBind :: Ord i => WBB.Binding s i -> (EventChan s i -> GrabChan i -> IO (
 withWildBind binding action = do
   echan <- EventChan <$> newTChanIO
   gchan <- GrabChan <$> newTChanIO
-  let spawnWildBind = forkIOWithUnmask $ \umask -> umask $ WB.wildBind (frontEnd echan gchan) binding
+  let spawnWildBind = forkIOWithUnmask $ \umask -> umask $ WBE.wildBind (frontEnd echan gchan) binding
   bracket spawnWildBind killThread (\_ -> action echan gchan)
 
 emitEvent :: TChan (WBF.FrontEvent s i) -> WBF.FrontEvent s i -> IO ()

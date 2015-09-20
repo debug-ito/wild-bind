@@ -22,7 +22,8 @@ library
                         WildBind.NumPad,
                         WildBind.Binding,
                         WildBind.FrontEnd,
-                        WildBind.Description
+                        WildBind.Description,
+                        WildBind.Exec
   -- other-modules:        
   build-depends:        base >=4.6.0 && <4.7,
                         text >=1.2.0 && <1.3,
