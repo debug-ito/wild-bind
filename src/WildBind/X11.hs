@@ -60,6 +60,10 @@ openMyDisplay = Xlib.openDisplay ""
 
 -- | Initialize and obtain 'FrontEnd' for X11, and run the given
 -- action.
+-- 
+-- Code using this function must be compiled with @-threaded@ option
+-- enabled in @ghc@. Otherwise, the behavior of the resulting action
+-- is undefined.
 --
 -- For now, 'NumPadUnlockedInput' and 'NumPadLockedInput' are
 -- supported as type @i@.
