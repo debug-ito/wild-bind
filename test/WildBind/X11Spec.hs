@@ -9,9 +9,12 @@ import Test.Hspec
 
 import Data.Time.Clock (getCurrentTime, diffUTCTime)
 
-import WildBind (setGrab,unsetGrab,nextEvent,FrontEvent(FEChange,FEInput),FrontInputDevice,FrontEventSource)
-import qualified WildBind.NumPad as NumPad
-import WildBind.X11 (withX11Front,ActiveWindow)
+import WildBind (
+  FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent),
+  FrontEvent(FEChange,FEInput)
+  )
+import qualified WildBind.Input.NumPad as NumPad
+import WildBind.X11 (withX11Front, ActiveWindow)
 
 main :: IO ()
 main = hspec spec
@@ -33,25 +36,24 @@ whenNumPad = whenEnv "WILDBIND_TEST_NUMPAD"
 p :: String -> IO ()
 p = hPutStrLn stderr . ("--- " ++)
 
-grabExp :: forall f i
-           . (Bounded i, Enum i, Show i, Eq i, FrontInputDevice f i, FrontEventSource f ActiveWindow i)
-           => f -> i -> Expectation
+grabExp :: forall i
+           . (Bounded i, Enum i, Show i, Eq i)
+           => FrontEnd ActiveWindow i -> i -> Expectation
 grabExp front grab_input = grabExpMain `finally` releaseAll where
   grabExpMain = do
-    setGrab front grab_input
+    frontSetGrab front grab_input
     p ("Press some numpad keys (grab="++ show grab_input ++")..")
-    ev <- nextEvent front :: IO (FrontEvent ActiveWindow i)
+    ev <- frontNextEvent front :: IO (FrontEvent ActiveWindow i)
     p ("Got event: " ++ show ev)
     case ev of
       FEChange _ -> expectationFailure "FEChange is caught. not expected"
       FEInput _ got -> do
         got `shouldBe` grab_input
-  releaseAll = mapM_ (unsetGrab front) (enumFromTo minBound maxBound :: [i])
+  releaseAll = mapM_ (frontUnsetGrab front) (enumFromTo minBound maxBound :: [i])
 
--- The second arg is just for specifying the type.
-grabCase :: forall f i . (Bounded i, Enum i, Show i, Eq i, FrontInputDevice f i, FrontEventSource f ActiveWindow i) => f -> i -> Expectation
-grabCase front _ = do
-  _ <- nextEvent front :: IO (FrontEvent ActiveWindow i) -- discard the first FEChange event.
+grabCase :: forall i . (Bounded i, Enum i, Show i, Eq i) => FrontEnd ActiveWindow i -> Expectation
+grabCase front = do
+  _ <- frontNextEvent front :: IO (FrontEvent ActiveWindow i) -- discard the first FEChange event.
   mapM_ (grabExp front) (enumFromTo minBound maxBound :: [i])
 
 stopWatchMsec :: IO a -> IO (a, Int)
@@ -66,21 +68,19 @@ spec = do
   describe "X11Front" $ do
     it "should first emit FEChange event when initialized" $ withX11Front $ \f -> do
       p "try to get the first event..."
-      (ev, time) <- stopWatchMsec $ nextEvent f :: IO (FrontEvent ActiveWindow NumPad.NumPadUnlockedInput, Int)
+      (ev, time) <- stopWatchMsec $ frontNextEvent f :: IO (FrontEvent ActiveWindow NumPad.NumPadUnlockedInput, Int)
       time `shouldSatisfy` (< 100)
       case ev of
         FEChange _ -> return ()
         _ -> expectationFailure ("FEChange is expected, but got " ++ show ev)
     it "should NOT throw exception when it tries to double-grab in the same process" $ withX11Front $ \f1 ->
       withX11Front $ \f2 -> do
-        setGrab f1 NumPad.NumLeft `shouldReturn` ()
-        setGrab f2 NumPad.NumLeft `shouldReturn` ()
+        frontSetGrab f1 NumPad.NumLeft `shouldReturn` ()
+        frontSetGrab f2 NumPad.NumLeft `shouldReturn` ()
   describe "X11Front - NumPadUnlockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \f -> do
-      grabCase f NumPad.NumCenter
+    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \(f :: FrontEnd ActiveWindow NumPad.NumPadUnlockedInput) -> do
+      grabCase f
   describe "X11Front - NumPadLockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \f -> do
-      grabCase f NumPad.NumL5
-      
-
+    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \(f :: FrontEnd ActiveWindow NumPad.NumPadLockedInput) -> do
+      grabCase f
 

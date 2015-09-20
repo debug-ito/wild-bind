@@ -3,7 +3,7 @@ module WildBind.X11.Internal.KeySpec (spec) where
 import Test.Hspec
 import Test.QuickCheck (Arbitrary(arbitrary), arbitraryBoundedEnum, property)
 
-import WildBind.NumPad (NumPadUnlockedInput,NumPadLockedInput)
+import WildBind.Input.NumPad (NumPadUnlockedInput,NumPadLockedInput)
 import WildBind.X11.Internal.Key (KeySymLike(fromKeySym,toKeySym))
 
 newtype NumPadUnlockedInput' = NumPadUnlockedInput' {
