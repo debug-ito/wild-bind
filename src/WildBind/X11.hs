@@ -51,8 +51,8 @@ x11RootWindow = Xlib.defaultRootWindow . x11Display
 x11PopPendingEvent :: X11Front k -> IO (Maybe (FrontEvent ActiveWindow k))
 x11PopPendingEvent f = atomically $ tryReadTChan $ x11PendingEvents f
 
-x11UnshiftPendingEvent :: X11Front k -> FrontEvent ActiveWindow k -> IO ()
-x11UnshiftPendingEvent f event = atomically $ writeTChan (x11PendingEvents f) event
+x11UnshiftPendingEvents :: X11Front k -> [FrontEvent ActiveWindow k] -> IO ()
+x11UnshiftPendingEvents f = atomically . mapM_ (writeTChan $ x11PendingEvents f)
 
 openMyDisplay :: IO Xlib.Display
 openMyDisplay = Xlib.openDisplay ""
@@ -122,7 +122,7 @@ nextEvent handle = do
       case got_events of
         [] -> loop
         (eve : rest) -> do
-          mapM_ (x11UnshiftPendingEvent handle) rest
+          x11UnshiftPendingEvents handle rest
           return eve
     processEvents xev = runListT $ do
       fevent <- convertEvent (x11Display handle) (x11Debouncer handle) xev
