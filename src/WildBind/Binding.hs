@@ -38,7 +38,7 @@ import Control.Monad.Trans.State (StateT, runStateT)
 import Lens.Micro ((^.), (.~), (&))
 import qualified Lens.Micro as Lens
 
-import WildBind.Internal.FrontEnd (ActionDescription)
+import WildBind.Description (ActionDescription)
 
 -- | Action done by WildBind
 data Action m a = Action {

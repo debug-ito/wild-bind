@@ -13,7 +13,7 @@ module WildBind.NumPad (
   descriptionForLocked
 ) where
 
-import WildBind (ActionDescription)
+import WildBind.Description (ActionDescription)
 
 -- | Number pad key input with NumLock disabled.
 data NumPadUnlockedInput
