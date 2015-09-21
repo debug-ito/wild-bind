@@ -15,6 +15,8 @@ module WildBind.Exec (
 ) where
 
 import Data.List ((\\))
+import Control.Applicative ((<$>))
+
 import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.State as State
 import qualified Control.Monad.Trans.Reader as Reader
@@ -29,10 +31,11 @@ import WildBind.FrontEnd (
   FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent)
   )
 import WildBind.Binding (
-  Action(actDo),
+  Action(actDo, actDescription),
   Binding,
   boundAction,
   boundInputs,
+  boundActions
   )
 
 type GrabSet i = [i]
@@ -57,8 +60,8 @@ wildBind' opt binding front =
 -- modify its members via accessor functions listed below.
 data Option s i = Option {
   optBindingHook :: [(i, ActionDescription)] -> IO ()
-  -- ^ An action executed when current binding is changed. Default: do
-  -- nothing.
+  -- ^ An action executed when current binding may be
+  -- changed. Default: do nothing.
   }
 
 instance Default (Option s i) where
@@ -73,12 +76,17 @@ type WBState s i = State.StateT (Binding s i, Maybe s) (Reader.ReaderT (Option s
 askOption :: WBState s i (Option s i)
 askOption = lift $ Reader.ask
 
+boundDescriptions :: Binding s i -> s -> [(i, ActionDescription)]
+boundDescriptions b s = fmap (\(i, act) -> (i, actDescription act)) $ boundActions b s
+
 updateWBState :: (Eq i) => FrontEnd s i -> Binding s i -> s -> WBState s i ()
 updateWBState front after_binding after_state = do
   (before_binding, before_mstate) <- State.get
   let before_grabset = maybe [] (boundInputs before_binding) before_mstate
   State.put $ (after_binding, Just after_state)
   liftIO $ updateGrab front before_grabset (boundInputs after_binding after_state)
+  hook <- optBindingHook <$> askOption
+  liftIO $ hook $ boundDescriptions after_binding after_state
 
 updateFrontState :: (Eq i) => FrontEnd s i -> s -> WBState s i ()
 updateFrontState front after_state = do
