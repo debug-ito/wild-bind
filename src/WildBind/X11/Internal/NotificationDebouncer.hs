@@ -27,7 +27,7 @@
 -- 
 -- * Sometimes GetWindowProperty blocked forever.
 -- 
--- So, as a workaround, we debouce the raw notification events and
+-- So, as a workaround, we debounce the raw notification events and
 -- generate a ClientMessage X11 event. When we get the ClientMessage,
 -- we update the state.
 

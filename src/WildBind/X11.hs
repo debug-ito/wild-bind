@@ -60,13 +60,20 @@ openMyDisplay = Xlib.openDisplay ""
 
 -- | Initialize and obtain 'FrontEnd' for X11, and run the given
 -- action.
+--
+-- The X11 'FrontEnd' watches and provides 'ActiveWindow' as the
+-- front-end state. 'ActiveWindow' keeps information about the window
+-- currently active. As for the input type @i@, 'NumPadUnlockedInput'
+-- and 'NumPadLockedInput' are currrently supported.
 -- 
 -- Code using this function must be compiled with @-threaded@ option
 -- enabled in @ghc@. Otherwise, the behavior of the resulting action
 -- is undefined.
 --
--- For now, 'NumPadUnlockedInput' and 'NumPadLockedInput' are
--- supported as type @i@.
+-- Note that bound actions are executed when the key is released. That
+-- way, you can deliver events to the window that originally has the
+-- keyboard focus.
+--
 withFrontEnd :: (KeySymLike i, ModifierLike i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
 withFrontEnd = runContT $ do
   disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
