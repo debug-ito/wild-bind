@@ -52,7 +52,7 @@ wildBind = wildBind' def
 -- | Build the executable with 'Option'.
 wildBind' :: (Ord i) => Option s i -> Binding s i -> FrontEnd s i -> IO ()
 wildBind' opt binding front =
-  flip Reader.runReaderT opt $ flip State.evalStateT (binding, Nothing) $ wildBindWithState front
+  flip Reader.runReaderT opt $ flip State.evalStateT (binding, Nothing) $ wildBindInContext front
 
 -- | WildBind configuration options.
 --
@@ -71,15 +71,19 @@ instance Default (Option s i) where
 
 ---
 
-type WBState s i = State.StateT (Binding s i, Maybe s) (Reader.ReaderT (Option s i) IO)
+-- | Internal state. fst is the current Binding, snd is the current front-end state.
+type WBState s i = (Binding s i, Maybe s)
 
-askOption :: WBState s i (Option s i)
+-- | A monad keeping WildBind context.
+type WBContext s i = State.StateT (WBState s i) (Reader.ReaderT (Option s i) IO)
+
+askOption :: WBContext s i (Option s i)
 askOption = lift $ Reader.ask
 
 boundDescriptions :: Binding s i -> s -> [(i, ActionDescription)]
 boundDescriptions b s = fmap (\(i, act) -> (i, actDescription act)) $ boundActions b s
 
-updateWBState :: (Eq i) => FrontEnd s i -> Binding s i -> s -> WBState s i ()
+updateWBState :: (Eq i) => FrontEnd s i -> Binding s i -> s -> WBContext s i ()
 updateWBState front after_binding after_state = do
   (before_binding, before_mstate) <- State.get
   let before_grabset = maybe [] (boundInputs before_binding) before_mstate
@@ -88,20 +92,20 @@ updateWBState front after_binding after_state = do
   hook <- optBindingHook <$> askOption
   liftIO $ hook $ boundDescriptions after_binding after_state
 
-updateFrontState :: (Eq i) => FrontEnd s i -> s -> WBState s i ()
+updateFrontState :: (Eq i) => FrontEnd s i -> s -> WBContext s i ()
 updateFrontState front after_state = do
   (cur_binding, _) <- State.get
   updateWBState front cur_binding after_state
 
-updateBinding :: (Eq i) => FrontEnd s i -> Binding s i -> WBState s i ()
+updateBinding :: (Eq i) => FrontEnd s i -> Binding s i -> WBContext s i ()
 updateBinding front after_binding = do
   (_, mstate) <- State.get
   case mstate of
     Nothing -> return ()
     Just state -> updateWBState front after_binding state
 
-wildBindWithState :: (Ord i) => FrontEnd s i -> WBState s i ()
-wildBindWithState front = do
+wildBindInContext :: (Ord i) => FrontEnd s i -> WBContext s i ()
+wildBindInContext front = do
   event <- liftIO $ frontNextEvent front
   case event of
     FEChange state ->
@@ -113,4 +117,4 @@ wildBindWithState front = do
         Just action -> do
           next_binding <- liftIO $ actDo action
           updateBinding front next_binding
-  wildBindWithState front
+  wildBindInContext front
