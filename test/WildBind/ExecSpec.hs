@@ -147,11 +147,12 @@ optionSpec = do
             WBB.on SIb "b button" (out_chan `_write` 'b') ]
       withWildBind' (WBE.wildBind' opt b) $ \(EventChan echan) (GrabChan gchan) -> do
         emitEvent echan $ WBF.FEChange (SS "hoge")
+        hook_chan `shouldNextMatch` [(SIa, "a button"), (SIb, "b button")]
         emitEvent echan $ WBF.FEInput SIa
+        hook_chan `shouldNextMatch` [(SIa, "a button"), (SIb, "b button")]
         out_chan `shouldProduce` 'a'
         gchan `shouldNowMatch` [GSet SIa, GSet SIb]
-        hook_chan `shouldNextMatch` [(SIa, "a button"), (SIb, "b button")]
         emitEvent echan $ WBF.FEChange (SS "")
-        threadDelay 10000
-        gchan `shouldNowMatch` [GUnset SIa, GUnset SIb]
         hook_chan `shouldNextMatch` []
+        gchan `shouldNowMatch` [GUnset SIa, GUnset SIb]
+        
