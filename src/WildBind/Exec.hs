@@ -2,15 +2,25 @@
 -- Module: WildBind.Exec
 -- Description: Functions to create executable actions.
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
---
+-- 
 module WildBind.Exec (
-  wildBind
+  -- * Functions to build executable action
+  wildBind,
+  -- * Option for executable
+  Option,
+  def,
+  -- ** Accessor functions for 'Option'
+  optBindingHook
 ) where
 
 import Data.List ((\\))
 import qualified Control.Monad.Trans.State as State
 import Control.Monad.IO.Class (liftIO)
+import Data.Default.Class (Default(def))
 
+import WildBind.Description (
+  ActionDescription
+  )
 import WildBind.FrontEnd (
   FrontEvent(FEChange,FEInput),
   FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent)
@@ -21,7 +31,6 @@ import WildBind.Binding (
   boundAction,
   boundInputs,
   )
-
 
 type GrabSet i = [i]
 
@@ -34,6 +43,21 @@ updateGrab f before after = do
 wildBind :: (Ord i) => Binding s i -> FrontEnd s i -> IO ()
 wildBind binding front =
   State.evalStateT (wildBindWithState front) (binding, Nothing)
+
+-- | WildBind configuration options.
+--
+-- You can get the default value of 'Option' by 'def' funcion, and
+-- modify its members via accessor functions listed below.
+data Option s i = Option {
+  optBindingHook :: [(i, ActionDescription)] -> IO ()
+  -- ^ An action executed when current binding is changed. Default: do
+  -- nothing.
+  }
+
+instance Default (Option s i) where
+  def = Option {
+    optBindingHook = const $ return ()
+    }
 
 ---
 
