@@ -15,7 +15,9 @@ module WildBind.Exec (
 ) where
 
 import Data.List ((\\))
+import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.State as State
+import qualified Control.Monad.Trans.Reader as Reader
 import Control.Monad.IO.Class (liftIO)
 import Data.Default.Class (Default(def))
 
@@ -42,12 +44,12 @@ updateGrab f before after = do
 
 -- | Combines the 'FrontEnd' and the 'Binding' and returns the executable.
 wildBind :: (Ord i) => Binding s i -> FrontEnd s i -> IO ()
-wildBind binding front =
-  State.evalStateT (wildBindWithState front) (binding, Nothing)
+wildBind = wildBind' def
 
 -- | Build the executable with 'Option'.
 wildBind' :: (Ord i) => Option s i -> Binding s i -> FrontEnd s i -> IO ()
-wildBind' = undefined
+wildBind' opt binding front =
+  flip Reader.runReaderT opt $ flip State.evalStateT (binding, Nothing) $ wildBindWithState front
 
 -- | WildBind configuration options.
 --
@@ -66,7 +68,10 @@ instance Default (Option s i) where
 
 ---
 
-type WBState s i = State.StateT (Binding s i, Maybe s) IO
+type WBState s i = State.StateT (Binding s i, Maybe s) (Reader.ReaderT (Option s i) IO)
+
+askOption :: WBState s i (Option s i)
+askOption = lift $ Reader.ask
 
 updateWBState :: (Eq i) => FrontEnd s i -> Binding s i -> s -> WBState s i ()
 updateWBState front after_binding after_state = do
