@@ -14,6 +14,8 @@ module WildBind.Binding (
   -- * Execution
   boundAction,
   boundAction',
+  boundActions,
+  boundActions',
   boundInputs,
   boundInputs',
   -- * Construction
@@ -91,14 +93,26 @@ boundAction binding state input = (fmap . fmap) fst $ boundAction' binding () st
 boundAction' :: (Ord i) => Binding' bs fs i -> bs -> fs -> i -> Maybe (Action IO (Binding' bs fs i, bs))
 boundAction' binding bs fs input = M.lookup input $ unBinding' binding bs fs
 
--- | Get the list of all inputs @i@ bound to the specified state @s@.
-boundInputs :: Binding s i -> s -> [i]
-boundInputs binding state = boundInputs' binding () state
+-- | Get the list of all bound inputs @i@ and their corresponding
+-- actions for the specified front-end state @s@.
+boundActions :: Binding s i -> s -> [(i, Action IO (Binding s i))]
+boundActions binding state = fmap (\(i, act) -> (i, fmap fst act)) $ boundActions' binding () state
 
--- | Get the list of all inputs @i@ bound to the specified back-end
--- state @bs@ and front-end state @fs@.
+-- | Get the list of all bound inputs @i@ and their corresponding
+-- actions for the specified back-end state @bs@ and front-end state
+-- @fs@.
+boundActions' :: Binding' bs fs i -> bs -> fs -> [(i, Action IO (Binding' bs fs i, bs))]
+boundActions' binding bs fs = M.toList $ unBinding' binding bs fs
+
+-- | Get the list of all bound inputs @i@ for the specified front-end
+-- state @s@.
+boundInputs :: Binding s i -> s -> [i]
+boundInputs b s = fmap fst $ boundActions b s
+
+-- | Get the list of all bound inputs @i@ for the specified front-end
+-- state @fs@ and the back-end state @bs@.
 boundInputs' :: Binding' bs fs i -> bs -> fs -> [i]
-boundInputs' binding bs fs = M.keys $ unBinding' binding bs fs
+boundInputs' b bs fs = fmap fst $ boundActions' b bs fs
 
 -- | Build a 'Binding' with no explicit or implicit state.
 binds :: Ord i
