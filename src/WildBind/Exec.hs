@@ -6,6 +6,7 @@
 module WildBind.Exec (
   -- * Functions to build executable action
   wildBind,
+  wildBind',
   -- * Option for executable
   Option,
   def,
@@ -43,6 +44,10 @@ updateGrab f before after = do
 wildBind :: (Ord i) => Binding s i -> FrontEnd s i -> IO ()
 wildBind binding front =
   State.evalStateT (wildBindWithState front) (binding, Nothing)
+
+-- | Build the executable with 'Option'.
+wildBind' :: (Ord i) => Option s i -> Binding s i -> FrontEnd s i -> IO ()
+wildBind' = undefined
 
 -- | WildBind configuration options.
 --

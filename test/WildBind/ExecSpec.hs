@@ -1,4 +1,4 @@
-module WildBindSpec (main, spec) where
+module WildBind.ExecSpec (main, spec) where
 
 import Test.Hspec
 import Control.Applicative ((<$>))
