@@ -11,13 +11,6 @@ module WildBind.Binding (
   Action(Action,actDescription,actDo),
   Binding,
   Binding',
-  -- * Execution
-  boundAction,
-  boundAction',
-  boundActions,
-  boundActions',
-  boundInputs,
-  boundInputs',
   -- * Construction
   binds,
   binds',
@@ -33,7 +26,14 @@ module WildBind.Binding (
   extendAt,
   convFront,
   convInput,
-  convBack
+  convBack,
+  -- * Execution
+  boundAction,
+  boundAction',
+  boundActions,
+  boundActions',
+  boundInputs,
+  boundInputs'
 ) where
 
 import qualified Data.Map as M
