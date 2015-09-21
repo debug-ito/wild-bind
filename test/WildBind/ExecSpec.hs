@@ -28,20 +28,26 @@ frontEnd echan gchan = WBF.FrontEnd {
   WBF.frontNextEvent = atomically $ readTChan $ unEventChan echan
   }
 
+_write :: MonadIO m => TChan a -> a -> m ()
+_write tc = liftIO . atomically . writeTChan tc
+
 outChanOn :: MonadIO m => TChan a -> i -> a -> (i, WBB.Action m ())
-outChanOn out_chan input out_elem = WBB.on input "" (liftIO $ atomically $ writeTChan out_chan out_elem)
+outChanOn out_chan input out_elem = WBB.on input "" (out_chan `_write` out_elem)
 
 outChanOnS :: TChan a -> i -> a -> bs -> (i, WBB.Action (State.StateT bs IO) ())
 outChanOnS out_chan input out_elem next_state = WBB.on input "" $ do
   liftIO $ atomically $ writeTChan out_chan out_elem
   State.put next_state
 
-withWildBind :: Ord i => WBB.Binding s i -> (EventChan s i -> GrabChan i -> IO ()) -> IO ()
-withWildBind binding action = do
+withWildBind' :: Ord i => (WBF.FrontEnd s i -> IO ()) -> (EventChan s i -> GrabChan i -> IO ()) -> IO ()
+withWildBind' exec action = do
   echan <- EventChan <$> newTChanIO
   gchan <- GrabChan <$> newTChanIO
-  let spawnWildBind = forkIOWithUnmask $ \umask -> umask $ WBE.wildBind binding (frontEnd echan gchan)
+  let spawnWildBind = forkIOWithUnmask $ \umask -> umask $ exec (frontEnd echan gchan)
   bracket spawnWildBind killThread (\_ -> action echan gchan)
+  
+withWildBind :: Ord i => WBB.Binding s i -> (EventChan s i -> GrabChan i -> IO ()) -> IO ()
+withWildBind binding action = withWildBind' (WBE.wildBind binding) action
 
 emitEvent :: TChan (WBF.FrontEvent s i) -> WBF.FrontEvent s i -> IO ()
 emitEvent chan event = atomically $ writeTChan chan event
@@ -68,6 +74,11 @@ main = hspec spec
 
 spec :: Spec
 spec = do
+  wildBindSpec
+  optionSpec
+
+wildBindSpec :: Spec
+wildBindSpec = do
   describe "wildBind" $ do
     it "should enable input grabs" $ do
       ochan <- newTChanIO
@@ -118,6 +129,29 @@ spec = do
         ochan `shouldProduce` 'B'
         threadDelay 10000
         gchan `shouldNowMatch` [GUnset SIb, GSet SIa]
-          
-        
-      
+
+shouldNextMatch :: (Show a, Eq a) => TChan [a] -> [a] -> IO ()
+shouldNextMatch tc expected = do
+  got <- atomically $ readTChan tc
+  got `shouldMatchList` expected
+
+optionSpec :: Spec
+optionSpec = do
+  describe "optBindingHook" $ do
+    it "hooks change of binding because front-end state changes" $ do
+      hook_chan <- newTChanIO
+      out_chan <- newTChanIO
+      let opt = WBE.def { WBE.optBindingHook = atomically . writeTChan hook_chan }
+          b = WBB.whenFront (== SS "hoge") $ WBB.binds [
+            WBB.on SIa "a button" (out_chan `_write` 'a'),
+            WBB.on SIb "b button" (out_chan `_write` 'b') ]
+      withWildBind' (WBE.wildBind' opt b) $ \(EventChan echan) (GrabChan gchan) -> do
+        emitEvent echan $ WBF.FEChange (SS "hoge")
+        emitEvent echan $ WBF.FEInput SIa
+        out_chan `shouldProduce` 'a'
+        gchan `shouldNowMatch` [GSet SIa, GSet SIb]
+        hook_chan `shouldNextMatch` [(SIa, "a button"), (SIb, "b button")]
+        emitEvent echan $ WBF.FEChange (SS "")
+        threadDelay 10000
+        gchan `shouldNowMatch` [GUnset SIa, GUnset SIb]
+        hook_chan `shouldNextMatch` []
