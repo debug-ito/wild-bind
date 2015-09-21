@@ -5,7 +5,7 @@
 --
 module WildBind.X11 (
   -- * X11 front-end
-  withX11Front,
+  withFrontEnd,
   -- * Windows in X11
   Window,
   ActiveWindow,
@@ -67,8 +67,8 @@ openMyDisplay = Xlib.openDisplay ""
 --
 -- For now, 'NumPadUnlockedInput' and 'NumPadLockedInput' are
 -- supported as type @i@.
-withX11Front :: (KeySymLike i, ModifierLike i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
-withX11Front = runContT $ do
+withFrontEnd :: (KeySymLike i, ModifierLike i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
+withFrontEnd = runContT $ do
   disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
   notif_disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
   debouncer <- ContT $ Ndeb.withDebouncer notif_disp

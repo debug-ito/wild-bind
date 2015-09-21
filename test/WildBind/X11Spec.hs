@@ -14,7 +14,7 @@ import WildBind (
   FrontEvent(FEChange,FEInput)
   )
 import qualified WildBind.Input.NumPad as NumPad
-import WildBind.X11 (withX11Front, ActiveWindow)
+import WildBind.X11 (withFrontEnd, ActiveWindow)
 
 main :: IO ()
 main = hspec spec
@@ -66,21 +66,21 @@ stopWatchMsec act = do
 spec :: Spec
 spec = do
   describe "X11Front" $ do
-    it "should first emit FEChange event when initialized" $ withX11Front $ \f -> do
+    it "should first emit FEChange event when initialized" $ withFrontEnd $ \f -> do
       p "try to get the first event..."
       (ev, time) <- stopWatchMsec $ frontNextEvent f :: IO (FrontEvent ActiveWindow NumPad.NumPadUnlockedInput, Int)
       time `shouldSatisfy` (< 100)
       case ev of
         FEChange _ -> return ()
         _ -> expectationFailure ("FEChange is expected, but got " ++ show ev)
-    it "should NOT throw exception when it tries to double-grab in the same process" $ withX11Front $ \f1 ->
-      withX11Front $ \f2 -> do
+    it "should NOT throw exception when it tries to double-grab in the same process" $ withFrontEnd $ \f1 ->
+      withFrontEnd $ \f2 -> do
         frontSetGrab f1 NumPad.NumLeft `shouldReturn` ()
         frontSetGrab f2 NumPad.NumLeft `shouldReturn` ()
   describe "X11Front - NumPadUnlockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \(f :: FrontEnd ActiveWindow NumPad.NumPadUnlockedInput) -> do
+    it "should grab/ungrab keys" $ whenNumPad $ withFrontEnd $ \(f :: FrontEnd ActiveWindow NumPad.NumPadUnlockedInput) -> do
       grabCase f
   describe "X11Front - NumPadLockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ withX11Front $ \(f :: FrontEnd ActiveWindow NumPad.NumPadLockedInput) -> do
+    it "should grab/ungrab keys" $ whenNumPad $ withFrontEnd $ \(f :: FrontEnd ActiveWindow NumPad.NumPadLockedInput) -> do
       grabCase f
 
