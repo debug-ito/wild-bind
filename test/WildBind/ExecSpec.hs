@@ -141,7 +141,7 @@ optionSpec = do
     it "hooks change of binding because front-end state changes" $ do
       hook_chan <- newTChanIO
       out_chan <- newTChanIO
-      let opt = WBE.def { WBE.optBindingHook = atomically . writeTChan hook_chan }
+      let opt = WBE.def { WBE.optBindingHook = _write hook_chan }
           b = WBB.whenFront (== SS "hoge") $ WBB.binds [
             WBB.on SIa "a button" (out_chan `_write` 'a'),
             WBB.on SIb "b button" (out_chan `_write` 'b') ]
@@ -155,4 +155,29 @@ optionSpec = do
         emitEvent echan $ WBF.FEChange (SS "")
         hook_chan `shouldNextMatch` []
         gchan `shouldNowMatch` [GUnset SIa, GUnset SIb]
+    it "hooks change of binding because back-end state changes" $ do
+      hook_chan <- newTChanIO
+      out_chan <- newTChanIO
+      let opt = WBE.def { WBE.optBindingHook = _write hook_chan  }
+          b = WBB.startFrom (SB 0) $ WBB.binds' $ \bs -> case bs of
+            (SB 0) -> [WBB.on SIa "a button" (out_chan `_write` 'a' >> State.put (SB 1))]
+            (SB 1) -> [WBB.on SIa "A BUTTON" (out_chan `_write` 'A' >> State.put (SB 0)),
+                       WBB.on SIc "c button" (out_chan `_write` 'c')]
+            _ -> []
+      withWildBind' (WBE.wildBind' opt b) $ \(EventChan echan) (GrabChan gchan) -> do
+        emitEvent echan $ WBF.FEChange (SS "")
+        hook_chan `shouldNextMatch` [(SIa, "a button")]
+        gchan `shouldNowMatch` [GSet SIa]
+        emitEvent echan $ WBF.FEInput SIa
+        out_chan `shouldProduce` 'a'
+        hook_chan `shouldNextMatch` [(SIa, "A BUTTON"), (SIc, "c button")]
+        gchan `shouldNowMatch` [GSet SIc]
+        emitEvent echan $ WBF.FEInput SIc
+        out_chan `shouldProduce` 'c'
+        hook_chan `shouldNextMatch` [(SIa, "A BUTTON"), (SIc, "c button")]
+        gchan `shouldNowMatch` []
+        emitEvent echan $ WBF.FEInput SIa
+        out_chan `shouldProduce` 'A'
+        hook_chan `shouldNextMatch` [(SIa, "a button")]
+        gchan `shouldNowMatch` [GUnset SIc]
         
