@@ -14,6 +14,7 @@ module WildBind.Indicator (
 ) where
 
 import Control.Monad (void)
+import Control.Applicative ((<$>))
 
 import WildBind (ActionDescription)
 import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
@@ -21,11 +22,18 @@ import Graphics.UI.Gtk (
   initGUI, mainGUI,
   Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
   windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
+  windowSetTitle,
   set, AttrOp((:=)),
-  widgetShowAll
+  widgetShowAll, widgetSetSizeRequest,
+  Table, tableNew, tableAttachDefaults,
+  buttonNew, buttonSetAlignment,
+  Label, labelNew, labelSetLineWrap, labelSetJustify, Justification(JustifyLeft), labelSetText,
+  miscSetAlignment,
+  containerAdd
   )
-import Control.Monad.Trans.Reader (ReaderT, runReaderT)
+import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
 import Control.Monad.IO.Class (liftIO)
+import Data.Text (Text)
 
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
 -- type.
@@ -71,7 +79,16 @@ instance NumPadPosition NumPadUnlockedInput where
     NumDelete -> NumLPeriod
 
 -- | Data type keeping read-only config for NumPadIndicator.
-data NumPadConfig = NumPadConfig
+data NumPadConfig = NumPadConfig {
+  confButtonWidth :: Int,
+  confButtonHeight :: Int
+  }
+
+numPadConfig :: NumPadConfig
+numPadConfig = NumPadConfig {
+  confButtonWidth = 70,
+  confButtonHeight = 45
+  }
 
 -- | Contextual monad for creating NumPadIndicator
 type NumPadContext = ReaderT NumPadConfig IO
@@ -84,7 +101,7 @@ type NumPadContext = ReaderT NumPadConfig IO
 withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO ()) -> IO ()
 withNumPadIndicator action = do
   void $ initGUI
-  win <- flip runReaderT NumPadConfig newNumPadWindow
+  win <- flip runReaderT numPadConfig newNumPadWindow
   widgetShowAll win
   mainGUI
   
@@ -96,4 +113,28 @@ newNumPadWindow = do
                     windowSkipTaskbarHint := True,
                     windowAcceptFocus := False,
                     windowFocusOnMap := False]
+  liftIO $ windowSetTitle win ("WildBind Status" :: Text)
   return win
+
+newNumPadTable :: NumPadPosition i => NumPadContext (Table, ([(i, ActionDescription)] -> IO ()))
+newNumPadTable = do
+  tab <- liftIO $ tableNew 5 4 False
+  undefined
+
+addButton :: Table -> Int -> Int -> Int -> Int -> NumPadContext Label
+addButton tab left right top bottom = do
+  lab <- liftIO $ labelNew (Nothing :: Maybe Text)
+  liftIO $ labelSetLineWrap lab True
+  liftIO $ miscSetAlignment lab 0 0.5
+  liftIO $ labelSetJustify lab JustifyLeft
+  button <- liftIO $ buttonNew
+  liftIO $ buttonSetAlignment button (0, 0.5)
+  liftIO $ containerAdd button lab
+  liftIO $ tableAttachDefaults tab button left right top bottom
+  bw <- confButtonWidth <$> ask
+  bh <- confButtonHeight <$> ask
+  liftIO $ widgetSetSizeRequest lab (bw * (right - left)) (bh * (bottom - top))
+  return lab
+
+labelSetter :: Label -> ActionDescription -> IO ()
+labelSetter = labelSetText
