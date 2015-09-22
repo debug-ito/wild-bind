@@ -21,12 +21,12 @@ import Control.Concurrent (forkOS)
 import WildBind (ActionDescription)
 import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
 import Graphics.UI.Gtk (
-  initGUI, mainGUI, postGUIAsync,
+  initGUI, mainGUI, postGUIAsync, postGUISync,
   Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
   windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
   windowSetTitle, windowMove,
-  set, AttrOp((:=)),
-  widgetShowAll, widgetSetSizeRequest,
+  get, set, AttrOp((:=)),
+  widgetShowAll, widgetSetSizeRequest, widgetVisible, widgetHide,
   Table, tableNew, tableAttachDefaults,
   buttonNew, buttonSetAlignment,
   Label, labelNew, labelSetLineWrap, labelSetJustify, Justification(JustifyLeft), labelSetText,
@@ -111,8 +111,8 @@ withNumPadIndicator action = do
     liftIO $ containerAdd win tab
     let indicator = Indicator {
           updateDescription = \i d -> postGUIAsync $ updater i d,
-          getPresence = undefined,
-          setPresence = undefined
+          getPresence = postGUISync $ get win widgetVisible,
+          setPresence = \visible -> postGUIAsync (if visible then widgetShowAll win else widgetHide win)
           }
     liftIO $ widgetShowAll win
     liftIO $ void $ forkOS $ action indicator
