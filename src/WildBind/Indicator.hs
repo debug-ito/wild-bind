@@ -24,7 +24,7 @@ import Graphics.UI.Gtk (
   initGUI, mainGUI, postGUIAsync,
   Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
   windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
-  windowSetTitle,
+  windowSetTitle, windowMove,
   set, AttrOp((:=)),
   widgetShowAll, widgetSetSizeRequest,
   Table, tableNew, tableAttachDefaults,
@@ -82,14 +82,16 @@ instance NumPadPosition NumPadUnlockedInput where
 
 -- | Data type keeping read-only config for NumPadIndicator.
 data NumPadConfig = NumPadConfig {
-  confButtonWidth :: Int,
-  confButtonHeight :: Int
+  confButtonWidth, confButtonHeight :: Int,
+  confWindowX, confWindowY :: Int
   }
 
 numPadConfig :: NumPadConfig
 numPadConfig = NumPadConfig {
   confButtonWidth = 70,
-  confButtonHeight = 45
+  confButtonHeight = 45,
+  confWindowX = 0,
+  confWindowY = 0
   }
 
 -- | Contextual monad for creating NumPadIndicator
@@ -125,6 +127,9 @@ newNumPadWindow = do
                     windowAcceptFocus := False,
                     windowFocusOnMap := False]
   liftIO $ windowSetTitle win ("WildBind Status" :: Text)
+  win_x <- confWindowX <$> ask
+  win_y <- confWindowY <$> ask
+  liftIO $ windowMove win win_x win_y
   return win
 
 -- | Get the action to describe @i@, if that @i@ is supported. This is
