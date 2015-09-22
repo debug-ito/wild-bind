@@ -40,7 +40,7 @@ import Data.Text (Text)
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
 -- type.
 data Indicator s i = Indicator {
-  updateDescription :: [(i, ActionDescription)] -> IO (),
+  updateDescription :: i -> ActionDescription -> IO (),
   -- ^ Update and show the description for the current binding.
   getPresence :: IO Bool,
   -- ^ Get the current presence of the indicator. Returns 'True' if
@@ -108,7 +108,7 @@ withNumPadIndicator action = do
     (tab, updater) <- newNumPadTable
     liftIO $ containerAdd win tab
     let indicator = Indicator {
-          updateDescription = postGUIAsync . updater,
+          updateDescription = \i d -> postGUIAsync $ updater i d,
           getPresence = undefined,
           setPresence = undefined
           }
@@ -131,7 +131,7 @@ newNumPadWindow = do
 -- a 'Monoid', so we can build up the getter by 'mconcat'.
 type DescriptActionGetter i = i -> First (ActionDescription -> IO ())
 
-newNumPadTable :: NumPadPosition i => NumPadContext (Table, ([(i, ActionDescription)] -> IO ()))
+newNumPadTable :: NumPadPosition i => NumPadContext (Table, (i -> ActionDescription -> IO ()))
 newNumPadTable = do
   tab <- liftIO $ tableNew 5 4 False
   -- NumLock is unboundable, so it's treatd in a different way from others.
@@ -154,9 +154,9 @@ newNumPadTable = do
     getter NumL0 $ addButton tab 0 2 4 5,
     getter NumLPeriod $ addButton tab 2 3 4 5
     ]
-  let description_updater = mapM_ $ \(input, desc) -> case descript_action_getter $ toNumPad input of
-        First (Just act) -> act desc
-        First Nothing -> return ()
+  let description_updater = \input -> case descript_action_getter $ toNumPad input of
+        First (Just act) -> act
+        First Nothing -> const $ return ()
   return (tab, description_updater)
   where
     getter :: Eq i => i -> NumPadContext Label -> NumPadContext (DescriptActionGetter i)
