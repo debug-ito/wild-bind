@@ -25,7 +25,7 @@ import Graphics.UI.Gtk (
   Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
   windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
   windowSetTitle, windowMove,
-  get, set, AttrOp((:=)),
+  AttrOp((:=)),
   widgetShowAll, widgetSetSizeRequest, widgetVisible, widgetHide,
   Table, tableNew, tableAttachDefaults,
   buttonNew, buttonSetAlignment,
@@ -33,6 +33,7 @@ import Graphics.UI.Gtk (
   miscSetAlignment,
   containerAdd
   )
+import qualified Graphics.UI.Gtk as G (get, set)
 import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
 import Control.Monad.IO.Class (liftIO)
 import Data.Text (Text)
@@ -111,7 +112,7 @@ withNumPadIndicator action = do
     liftIO $ containerAdd win tab
     let indicator = Indicator {
           updateDescription = \i d -> postGUIAsync $ updater i d,
-          getPresence = postGUISync $ get win widgetVisible,
+          getPresence = postGUISync $ G.get win widgetVisible,
           setPresence = \visible -> postGUIAsync (if visible then widgetShowAll win else widgetHide win)
           }
     liftIO $ widgetShowAll win
@@ -122,10 +123,10 @@ newNumPadWindow :: NumPadContext Window
 newNumPadWindow = do
   win <- liftIO $ windowNew
   liftIO $ windowSetKeepAbove win True
-  liftIO $ set win [windowSkipPagerHint := True,
-                    windowSkipTaskbarHint := True,
-                    windowAcceptFocus := False,
-                    windowFocusOnMap := False]
+  liftIO $ G.set win [windowSkipPagerHint := True,
+                      windowSkipTaskbarHint := True,
+                      windowAcceptFocus := False,
+                      windowFocusOnMap := False]
   liftIO $ windowSetTitle win ("WildBind Status" :: Text)
   win_x <- confWindowX <$> ask
   win_y <- confWindowY <$> ask
