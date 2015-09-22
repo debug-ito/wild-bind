@@ -31,9 +31,10 @@ import Graphics.UI.Gtk (
   buttonNew, buttonSetAlignment,
   Label, labelNew, labelSetLineWrap, labelSetJustify, Justification(JustifyLeft), labelSetText,
   miscSetAlignment,
-  containerAdd
+  containerAdd,
+  deleteEvent
   )
-import qualified Graphics.UI.Gtk as G (get, set)
+import qualified Graphics.UI.Gtk as G (get, set, on)
 import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
 import Control.Monad.IO.Class (liftIO)
 import Data.Text (Text)
@@ -116,6 +117,9 @@ withNumPadIndicator action = do
           setPresence = \visible -> postGUIAsync (if visible then widgetShowAll win else widgetHide win)
           }
     liftIO $ widgetShowAll win
+    liftIO $ void $ G.on win deleteEvent $ do
+      liftIO $ widgetHide win
+      return True -- Do not emit 'destroy' signal
     liftIO $ void $ forkOS $ action indicator
   mainGUI
   
