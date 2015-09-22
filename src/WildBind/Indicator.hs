@@ -13,8 +13,19 @@ module WildBind.Indicator (
   NumPadPosition(..)
 ) where
 
+import Control.Monad (void)
+
 import WildBind (ActionDescription)
 import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
+import Graphics.UI.Gtk (
+  initGUI, mainGUI,
+  Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
+  windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
+  set, AttrOp((:=)),
+  widgetShowAll
+  )
+import Control.Monad.Trans.Reader (ReaderT, runReaderT)
+import Control.Monad.IO.Class (liftIO)
 
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
 -- type.
@@ -59,8 +70,30 @@ instance NumPadPosition NumPadUnlockedInput where
     NumEnter -> NumLEnter
     NumDelete -> NumLPeriod
 
+-- | Data type keeping read-only config for NumPadIndicator.
+data NumPadConfig = NumPadConfig
 
--- | Initialize the indicator and run the given action.
-withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO a) -> IO a
-withNumPadIndicator action = undefined
+-- | Contextual monad for creating NumPadIndicator
+type NumPadContext = ReaderT NumPadConfig IO
 
+-- | Initialize the indicator and run the given action. This function
+-- should be used directly under @main@ function.
+--
+-- > main :: IO ()
+-- > main = withNumPadIndicator $ \indicator -> ...
+withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO ()) -> IO ()
+withNumPadIndicator action = do
+  void $ initGUI
+  win <- flip runReaderT NumPadConfig newNumPadWindow
+  widgetShowAll win
+  mainGUI
+  
+newNumPadWindow :: NumPadContext Window
+newNumPadWindow = do
+  win <- liftIO $ windowNew
+  liftIO $ windowSetKeepAbove win True
+  liftIO $ set win [windowSkipPagerHint := True,
+                    windowSkipTaskbarHint := True,
+                    windowAcceptFocus := False,
+                    windowFocusOnMap := False]
+  return win
