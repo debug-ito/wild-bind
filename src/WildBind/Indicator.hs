@@ -15,6 +15,7 @@ module WildBind.Indicator (
 
 import Control.Monad (void)
 import Control.Applicative ((<$>))
+import Data.Monoid ((<>), First(First))
 
 import WildBind (ActionDescription)
 import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
@@ -32,7 +33,9 @@ import Graphics.UI.Gtk (
   containerAdd
   )
 import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
+import Control.Monad.Trans.Writer (WriterT, execWriterT, tell)
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Class (lift)
 import Data.Text (Text)
 
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
@@ -116,10 +119,41 @@ newNumPadWindow = do
   liftIO $ windowSetTitle win ("WildBind Status" :: Text)
   return win
 
+-- | Get the action to describe @i@, if that @i@ is supported. This is
+-- a 'Monoid', so we can build up the getter by 'WriterT'.
+type DescriptActionGetter i = i -> First (ActionDescription -> IO ())
+
 newNumPadTable :: NumPadPosition i => NumPadContext (Table, ([(i, ActionDescription)] -> IO ()))
 newNumPadTable = do
   tab <- liftIO $ tableNew 5 4 False
-  undefined
+  -- NumLock is unboundable, so it's treatd in a different way from others.
+  (\label -> liftIO $ labelSetText label ("NumLock" :: Text)) =<< addButton tab 0 1 0 1
+  descript_action_getter <- execWriterT $ do
+    tellL NumLDivide $ addButton tab 1 2 0 1
+    tellL NumLMulti $ addButton tab 2 3 0 1
+    tellL NumLMinus $ addButton tab 3 4 0 1
+    tellL NumL7 $ addButton tab 0 1 1 2
+    tellL NumL8 $ addButton tab 1 2 1 2
+    tellL NumL9 $ addButton tab 2 3 1 2
+    tellL NumLPlus $ addButton tab 3 4 1 3
+    tellL NumL4 $ addButton tab 0 1 2 3
+    tellL NumL5 $ addButton tab 1 2 2 3
+    tellL NumL6 $ addButton tab 2 3 2 3
+    tellL NumL1 $ addButton tab 0 1 3 4
+    tellL NumL2 $ addButton tab 1 2 3 4
+    tellL NumL3 $ addButton tab 2 3 3 4
+    tellL NumLEnter $ addButton tab 3 4 3 5
+    tellL NumL0 $ addButton tab 0 2 4 5
+    tellL NumLPeriod $ addButton tab 2 3 4 5
+  let description_updater = mapM_ $ \(input, desc) -> case descript_action_getter $ toNumPad input of
+        First (Just act) -> act desc
+        First Nothing -> return ()
+  return (tab, description_updater)
+  where
+    tellL :: Eq i => i -> NumPadContext Label -> WriterT (DescriptActionGetter i) NumPadContext ()
+    tellL bound_key get_label = do
+      label <- lift get_label
+      tell $ \in_key -> First (if in_key == bound_key then Just $ labelSetText label else Nothing)
 
 addButton :: Table -> Int -> Int -> Int -> Int -> NumPadContext Label
 addButton tab left right top bottom = do
@@ -135,6 +169,3 @@ addButton tab left right top bottom = do
   bh <- confButtonHeight <$> ask
   liftIO $ widgetSetSizeRequest lab (bw * (right - left)) (bh * (bottom - top))
   return lab
-
-labelSetter :: Label -> ActionDescription -> IO ()
-labelSetter = labelSetText
