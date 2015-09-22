@@ -16,11 +16,12 @@ module WildBind.Indicator (
 import Control.Monad (void)
 import Control.Applicative ((<$>))
 import Data.Monoid (mconcat, First(First))
+import Control.Concurrent (forkOS)
 
 import WildBind (ActionDescription)
 import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
 import Graphics.UI.Gtk (
-  initGUI, mainGUI,
+  initGUI, mainGUI, postGUIAsync,
   Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
   windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
   windowSetTitle,
@@ -34,7 +35,6 @@ import Graphics.UI.Gtk (
   )
 import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Class (lift)
 import Data.Text (Text)
 
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
@@ -103,8 +103,17 @@ type NumPadContext = ReaderT NumPadConfig IO
 withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO ()) -> IO ()
 withNumPadIndicator action = do
   void $ initGUI
-  win <- flip runReaderT numPadConfig newNumPadWindow
-  widgetShowAll win
+  flip runReaderT numPadConfig $ do
+    win <- newNumPadWindow
+    (tab, updater) <- newNumPadTable
+    liftIO $ containerAdd win tab
+    let indicator = Indicator {
+          updateDescription = postGUIAsync . updater,
+          getPresence = undefined,
+          setPresence = undefined
+          }
+    liftIO $ widgetShowAll win
+    liftIO $ void $ forkOS $ action indicator
   mainGUI
   
 newNumPadWindow :: NumPadContext Window
