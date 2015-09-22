@@ -4,15 +4,17 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 -- 
 module WildBind.Indicator (
-  withIndicator,
+  withNumPadIndicator,
   Indicator,
   updateDescription,
   getPresence,
   setPresence,
-  togglePresence
+  togglePresence,
+  NumPadPosition(..)
 ) where
 
 import WildBind (ActionDescription)
+import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
 
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
 -- type.
@@ -30,6 +32,35 @@ data Indicator s i = Indicator {
 togglePresence :: Indicator s i -> IO ()
 togglePresence ind = (setPresence ind . not) =<< getPresence ind
 
+
+-- | Something that can be mapped to number pad's key positions.
+class NumPadPosition a where
+  toNumPad :: a -> NumPadLockedInput
+
+instance NumPadPosition NumPadLockedInput where
+  toNumPad = id
+
+instance NumPadPosition NumPadUnlockedInput where
+  toNumPad input = case input of
+    NumInsert -> NumL0
+    NumEnd -> NumL1
+    NumDown -> NumL2
+    NumPageDown -> NumL3
+    NumLeft -> NumL4
+    NumCenter -> NumL5
+    NumRight -> NumL6
+    NumHome -> NumL7
+    NumUp -> NumL8
+    NumPageUp -> NumL9
+    NumDivide -> NumLDivide
+    NumMulti -> NumLMulti
+    NumMinus -> NumLMinus
+    NumPlus -> NumLPlus
+    NumEnter -> NumLEnter
+    NumDelete -> NumLPeriod
+
+
 -- | Initialize the indicator and run the given action.
-withIndicator :: (Indicator s i -> IO a) -> IO a
-withIndicator = undefined
+withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO a) -> IO a
+withNumPadIndicator action = undefined
+
