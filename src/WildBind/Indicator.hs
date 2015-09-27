@@ -126,7 +126,6 @@ withNumPadIndicator action = do
           getPresence = postGUISync $ G.get win widgetVisible,
           setPresence = \visible -> postGUIAsync (if visible then widgetShowAll win else widgetHide win)
           }
-    liftIO $ widgetShowAll win
     liftIO $ void $ G.on win deleteEvent $ do
       liftIO $ widgetHide win
       return True -- Do not emit 'destroy' signal
