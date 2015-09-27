@@ -5,6 +5,7 @@
 -- 
 module WildBind.Indicator (
   withNumPadIndicator,
+  optionFor,
   Indicator,
   updateDescription,
   getPresence,
@@ -13,12 +14,13 @@ module WildBind.Indicator (
   NumPadPosition(..)
 ) where
 
-import Control.Monad (void)
+import Control.Monad (void, forM_)
 import Control.Applicative ((<$>))
 import Data.Monoid (mconcat, First(First))
 import Control.Concurrent (forkOS)
 
-import WildBind (ActionDescription)
+import WildBind (ActionDescription, Option(optBindingHook),
+                 FrontEnd(frontDefaultDescription))
 import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
 import Graphics.UI.Gtk (
   initGUI, mainGUI, postGUIAsync, postGUISync,
@@ -38,6 +40,7 @@ import qualified Graphics.UI.Gtk as G (get, set, on)
 import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
 import Control.Monad.IO.Class (liftIO)
 import Data.Text (Text)
+import qualified Data.Map as M
 
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
 -- type.
@@ -122,6 +125,19 @@ withNumPadIndicator action = do
       return True -- Do not emit 'destroy' signal
     liftIO $ void $ forkOS $ action indicator
   mainGUI
+
+-- | Modify the given WildBin 'Option', so 'ActionDescription's are
+-- shown by the given 'Indicator'.
+optionFor :: (Ord i, Enum i, Bounded i) => Indicator s i -> FrontEnd s i -> Option s i -> Option s i
+optionFor ind front opt =
+  let orig_hook = optBindingHook opt
+      new_hook = \bind_list -> do
+        forM_ (enumFromTo minBound maxBound) $ \input -> do
+          let desc = M.findWithDefault (frontDefaultDescription front input) input (M.fromList bind_list)
+          updateDescription ind input desc
+        orig_hook bind_list
+  in opt { optBindingHook = new_hook }
+                       
   
 newNumPadWindow :: NumPadContext Window
 newNumPadWindow = do

@@ -1,15 +1,14 @@
 module Main (main) where
 
-import Control.Monad (forM_)
+import Data.Monoid (mempty)
 
-import WildBind (Describable(describe))
+import WildBind (wildBind', def)
 import WildBind.Input.NumPad (NumPadUnlockedInput)
-import WildBind.Indicator (Indicator, updateDescription, withNumPadIndicator)
+import WildBind.X11 (withFrontEnd, ActiveWindow)
+import WildBind.Indicator (Indicator, withNumPadIndicator, optionFor)
 
 main :: IO ()
 main = withNumPadIndicator indicatorMain
 
-indicatorMain :: Indicator s NumPadUnlockedInput -> IO ()
-indicatorMain ind = do
-  forM_ (enumFromTo minBound maxBound) $ \key -> do
-    updateDescription ind key (describe key)
+indicatorMain :: Indicator ActiveWindow NumPadUnlockedInput -> IO ()
+indicatorMain ind = withFrontEnd $ \f -> wildBind' (optionFor ind f def) mempty f
