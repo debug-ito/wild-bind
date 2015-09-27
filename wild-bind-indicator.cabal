@@ -12,6 +12,8 @@ build-type:             Simple
 extra-source-files:     README.md, ChangeLog.md
 homepage:               https://github.com/debug-ito/wild-bind-indicator
 bug-reports:            https://github.com/debug-ito/wild-bind-indicator/issues
+data-dir:               resources
+data-files:             icon.svg
 
 library
   default-language:     Haskell2010
@@ -19,7 +21,7 @@ library
   ghc-options:          -Wall
   default-extensions:   OverloadedStrings
   exposed-modules:      WildBind.Indicator
-  -- other-modules:
+  other-modules:        Paths_wild_bind_indicator
   build-depends:        base >=4.6.0 && <5,
                         wild-bind >=0.0.0 && <0.2,
                         transformers >=0.3.0 && <0.4,

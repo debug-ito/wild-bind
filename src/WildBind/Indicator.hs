@@ -41,13 +41,16 @@ import Graphics.UI.Gtk (
   Label, labelNew, labelSetLineWrap, labelSetJustify, Justification(JustifyLeft), labelSetText,
   miscSetAlignment,
   containerAdd,
-  deleteEvent
+  deleteEvent,
+  statusIconNewFromFile
   )
 import qualified Graphics.UI.Gtk as G (get, set, on)
 import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
 import Control.Monad.IO.Class (liftIO)
 import Data.Text (Text)
 import qualified Data.Map as M
+
+import Paths_wild_bind_indicator (getDataFileName)
 
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
 -- type.
@@ -95,16 +98,20 @@ instance NumPadPosition NumPadUnlockedInput where
 -- | Data type keeping read-only config for NumPadIndicator.
 data NumPadConfig = NumPadConfig {
   confButtonWidth, confButtonHeight :: Int,
-  confWindowX, confWindowY :: Int
+  confWindowX, confWindowY :: Int,
+  confIconPath :: FilePath
   }
 
-numPadConfig :: NumPadConfig
-numPadConfig = NumPadConfig {
-  confButtonWidth = 70,
-  confButtonHeight = 45,
-  confWindowX = 0,
-  confWindowY = 0
-  }
+numPadConfig :: IO NumPadConfig
+numPadConfig = do
+  icon <- getDataFileName "icon.svg"
+  return NumPadConfig {
+    confButtonWidth = 70,
+    confButtonHeight = 45,
+    confWindowX = 0,
+    confWindowY = 0,
+    confIconPath = icon
+    }
 
 -- | Contextual monad for creating NumPadIndicator
 type NumPadContext = ReaderT NumPadConfig IO
@@ -117,7 +124,8 @@ type NumPadContext = ReaderT NumPadConfig IO
 withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO ()) -> IO ()
 withNumPadIndicator action = do
   void $ initGUI
-  flip runReaderT numPadConfig $ do
+  conf <- numPadConfig
+  flip runReaderT conf $ do
     win <- newNumPadWindow
     (tab, updater) <- newNumPadTable
     liftIO $ containerAdd win tab
@@ -130,6 +138,7 @@ withNumPadIndicator action = do
       liftIO $ widgetHide win
       return True -- Do not emit 'destroy' signal
     liftIO $ void $ forkOS $ action indicator
+    void $ liftIO =<< statusIconNewFromFile <$> (confIconPath <$> ask)
   mainGUI
 
 -- | Run 'wildBind' with the given 'Indicator'. 'ActionDescription's
