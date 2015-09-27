@@ -2,13 +2,13 @@ module Main (main) where
 
 import Data.Monoid (mempty)
 
-import WildBind (wildBind', def)
+import WildBind (wildBind', def, Binding)
 import WildBind.Input.NumPad (NumPadUnlockedInput)
 import WildBind.X11 (withFrontEnd, ActiveWindow)
-import WildBind.Indicator (Indicator, withNumPadIndicator, optionFor)
+import WildBind.Indicator (Indicator, withNumPadIndicator, optionFor, wildBindWithIndicator)
 
 main :: IO ()
-main = withNumPadIndicator indicatorMain
+main = withNumPadIndicator $ \ind -> withFrontEnd (wildBindWithIndicator ind binding)
 
-indicatorMain :: Indicator ActiveWindow NumPadUnlockedInput -> IO ()
-indicatorMain ind = withFrontEnd $ \f -> wildBind' (optionFor ind f def) mempty f
+binding :: Binding ActiveWindow NumPadUnlockedInput
+binding = mempty

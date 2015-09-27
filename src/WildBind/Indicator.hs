@@ -4,13 +4,19 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 -- 
 module WildBind.Indicator (
+  -- * Construction
   withNumPadIndicator,
+  -- * Execution
+  wildBindWithIndicator,
+  -- * Raw-level function
   optionFor,
+  -- * Indicator type and its actions
   Indicator,
   updateDescription,
   getPresence,
   setPresence,
   togglePresence,
+  -- * Generalization of number pad types
   NumPadPosition(..)
 ) where
 
@@ -20,7 +26,8 @@ import Data.Monoid (mconcat, First(First))
 import Control.Concurrent (forkOS)
 
 import WildBind (ActionDescription, Option(optBindingHook),
-                 FrontEnd(frontDefaultDescription))
+                 FrontEnd(frontDefaultDescription), Binding,
+                 wildBind', def)
 import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
 import Graphics.UI.Gtk (
   initGUI, mainGUI, postGUIAsync, postGUISync,
@@ -126,7 +133,12 @@ withNumPadIndicator action = do
     liftIO $ void $ forkOS $ action indicator
   mainGUI
 
--- | Modify the given WildBin 'Option', so 'ActionDescription's are
+-- | Run 'wildBind' with the given 'Indicator'. 'ActionDescription's
+-- are shown by the 'Indicator'.
+wildBindWithIndicator :: (Ord i, Enum i, Bounded i) => Indicator s i -> Binding s i -> FrontEnd s i -> IO ()
+wildBindWithIndicator ind binding front = wildBind' (optionFor ind front def) binding front
+
+-- | Modify the given WildBind 'Option', so 'ActionDescription's are
 -- shown by the given 'Indicator'.
 optionFor :: (Ord i, Enum i, Bounded i) => Indicator s i -> FrontEnd s i -> Option s i -> Option s i
 optionFor ind front opt =
