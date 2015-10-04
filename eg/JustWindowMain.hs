@@ -1,14 +1,17 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
 import Data.Monoid (mempty)
 
-import WildBind (wildBind', def, Binding)
-import WildBind.Input.NumPad (NumPadUnlockedInput)
+import WildBind (wildBind', def, Binding, binds, on)
+import WildBind.Input.NumPad (NumPadUnlockedInput(..))
 import WildBind.X11 (withFrontEnd, ActiveWindow)
-import WildBind.Indicator (Indicator, withNumPadIndicator, optionFor, wildBindWithIndicator)
+import WildBind.Indicator (Indicator, withNumPadIndicator, optionFor, wildBindWithIndicator, togglePresence)
 
 main :: IO ()
-main = withNumPadIndicator $ \ind -> withFrontEnd (wildBindWithIndicator ind binding)
+main = withNumPadIndicator $ \ind -> withFrontEnd (wildBindWithIndicator ind $ binding ind)
 
-binding :: Binding ActiveWindow NumPadUnlockedInput
-binding = mempty
+binding :: Indicator ActiveWindow NumPadUnlockedInput -> Binding ActiveWindow NumPadUnlockedInput
+binding ind = binds [
+  on NumEnter "Toggle indicator" $ togglePresence ind
+  ]
