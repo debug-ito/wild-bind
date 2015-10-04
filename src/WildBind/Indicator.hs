@@ -24,6 +24,7 @@ import Control.Monad (void, forM_)
 import Control.Applicative ((<$>))
 import Data.Monoid (mconcat, First(First))
 import Control.Concurrent (forkOS)
+import Data.IORef (newIORef, readIORef)
 
 import WildBind (ActionDescription, Option(optBindingHook),
                  FrontEnd(frontDefaultDescription), Binding,
@@ -125,7 +126,7 @@ withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO ()) -> IO ()
 withNumPadIndicator action = do
   void $ initGUI
   conf <- numPadConfig
-  flip runReaderT conf $ do
+  status_icon <- flip runReaderT conf $ do
     win <- newNumPadWindow
     (tab, updater) <- newNumPadTable
     liftIO $ containerAdd win tab
@@ -138,8 +139,10 @@ withNumPadIndicator action = do
       liftIO $ widgetHide win
       return True -- Do not emit 'destroy' signal
     liftIO $ void $ forkOS $ action indicator
-    void $ liftIO =<< statusIconNewFromFile <$> (confIconPath <$> ask)
+    liftIO =<< statusIconNewFromFile <$> (confIconPath <$> ask)
+  icon_ref <- newIORef status_icon
   mainGUI
+  void $ readIORef icon_ref
 
 -- | Run 'wildBind' with the given 'Indicator'. 'ActionDescription's
 -- are shown by the 'Indicator'.
