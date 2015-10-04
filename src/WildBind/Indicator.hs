@@ -140,9 +140,9 @@ withNumPadIndicator action = do
       return True -- Do not emit 'destroy' signal
     liftIO $ void $ forkOS $ action indicator
     liftIO =<< statusIconNewFromFile <$> (confIconPath <$> ask)
-  icon_ref <- newIORef status_icon
+  status_icon_ref <- newIORef status_icon
   mainGUI
-  void $ readIORef icon_ref
+  void $ readIORef status_icon_ref -- to prevent status_icon from being garbage-collected. See https://github.com/gtk2hs/gtk2hs/issues/60
 
 -- | Run 'wildBind' with the given 'Indicator'. 'ActionDescription's
 -- are shown by the 'Indicator'.
