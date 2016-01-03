@@ -8,10 +8,12 @@ module WildBind (
   module WildBind.Description,
   module WildBind.Binding,
   module WildBind.FrontEnd,
-  module WildBind.Exec
+  module WildBind.Exec,
+  module WildBind.Input.NumPad
 ) where
 
 import WildBind.Description
 import WildBind.Binding
 import WildBind.FrontEnd
 import WildBind.Exec
+import WildBind.Input.NumPad
