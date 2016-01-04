@@ -2,7 +2,8 @@
 -- Module: WildBind.X11
 -- Description: X11-specific implementation for WildBind
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
---
+-- 
+-- This module exports a 'FrontEnd' for X11 environments.
 module WildBind.X11 (
   -- * X11 front-end
   withFrontEnd,
@@ -63,12 +64,12 @@ openMyDisplay = Xlib.openDisplay ""
 --
 -- The X11 'FrontEnd' watches and provides 'ActiveWindow' as the
 -- front-end state. 'ActiveWindow' keeps information about the window
--- currently active. As for the input type @i@, 'NumPadUnlockedInput'
--- and 'NumPadLockedInput' are currrently supported.
+-- currently active. As for the input type @i@,
+-- 'WildBind.Input.NumPad.NumPadUnlockedInput' and
+-- 'WildBind.Input.NumPad.NumPadLockedInput' are currrently supported.
 -- 
--- Code using this function must be compiled with @-threaded@ option
--- enabled in @ghc@. Otherwise, the behavior of the resulting action
--- is undefined.
+-- Code using this function must be compiled __with @-threaded@ option enabled__
+-- in @ghc@. Otherwise, the behavior of the resulting action is undefined.
 --
 -- Note that bound actions are executed when the key is released. That
 -- way, you can deliver events to the window that originally has the
