@@ -9,7 +9,7 @@ module WildBind.Indicator (
   -- * Execution
   wildBindWithIndicator,
   -- * Low-level function
-  optionFor,
+  bindingHook,
   -- * Indicator type and its actions
   Indicator,
   updateDescription,
@@ -149,19 +149,14 @@ withNumPadIndicator action = do
 -- | Run 'wildBind' with the given 'Indicator'. 'ActionDescription's
 -- are shown by the 'Indicator'.
 wildBindWithIndicator :: (Ord i, Enum i, Bounded i) => Indicator s i -> Binding s i -> FrontEnd s i -> IO ()
-wildBindWithIndicator ind binding front = wildBind' (optionFor ind front def) binding front
+wildBindWithIndicator ind binding front = wildBind' (def { optBindingHook = bindingHook ind front }) binding front
 
--- | Modify the given WildBind 'Option', so 'ActionDescription's are
--- shown by the given 'Indicator'.
-optionFor :: (Ord i, Enum i, Bounded i) => Indicator s1 i -> FrontEnd s2 i -> Option s3 i -> Option s3 i
-optionFor ind front opt =
-  let orig_hook = optBindingHook opt
-      new_hook = \bind_list -> do
-        forM_ (enumFromTo minBound maxBound) $ \input -> do
-          let desc = M.findWithDefault (frontDefaultDescription front input) input (M.fromList bind_list)
-          updateDescription ind input desc
-        orig_hook bind_list
-  in opt { optBindingHook = new_hook }
+-- | Create an action appropriate for 'optBindingHook' in 'Option'
+-- from 'Indicator' and 'FrontEnd'.
+bindingHook :: (Ord i, Enum i, Bounded i) => Indicator s1 i -> FrontEnd s2 i -> [(i, ActionDescription)] -> IO ()
+bindingHook ind front bind_list = forM_ (enumFromTo minBound maxBound) $ \input -> do
+  let desc = M.findWithDefault (frontDefaultDescription front input) input (M.fromList bind_list)
+  updateDescription ind input desc
                        
   
 newNumPadWindow :: NumPadContext Window
