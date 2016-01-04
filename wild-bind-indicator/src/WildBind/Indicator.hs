@@ -153,7 +153,7 @@ wildBindWithIndicator ind binding front = wildBind' (optionFor ind front def) bi
 
 -- | Modify the given WildBind 'Option', so 'ActionDescription's are
 -- shown by the given 'Indicator'.
-optionFor :: (Ord i, Enum i, Bounded i) => Indicator s i -> FrontEnd s i -> Option s i -> Option s i
+optionFor :: (Ord i, Enum i, Bounded i) => Indicator s1 i -> FrontEnd s2 i -> Option s3 i -> Option s3 i
 optionFor ind front opt =
   let orig_hook = optBindingHook opt
       new_hook = \bind_list -> do
