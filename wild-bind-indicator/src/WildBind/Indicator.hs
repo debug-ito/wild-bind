@@ -8,7 +8,7 @@ module WildBind.Indicator (
   withNumPadIndicator,
   -- * Execution
   wildBindWithIndicator,
-  -- * Raw-level function
+  -- * Low-level function
   optionFor,
   -- * Indicator type and its actions
   Indicator,
@@ -122,6 +122,8 @@ type NumPadContext = ReaderT NumPadConfig IO
 --
 -- > main :: IO ()
 -- > main = withNumPadIndicator $ \indicator -> ...
+-- 
+-- The executable must be compiled by ghc with __@-threaded@ option enabled.__
 withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO ()) -> IO ()
 withNumPadIndicator action = do
   void $ initGUI
