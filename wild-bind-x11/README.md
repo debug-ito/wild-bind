@@ -2,11 +2,7 @@
 
 X11 FrontEnd for WildBind.
 
-## How to run tests
-
-```
-cabal configure --enable-tests && cabal build && cabal test
-```
+See https://github.com/debug-ito/wild-bind for WildBind in general.
 
 ## Author
 

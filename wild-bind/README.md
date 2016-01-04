@@ -1,6 +1,8 @@
-# wild-bind-x11
+# wild-bind
 
-X11-specific implementation for WildBind.
+WildBind core module.
+
+See https://github.com/debug-ito/wild-bind for WildBind in general.
 
 ## Author
 
