@@ -18,7 +18,7 @@ data-files:             icon.svg
 library
   default-language:     Haskell2010
   hs-source-dirs:       src
-  ghc-options:          -Wall
+  ghc-options:          -Wall -fno-warn-unused-imports
   default-extensions:   OverloadedStrings
   exposed-modules:      WildBind.Indicator
   other-modules:        Paths_wild_bind_indicator
@@ -33,7 +33,7 @@ library
 --   default-language:     Haskell2010
 --   hs-source-dirs:       src
 --   main-is:              Main.hs
---   ghc-options:          -Wall
+--   ghc-options:          -Wall -fno-warn-unused-imports
 --   -- other-modules:       
 --   -- other-extensions:    
 --   build-depends:        base >=4 && <5
@@ -42,7 +42,7 @@ library
 --   type:                 exitcode-stdio-1.0
 --   default-language:     Haskell2010
 --   hs-source-dirs:       test
---   ghc-options:          -Wall
+--   ghc-options:          -Wall -fno-warn-unused-imports
 --   main-is:              Spec.hs
 --   other-modules:        WildBind.IndicatorSpec
 --   build-depends:        base, wild-bind-indicator,
