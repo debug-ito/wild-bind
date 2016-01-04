@@ -1,4 +1,4 @@
-# Revision history for wild-bind
+# Revision history for wild-bind-x11
 
 ## 0.0.0  -- YYYY-mm-dd
 

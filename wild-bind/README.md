@@ -1,7 +1,8 @@
-# wild-bind
+# wild-bind-x11
 
-Dynamic key binding framework.
+X11-specific implementation for WildBind.
 
 ## Author
 
 Toshio Ito <debug.ito at gmail.com>
+
