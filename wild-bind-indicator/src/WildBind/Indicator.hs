@@ -3,6 +3,10 @@
 -- Description: Graphical indicator for WildBind
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 -- 
+-- This module exports the 'Indicator', a graphical interface that
+-- explains the current bindings to the user. The 'Indicator' uses
+-- 'optBindingHook' in 'Option' to receive the current bindings from
+-- wild-bind.
 module WildBind.Indicator (
   -- * Construction
   withNumPadIndicator,
@@ -146,7 +150,7 @@ withNumPadIndicator action = do
   mainGUI
   void $ readIORef status_icon_ref -- to prevent status_icon from being garbage-collected. See https://github.com/gtk2hs/gtk2hs/issues/60
 
--- | Run 'wildBind' with the given 'Indicator'. 'ActionDescription's
+-- | Run 'WildBind.wildBind' with the given 'Indicator'. 'ActionDescription's
 -- are shown by the 'Indicator'.
 wildBindWithIndicator :: (Ord i, Enum i, Bounded i) => Indicator s i -> Binding s i -> FrontEnd s i -> IO ()
 wildBindWithIndicator ind binding front = wildBind' (def { optBindingHook = bindingHook ind front }) binding front
