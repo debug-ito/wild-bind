@@ -5,7 +5,7 @@ maintainer:             Toshio Ito <debug.ito@gmail.com>
 license:                BSD3
 license-file:           LICENSE
 synopsis:               Task to install and export everything you need to use WildBind in X11
-description:            Task to install and export everything you need to use WildBind in X11
+description:            Task to install and export everything you need to use WildBind in X11. See https://github.com/debug-ito/wild-bind
 category:               UserInterface
 cabal-version:          >= 1.10
 build-type:             Simple
