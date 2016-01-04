@@ -10,16 +10,32 @@ module WildBind.Task.X11 (
   wildNumPad,
   wildNumPad',
   -- * Re-exports
-  module WildBind,
-  module WildBind.X11,
-  module WildBind.Indicator,
-  module Data.Monoid
+  module WildBind.Binding,
+  module WildBind.Description,
+  module WildBind.Input.NumPad,
+  -- ** From basic modules
+  module Data.Monoid,
+  Text,
+  -- ** From "WindBind.X11"
+  Window, ActiveWindow, winInstance, winClass, winName,
+  -- ** From "WildBind.Indicator"
+  Indicator, NumPadPosition(..), updateDescription, getPresence, setPresence, togglePresence
 ) where
 
-import WildBind
-import WildBind.X11
-import WildBind.Indicator
+import WildBind.Binding
+import WildBind.Description
+import WildBind.Input.NumPad
+import WildBind.X11 (
+  Window, ActiveWindow, winInstance, winClass, winName,
+  withFrontEnd
+  )
+import WildBind.Indicator (
+  Indicator, NumPadPosition(..),
+  updateDescription, getPresence, setPresence, togglePresence,
+  withNumPadIndicator, wildBindWithIndicator
+  )
 import Data.Monoid
+import Data.Text (Text)
 
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike)
 
