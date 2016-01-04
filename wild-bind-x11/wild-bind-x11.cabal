@@ -10,8 +10,8 @@ category:               UserInterface
 cabal-version:          >= 1.10
 build-type:             Simple
 extra-source-files:     README.md, ChangeLog.md
-homepage:               https://github.com/debug-ito/wild-bind-x11
-bug-reports:            https://github.com/debug-ito/wild-bind-x11/issues
+homepage:               https://github.com/debug-ito/wild-bind
+bug-reports:            https://github.com/debug-ito/wild-bind/issues
 
 library
   default-language:     Haskell2010
@@ -58,4 +58,4 @@ test-suite spec
 
 source-repository head
   type:                 git
-  location:             https://github.com/debug-ito/wild-bind-x11.git
+  location:             https://github.com/debug-ito/wild-bind.git

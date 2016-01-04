@@ -10,8 +10,8 @@ category:               UserInterface
 cabal-version:          >= 1.10
 build-type:             Simple
 extra-source-files:     README.md, ChangeLog.md
-homepage:               https://github.com/debug-ito/wild-bind-indicator
-bug-reports:            https://github.com/debug-ito/wild-bind-indicator/issues
+homepage:               https://github.com/debug-ito/wild-bind
+bug-reports:            https://github.com/debug-ito/wild-bind/issues
 data-dir:               resources
 data-files:             icon.svg
 
@@ -50,4 +50,4 @@ test-suite spec
 
 source-repository head
   type:                 git
-  location:             https://github.com/debug-ito/wild-bind-indicator.git
+  location:             https://github.com/debug-ito/wild-bind.git
