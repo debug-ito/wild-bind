@@ -40,7 +40,13 @@ import Data.Text (Text)
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike)
 
 -- | A convenient function to create an executable action with X11
--- 'FrontEnd', 'Indicator' for a number pad.
+-- 'FrontEnd' and 'Indicator' for a number pad.
+--
+-- > main :: IO ()
+-- > main = wildNumPad $ binds [on NumCenter "test" $ putStrLn "You pushed center."]
+-- 
+-- Note that the executable must be compiled by ghc with
+-- __@-threaded@ option enabled.__
 --
 -- With this function, the Enter key is bound to toggling the
 -- 'Indicator', ignoring the binding you provide.
