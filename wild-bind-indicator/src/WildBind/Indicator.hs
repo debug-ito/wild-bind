@@ -20,7 +20,7 @@ module WildBind.Indicator (
   getPresence,
   setPresence,
   togglePresence,
-  destroy,
+  quit,
   -- * Generalization of number pad types
   NumPadPosition(..)
 ) where
@@ -36,12 +36,12 @@ import WildBind (ActionDescription, Option(optBindingHook),
                  wildBind', def)
 import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
 import Graphics.UI.Gtk (
-  initGUI, mainGUI, postGUIAsync, postGUISync,
+  initGUI, mainGUI, postGUIAsync, postGUISync, mainQuit,
   Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
   windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
   windowSetTitle, windowMove,
   AttrOp((:=)),
-  widgetShowAll, widgetSetSizeRequest, widgetVisible, widgetHide, widgetDestroy,
+  widgetShowAll, widgetSetSizeRequest, widgetVisible, widgetHide,
   Table, tableNew, tableAttachDefaults,
   buttonNew, buttonSetAlignment,
   Label, labelNew, labelSetLineWrap, labelSetJustify, Justification(JustifyLeft), labelSetText,
@@ -73,9 +73,9 @@ data Indicator s i =
     setPresence :: Bool -> IO (),
     -- ^ Set the presence of the indicator.
 
-    destroy :: IO ()
-    -- ^ Destroy the indicator. This usually means shuts down the
-    -- entire application.
+    quit :: IO ()
+    -- ^ Destroy the indicator. This usually means quitting the entire
+    -- application.
   }
 
 -- | Toggle the presence of the indicator.
@@ -149,7 +149,7 @@ withNumPadIndicator action = do
           updateDescription = \i d -> postGUIAsync $ updater i d,
           getPresence = postGUISync $ G.get win widgetVisible,
           setPresence = \visible -> postGUIAsync (if visible then widgetShowAll win else widgetHide win),
-          destroy = widgetDestroy win
+          quit = mainQuit
           }
     liftIO $ void $ G.on win deleteEvent $ do
       liftIO $ widgetHide win

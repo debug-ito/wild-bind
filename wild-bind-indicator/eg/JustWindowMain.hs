@@ -8,7 +8,7 @@ import WildBind.Input.NumPad (NumPadUnlockedInput(..))
 import WildBind.X11 (withFrontEnd, ActiveWindow)
 import WildBind.Indicator
   ( Indicator, withNumPadIndicator, wildBindWithIndicator, togglePresence,
-    destroy
+    quit
   )
 
 main :: IO ()
@@ -17,5 +17,5 @@ main = withNumPadIndicator $ \ind -> withFrontEnd (wildBindWithIndicator ind $ b
 binding :: Indicator ActiveWindow NumPadUnlockedInput -> Binding ActiveWindow NumPadUnlockedInput
 binding ind = binds [
   on NumEnter "Toggle indicator" $ togglePresence ind,
-  on NumMinus "Destroy" $ destroy ind
+  on NumMinus "Quit" $ quit ind
   ]
