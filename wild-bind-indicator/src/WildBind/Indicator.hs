@@ -20,6 +20,7 @@ module WildBind.Indicator (
   getPresence,
   setPresence,
   togglePresence,
+  destroy,
   -- * Generalization of number pad types
   NumPadPosition(..)
 ) where
@@ -40,7 +41,7 @@ import Graphics.UI.Gtk (
   windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
   windowSetTitle, windowMove,
   AttrOp((:=)),
-  widgetShowAll, widgetSetSizeRequest, widgetVisible, widgetHide,
+  widgetShowAll, widgetSetSizeRequest, widgetVisible, widgetHide, widgetDestroy,
   Table, tableNew, tableAttachDefaults,
   buttonNew, buttonSetAlignment,
   Label, labelNew, labelSetLineWrap, labelSetJustify, Justification(JustifyLeft), labelSetText,
@@ -59,14 +60,22 @@ import Paths_wild_bind_indicator (getDataFileName)
 
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
 -- type.
-data Indicator s i = Indicator {
-  updateDescription :: i -> ActionDescription -> IO (),
-  -- ^ Update and show the description for the current binding.
-  getPresence :: IO Bool,
-  -- ^ Get the current presence of the indicator. Returns 'True' if
-  -- it's present.
-  setPresence :: Bool -> IO ()
-  -- ^ Set the presence of the indicator.
+data Indicator s i =
+  Indicator
+  { updateDescription :: i -> ActionDescription -> IO (),
+    -- ^ Update and show the description for the current binding.
+    
+    getPresence :: IO Bool,
+    
+    -- ^ Get the current presence of the indicator. Returns 'True' if
+    -- it's present.
+    
+    setPresence :: Bool -> IO (),
+    -- ^ Set the presence of the indicator.
+
+    destroy :: IO ()
+    -- ^ Destroy the indicator. This usually means shuts down the
+    -- entire application.
   }
 
 -- | Toggle the presence of the indicator.
@@ -139,7 +148,8 @@ withNumPadIndicator action = do
     let indicator = Indicator {
           updateDescription = \i d -> postGUIAsync $ updater i d,
           getPresence = postGUISync $ G.get win widgetVisible,
-          setPresence = \visible -> postGUIAsync (if visible then widgetShowAll win else widgetHide win)
+          setPresence = \visible -> postGUIAsync (if visible then widgetShowAll win else widgetHide win),
+          destroy = widgetDestroy win
           }
     liftIO $ void $ G.on win deleteEvent $ do
       liftIO $ widgetHide win
