@@ -17,6 +17,9 @@ module WildBind.Binding (
   rawBinds,
   on,
   -- * Condition
+  caseFront,
+  caseBack,
+  caseBoth,
   whenFront,
   whenBack,
   whenBoth,
@@ -136,6 +139,22 @@ rawBinds blist = Binding' $ \_ _ ->
 -- | Build a single pair of binding.
 on :: i -> ActionDescription -> m a -> (i, Action m a)
 on input desc act = (input, Action { actDescription = desc, actDo = act })
+
+
+-- | Create a binding that behaves differently for different front-end
+-- states @fs@. See 'caseBoth', too.
+caseFront :: (fs -> Binding' bs fs i) -> Binding' bs fs i
+caseFront = undefined
+
+-- | Create a binding that behaves differently for different back-end
+-- states @bs@. See 'caseBoth', too.
+caseBack :: (bs -> Binding' bs fs i) -> Binding' bs fs i
+caseBack = undefined
+
+-- | Create a binding that behaves differently for different front-end
+-- and back-end states, @fs@ and @bs@.
+caseBoth :: (fs -> bs -> Binding' bs fs i) -> Binding' bs fs i
+caseBoth = undefined
 
 -- | Add a condition on the front-end state to 'Binding'. See 'whenBoth', too.
 whenFront :: (fs -> Bool) -- ^ Condition about the front-end state.
