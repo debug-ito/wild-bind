@@ -38,12 +38,12 @@ withStrRef action = do
   action out checkOut
 
 outOn :: MonadIO m => IORef [a] -> i -> a -> (i, WB.Action m ())
-outOn out_ref input out_elem = WB.on input "" $ liftIO $ modifyIORef out_ref (out_elem :)
+outOn out_ref input out_elem = WB.on input "" $ liftIO $ modifyIORef out_ref (++ [out_elem])
 
 outOnS :: MonadIO m => IORef [a] -> i -> a -> (s -> s) -> (i, WB.Action (State.StateT s m) ())
 outOnS out_ref input out_elem modifier = WB.on input "" $ do
   State.modify modifier
-  liftIO $ modifyIORef out_ref (out_elem :)
+  liftIO $ modifyIORef out_ref (++ [out_elem])
 
 genStatelessBinding :: Arbitrary a => IORef [a] -> Gen (WB.Binding s SampleInput)
 genStatelessBinding out_list = do
@@ -113,7 +113,7 @@ spec = do
       actRun $ WB.boundAction b (SS "") SIa
       checkOut "A"
       actRun $ WB.boundAction b (SS "") SIb
-      checkOut "BA"
+      checkOut "AB"
   describe "whenFront" $ do
     it "adds a condition on the front-end state" $ withStrRef $ \out checkOut -> do
       let b = WB.whenFront (\(SS s) -> s == "hoge") $ WB.binds [outOn out SIa 'A']
@@ -150,7 +150,7 @@ spec = do
           b = b1 <> b2
       WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
       void $ inputAll b (SS "") [SIa, SIb]
-      checkOut "BA"
+      checkOut "AB"
     it "front-end conditions are preserved" $ withStrRef $ \out _ -> do
       let b1 = WB.whenFront ((3 <=) . length . unSS) $ WB.binds [outOn out SIa 'A']
           b2 = WB.whenFront ((<= 5) . length . unSS) $ WB.binds [outOn out SIb 'B']
@@ -180,16 +180,16 @@ spec = do
       checkOut "0"
       checkInputsS (SS "") [SIa, SIb]
       execAll (SS "") [SIb]
-      checkOut "20"
+      checkOut "02"
       checkInputsS (SS "") [SIa, SIb]
       execAll (SS "") [SIa]
-      checkOut "120"
+      checkOut "021"
       checkInputsS (SS "") [SIa, SIb]
       execAll (SS "") [SIb]
-      checkOut "3120"
+      checkOut "0213"
       checkInputsS (SS "") [SIa, SIb]
       execAll (SS "") [SIa]
-      checkOut "03120"
+      checkOut "02130"
   describe "convFront" $ do
     it "converts front-end state" $ withStrRef $ \out checkOut -> do
       let orig_b = WB.whenFront (("hoge" ==) . unSS) $ WB.binds [outOn out SIa 'A']
@@ -214,9 +214,9 @@ spec = do
       execAll' [SIa]
       checkOut "0"
       execAll' [SIa]
-      checkOut "10"
+      checkOut "01"
       execAll' [SIa]
-      checkOut "210"
+      checkOut "012"
   describe "stateful" $ do
     it "returns a stateful Binding" $ withStrRef $ \out checkOut -> do
       let b = WB.binds' $ \bs ->
@@ -224,7 +224,7 @@ spec = do
       WB.boundInputs' b (SB 0)  (SS "") `shouldBe` [SIa]
       WB.boundInputs' b (SB 10) (SS "hoge") `shouldBe` [SIa]
       void $ inputAll (WB.startFrom (SB 0) b) (SS "") $ replicate 12 SIa
-      checkOut "119876543210"
+      checkOut "012345678911"
     it "can create a stateful Binding with different bound inputs for different back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       State.put $ WB.startFrom (SB 0) $ WB.binds' $ \bs -> case bs of
         SB 0 -> [outOnS out SIa 'A' (\_ -> SB 1)]
@@ -237,10 +237,10 @@ spec = do
       checkOut "A"
       checkInputsS (SS "") [SIb]
       execAll (SS "") [SIb]
-      checkOut "BA"
+      checkOut "AB"
       checkInputsS (SS "") [SIc]
       execAll (SS "") [SIc]
-      checkOut "CBA"
+      checkOut "ABC"
       checkInputsS (SS "") [SIa]
   describe "Binding (mappend, stateful)" $ do
     it "shares the explicit back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
@@ -260,13 +260,13 @@ spec = do
       checkOut "A"
       checkInputsS (SS "") [SIb, SIc]
       execAll (SS "") [SIb]
-      checkOut "DA"
+      checkOut "AD"
       checkInputsS (SS "") [SIa]
       execAll (SS "") [SIa, SIc]
-      checkOut "bADA"
+      checkOut "ADAb"
       checkInputsS (SS "") [SIc]
       execAll (SS "") [SIc]
-      checkOut "CbADA"
+      checkOut "ADAbC"
       checkInputsS (SS "") [SIa]
       
   describe "whenBack" $ do
@@ -302,19 +302,19 @@ spec = do
       checkOut "0"
       checkInputsS' [SIa, SIb]
       execAll' [SIb]
-      checkOut "20"
+      checkOut "02"
       checkInputsS' [SIa, SIb]
       execAll' [SIb]
-      checkOut "320"
+      checkOut "023"
       checkInputsS' [SIa, SIb]
       execAll' [SIa]
-      checkOut "1320"
+      checkOut "0231"
       checkInputsS' [SIa, SIb, SIc]
       execAll' [SIc]
-      checkOut "41320"
+      checkOut "02314"
       checkInputsS' [SIa, SIb]
       execAll' [SIa, SIb]
-      checkOut "3141320"
+      checkOut "0231413"
 
   describe "extend" $ do
     it "extends a stateless Binding" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
@@ -330,13 +330,13 @@ spec = do
       State.put $ WB.startFrom (SB 0) $ (WB.extend bl <> bs)
       checkInputsS' [SIa, SIb, SIc]
       execAll' [SIb, SIc, SIa]
-      checkOut "Acb"
+      checkOut "bcA"
       checkInputsS' [SIa, SIb, SIc]
       execAll' [SIa, SIc, SIb]
-      checkOut "BcaAcb"
+      checkOut "bcAacB"
       checkInputsS' [SIa, SIb, SIc]
       execAll' [SIa, SIb, SIc]
-      checkOut "CbaBcaAcb"
+      checkOut "bcAacBabC"
 
   describe "whenBoth" $ do
     let incr' out ret = outOnS out SIa ret (\(SB num) -> SB (num + 1))
@@ -358,7 +358,7 @@ spec = do
       checkInputsS (SS "e") []
       checkInputsS (SS "eg") [SIa, SIb]
       execAll (SS "eg") [SIb]
-      checkOut "-++"
+      checkOut "++-"
       checkInputsS (SS "e") [SIa, SIb]
     it "creates independent conditions when combined with <>" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       let incr = incr' out
@@ -374,14 +374,14 @@ spec = do
       checkOut "+"
       checkInputsS (SS "2") [SIa, SIb]
       execAll (SS "2") [SIa]
-      checkOut "p+"
+      checkOut "+p"
       checkInputsS (SS "342") [SIa, SIb]
       execAll (SS "342") [SIb]
-      checkOut "-p+"
+      checkOut "+p-"
       execAll (SS "2") [SIb]
-      checkOut "m-p+"
+      checkOut "+p-m"
       checkInputsS (SS "1") [SIa, SIb]
       execAll (SS "1") [SIb]
-      checkOut "mm-p+"
+      checkOut "+p-mm"
       
 
