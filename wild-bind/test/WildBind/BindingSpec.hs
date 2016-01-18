@@ -143,6 +143,31 @@ spec = do
       checkOut "A"
       checkInputsS (SS "hoge") []
       checkInputsS (SS "foobar") [SIa]
+  describe "caseFront" $ do
+    it "chooses from independent Bindings" $ withStrRef $ \out checkOut -> do
+      let b = WB.caseFront $ \(SS s) ->
+            if length s <= 5
+            then WB.binds [outOn out SIa 'A']
+            else WB.binds [outOn out SIb 'B']
+      WB.boundInputs b (SS "hoge") `shouldMatchList` [SIa]
+      WB.boundInputs b (SS "foobar") `shouldMatchList` [SIb]
+      actRun $ WB.boundAction b (SS "foobar") SIb
+      checkOut "B"
+    it "adds AND conditions when nested" $ withStrRef $ \out checkOut -> do
+      let b1 = WB.caseFront $ \(SS s) ->
+            if length s <= 5
+            then WB.binds [outOn out SIa 'A']
+            else WB.binds [outOn out SIb 'B']
+          b = WB.caseFront $ \(SS s) ->
+            if length s >= 3
+            then b1
+            else WB.binds [outOn out SIc 'C']
+      WB.boundInputs b (SS "") `shouldMatchList` [SIc]
+      WB.boundInputs b (SS "foo") `shouldMatchList` [SIa]
+      WB.boundInputs b (SS "hoge") `shouldMatchList` [SIa]
+      WB.boundInputs b (SS "foobar") `shouldMatchList` [SIb]
+      actRun $ WB.boundAction b (SS "ho") SIc
+      checkOut "C"
   describe "Binding (mappend)" $ do
     it "combines two stateless Bindings" $ withStrRef $ \out checkOut -> do
       let b1 = WB.binds [outOn out SIa 'A']
