@@ -14,7 +14,6 @@ module WildBind.Binding (
   -- * Construction
   binds,
   binds',
-  rawBinds,
   on,
   -- * Condition
   caseFront,
@@ -120,21 +119,10 @@ boundInputs' b bs fs = fmap fst $ boundActions' b bs fs
 -- | Build a 'Binding' with no explicit or implicit state.
 binds :: Ord i
          => [(i, Action IO ())] -- ^ Bound pairs of input symbols and 'Action'.
-         -> Binding s i
+         -> Binding' bs fs i
          -- ^ Result Binding. The given bindings are activated
-         -- regardless of the front-end state.
-binds blist = rawBinds $ fmap (mapSnd $ fmap (const $ binds blist)) blist
-  where mapSnd f (a,b) = (a, f b)
-
--- | Build a 'Binding' from a list. This is a raw-level function to
--- build a 'Binding'. 'binds' and 'binds'' are recommended.
-rawBinds :: Ord i
-         => [(i, Action IO (Binding s i))] -- ^ Bound pairs of input symbol and 'Action'
-         -> Binding s i
-         -- ^ Result Binding. The given bindings are activated
-         -- regardless of the front-end state.
-rawBinds blist = Binding' $ \_ _ ->
-  (fmap . fmap) (\b -> (b, ())) $ M.fromList blist
+         -- regardless of the back-end or front-end state.
+binds blist = Binding' $ \bs _ -> (fmap . fmap) (const (binds blist, bs)) $ M.fromList blist
 
 -- | Build a single pair of binding.
 on :: i -> ActionDescription -> m a -> (i, Action m a)
@@ -227,15 +215,16 @@ extend b = Binding' $ \bs fs ->
 -- | Build a 'Binding'' with an explicit state (but no implicit
 -- state).
 binds' :: Ord i
-       => (bs -> [(i, Action (StateT bs IO) ())]) -- ^ stateful binding lists
+       => [(i, Action (StateT bs IO) ())] -- ^ stateful binding lists
        -> Binding' bs fs i
        -- ^ The result 'Binding''. The given bindings are activated
-       -- regardless of the front-end state.
-binds' blists' = Binding' $ \bs _ ->
-  fmap (runStatefulAction (binds' blists') bs) $ M.fromList $ blists' bs
+       -- regardless of the back-end or front-end state.
+binds' blists = Binding' $ \bs _ ->
+  fmap (runStatefulAction (binds' blists) bs) $ M.fromList $ blists
 
 runStatefulAction :: Binding' bs fs i -> bs -> Action (StateT bs IO) () -> Action IO (Binding' bs fs i, bs)
 runStatefulAction next_b' cur_bs state_action =
-  let io = runStateT (actDo state_action) cur_bs
-      io_with_next = (\(_, next_bs) -> return (next_b', next_bs)) =<< io
-  in state_action { actDo = io_with_next }
+  let recursive_io = do
+        ((), next_bs) <- runStateT (actDo state_action) cur_bs
+        return (next_b', next_bs)
+  in state_action { actDo = recursive_io }
