@@ -98,6 +98,14 @@ evalStateEmpty s = State.evalStateT s mempty_stateless
 
 spec :: Spec
 spec = do
+  spec_stateless
+  spec_conversions
+  spec_stateful
+  spec_extend
+  spec_conditionBoth
+
+spec_stateless :: Spec
+spec_stateless = do
   describe "Binding (Monoid instances)" $ do
     it "mempty returns empty binding" $ property
       ( isNothing <$> (WB.boundAction mempty_stateless <$> arbitrary <*> arbitrary) )
@@ -105,7 +113,7 @@ spec = do
       checkMappend (mempty <>)
     it "random `mappend` mempty == mempty" $ do
       checkMappend (<> mempty)
-  describe "stateless" $ do
+  describe "binds" $ do
     it "returns a stateless Binding" $ withStrRef $ \out checkOut -> do
       let b = WB.binds [outOn out SIa 'A', outOn out SIb 'B']
       WB.boundInputs b (SS "") `shouldMatchList` [SIa, SIb]
@@ -215,6 +223,9 @@ spec = do
       checkInputsS (SS "") [SIa, SIb]
       execAll (SS "") [SIa]
       checkOut "02130"
+
+spec_conversions :: Spec
+spec_conversions = do
   describe "convFront" $ do
     it "converts front-end state" $ withStrRef $ \out checkOut -> do
       let orig_b = WB.whenFront (("hoge" ==) . unSS) $ WB.binds [outOn out SIa 'A']
@@ -242,7 +253,10 @@ spec = do
       checkOut "01"
       execAll' [SIa]
       checkOut "012"
-  describe "stateful" $ do
+
+spec_stateful :: Spec
+spec_stateful = do
+  describe "binds'" $ do
     it "returns a stateful Binding" $ withStrRef $ \out checkOut -> do
       let b = WB.binds' $ \bs ->
             [outOnS out SIa (head $ show $ unSB bs) succ]
@@ -294,6 +308,14 @@ spec = do
       checkOut "ADAbC"
       checkInputsS (SS "") [SIa]
       
+  describe "caseBack" $ do
+    it "chooses from unconditional bindings" $ do
+      undefined
+    it "combines an extended stateless binding with a stateful binding" $ do
+      undefined
+    it "combines implicit stateful binding with a binding with newly introduced states" $ do
+      undefined
+
   describe "whenBack" $ do
     it "adds a condition to the back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       let raw_b = WB.binds' $ \bs -> case bs of
@@ -307,6 +329,8 @@ spec = do
       checkOut "0"
       checkInputsS' []
 
+spec_extend :: Spec
+spec_extend = do
   describe "extendAt" $ do
     it "extend the explicit state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       let bl = WB.binds' $ \bs -> case bs of
@@ -363,6 +387,8 @@ spec = do
       execAll' [SIa, SIb, SIc]
       checkOut "bcAacBabC"
 
+spec_conditionBoth :: Spec
+spec_conditionBoth = do
   describe "whenBoth" $ do
     let incr' out ret = outOnS out SIa ret (\(SB num) -> SB (num + 1))
         decr' out ret = outOnS out SIb ret (\(SB num) -> SB (num - 1))
