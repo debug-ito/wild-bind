@@ -309,12 +309,56 @@ spec_stateful = do
       checkInputsS (SS "") [SIa]
       
   describe "caseBack" $ do
-    it "chooses from unconditional bindings" $ do
-      undefined
-    it "combines an extended stateless binding with a stateful binding" $ do
-      undefined
-    it "combines implicit stateful binding with a binding with newly introduced states" $ do
-      undefined
+    it "chooses from unconditional bindings" $ withStrRef $ \out checkOut -> do
+      let b = WB.caseBack $ \(SB sb) -> if sb < 5
+                                        then WB.binds [outOn out SIa 'A']
+                                        else WB.binds [outOn out SIb 'B']
+          ba = WB.startFrom 4 b
+          bb = WB.startFrom 5 b
+      WB.boundInputs ba (SS "") `shouldMatchList` [SIa]
+      actRun $ WB.boundAction ba (SS "") SIa
+      checkOut "A"
+      WB.boundInputs bb (SS "") `shouldMatchList` [SIb]
+      actRun $ WB.boundAction bb (SS "") SIb
+      checkOut "AB"
+    it "combines an extended stateless binding with a stateful binding" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let b_stateless = WB.binds [outOn out SIa 'A']
+          b = WB.caseBack $ \(SB sb) ->
+            if sb < 5
+            then b_stateless <> WB.binds' [outOnS out SIb 'B' $ const (SB 10)]
+            else WB.binds' [outOnS out SIc 'C' $ const (SB 3)]
+      State.put $ WB.startFrom (SB 0) b
+      checkInputsS' [SIa, SIb]
+      execAll' [SIa]
+      checkOut "A"
+      checkInputsS' [SIa, SIb]
+      execAll' [SIb]
+      checkOut "AB"
+      checkInputsS' [SIc]
+      execAll' [SIc]
+      checkOut "ABC"
+      checkInputsS' [SIa, SIb]
+    it "combines implicit stateful binding with a binding with newly introduced states" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let b1 = WB.startFrom (SB 0) $ WB.caseBack $ \sb -> case sb of
+            (SB 0) -> WB.binds' [outOnS out SIa 'A' $ const (SB 1)]
+            _ -> WB.binds' [outOnS out SIb 'B' $ const (SB 0)]
+          b = WB.startFrom (SB 0) $ WB.caseBack $ \sb -> case sb of
+            (SB 0) -> WB.binds' [outOnS out SIa 'a' $ const (SB 1)]
+            _ -> WB.extend b1 <> WB.binds' [outOnS out SIc 'c' $ const (SB 0)]
+      State.put b
+      checkInputsS' [SIa]
+      execAll' [SIa]
+      checkOut "a"
+      checkInputsS' [SIa, SIc]
+      execAll' [SIa]
+      checkOut "aA"
+      checkInputsS' [SIb, SIc]
+      execAll' [SIb]
+      checkOut "aAB"
+      checkInputsS' [SIa, SIc]
+      execAll' [SIc]
+      checkOut "aABc"
+      checkInputsS' [SIa]
 
   describe "whenBack" $ do
     it "adds a condition to the back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
@@ -389,6 +433,8 @@ spec_extend = do
 
 spec_conditionBoth :: Spec
 spec_conditionBoth = do
+  describe "caseBoth" $ do
+    undefined
   describe "whenBoth" $ do
     let incr' out ret = outOnS out SIa ret (\(SB num) -> SB (num + 1))
         decr' out ret = outOnS out SIb ret (\(SB num) -> SB (num - 1))
