@@ -442,7 +442,39 @@ spec_extend = do
 spec_conditionBoth :: Spec
 spec_conditionBoth = do
   describe "caseBoth" $ do
-    undefined
+    it "chooses bindings according to front-end and back-end states" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let b = WB.caseBoth $ \ (SS fs) (SB bs) ->
+            if fs == "hoge" then
+              WB.binds' [ outOnS out SIa 'a' (const $ SB $ bs + 1),
+                          outOnS out SIb 'b' (const $ SB 0)
+                        ]
+            else if length fs < bs then
+                   WB.binds' [ outOnS out SIc 'c' (const $ SB $ bs - 1) ]
+                 else
+                   WB.binds' [ outOnS out SIb 'B' (const $ SB $ bs + 1) ]
+      State.put $ WB.startFrom (SB 10) $ b
+      checkInputsS (SS "hoge") [SIa, SIb]
+      checkInputsS (SS "") [SIc]
+      checkInputsS (SS "foooooobaaaaaa") [SIb]
+      execAll (SS "hoge") [SIb]
+      checkOut "b"
+      checkInputsS (SS "") [SIb]
+      execAll (SS "") [SIb]
+      checkOut "bB"
+      checkInputsS (SS "hoge") [SIa, SIb]
+      checkInputsS (SS "") [SIc]
+      checkInputsS (SS "a") [SIb]
+      execAll (SS "") [SIc]
+      checkOut "bBc"
+      checkInputsS (SS "hoge") [SIa, SIb]
+      checkInputsS (SS "") [SIb]
+      checkInputsS (SS "a") [SIb]
+      execAll (SS "hoge") $ replicate 5 SIa
+      checkOut "bBcaaaaa"
+      checkInputsS (SS "hoge") [SIa, SIb]
+      checkInputsS (SS "fooo") [SIc]
+      checkInputsS (SS "foooo") [SIb]
+            
   describe "whenBoth" $ do
     let incr' out ret = outOnS out SIa ret (\(SB num) -> SB (num + 1))
         decr' out ret = outOnS out SIb ret (\(SB num) -> SB (num - 1))
