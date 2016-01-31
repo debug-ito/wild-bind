@@ -7,57 +7,59 @@
 -- explains the current bindings to the user. The 'Indicator' uses
 -- 'optBindingHook' in 'Option' to receive the current bindings from
 -- wild-bind.
-module WildBind.Indicator (
-  -- * Construction
-  withNumPadIndicator,
-  -- * Execution
-  wildBindWithIndicator,
-  -- * Low-level function
-  bindingHook,
-  -- * Indicator type and its actions
-  Indicator,
-  updateDescription,
-  getPresence,
-  setPresence,
-  togglePresence,
-  quit,
-  -- * Generalization of number pad types
-  NumPadPosition(..)
-) where
+module WildBind.Indicator
+       ( -- * Construction
+         withNumPadIndicator,
+         -- * Execution
+         wildBindWithIndicator,
+         -- * Low-level function
+         bindingHook,
+         -- * Indicator type and its actions
+         Indicator,
+         updateDescription,
+         getPresence,
+         setPresence,
+         togglePresence,
+         quit,
+         -- * Generalization of number pad types
+         NumPadPosition(..)
+       ) where
 
-import Control.Monad (void, forM_)
 import Control.Applicative ((<$>))
-import Data.Monoid (mconcat, First(First))
 import Control.Concurrent (forkOS)
+import Control.Monad (void, forM_)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
 import Data.IORef (newIORef, readIORef)
-
-import WildBind (ActionDescription, Option(optBindingHook),
-                 FrontEnd(frontDefaultDescription), Binding,
-                 wildBind', def)
-import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
-import Graphics.UI.Gtk (
-  initGUI, mainGUI, postGUIAsync, postGUISync, mainQuit,
-  Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
-  windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
-  windowSetTitle, windowMove,
-  AttrOp((:=)),
-  widgetShowAll, widgetSetSizeRequest, widgetVisible, widgetHide,
-  Table, tableNew, tableAttachDefaults,
-  buttonNew, buttonSetAlignment,
-  Label, labelNew, labelSetLineWrap, labelSetJustify, Justification(JustifyLeft), labelSetText,
-  miscSetAlignment,
-  containerAdd,
-  deleteEvent,
-  statusIconNewFromFile, statusIconPopupMenu,
-  Menu, menuNew, menuItemNewWithMnemonic, menuItemActivated, menuPopup
+import qualified Data.Map as M
+import Data.Monoid (mconcat, First(First))
+import Data.Text (Text)
+import Graphics.UI.Gtk
+  ( initGUI, mainGUI, postGUIAsync, postGUISync, mainQuit,
+    Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
+    windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
+    windowSetTitle, windowMove,
+    AttrOp((:=)),
+    widgetShowAll, widgetSetSizeRequest, widgetVisible, widgetHide,
+    Table, tableNew, tableAttachDefaults,
+    buttonNew, buttonSetAlignment,
+    Label, labelNew, labelSetLineWrap, labelSetJustify, Justification(JustifyLeft), labelSetText,
+    miscSetAlignment,
+    containerAdd,
+    deleteEvent,
+    statusIconNewFromFile, statusIconPopupMenu,
+    Menu, menuNew, menuItemNewWithMnemonic, menuItemActivated, menuPopup
   )
 import qualified Graphics.UI.Gtk as G (get, set, on)
-import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
-import Control.Monad.IO.Class (liftIO)
-import Data.Text (Text)
-import qualified Data.Map as M
+
+import WildBind ( ActionDescription, Option(optBindingHook),
+                  FrontEnd(frontDefaultDescription), Binding,
+                  wildBind', def
+                )
+import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
 
 import Paths_wild_bind_indicator (getDataFileName)
+
 
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
 -- type.
@@ -111,21 +113,21 @@ instance NumPadPosition NumPadUnlockedInput where
     NumDelete -> NumLPeriod
 
 -- | Data type keeping read-only config for NumPadIndicator.
-data NumPadConfig = NumPadConfig {
-  confButtonWidth, confButtonHeight :: Int,
-  confWindowX, confWindowY :: Int,
-  confIconPath :: FilePath
-  }
+data NumPadConfig =
+  NumPadConfig { confButtonWidth, confButtonHeight :: Int,
+                 confWindowX, confWindowY :: Int,
+                 confIconPath :: FilePath
+               }
 
 numPadConfig :: IO NumPadConfig
 numPadConfig = do
   icon <- getDataFileName "icon.svg"
-  return NumPadConfig {
-    confButtonWidth = 70,
-    confButtonHeight = 45,
-    confWindowX = 0,
-    confWindowY = 0,
-    confIconPath = icon
+  return NumPadConfig
+    { confButtonWidth = 70,
+      confButtonHeight = 45,
+      confWindowX = 0,
+      confWindowY = 0,
+      confIconPath = icon
     }
 
 -- | Contextual monad for creating NumPadIndicator
@@ -147,11 +149,11 @@ withNumPadIndicator action = do
     win <- newNumPadWindow
     (tab, updater) <- newNumPadTable
     liftIO $ containerAdd win tab
-    let indicator = Indicator {
-          updateDescription = \i d -> postGUIAsync $ updater i d,
-          getPresence = postGUISync $ G.get win widgetVisible,
-          setPresence = \visible -> postGUIAsync (if visible then widgetShowAll win else widgetHide win),
-          quit = quit_action
+    let indicator = Indicator
+          { updateDescription = \i d -> postGUIAsync $ updater i d,
+            getPresence = postGUISync $ G.get win widgetVisible,
+            setPresence = \visible -> postGUIAsync (if visible then widgetShowAll win else widgetHide win),
+            quit = quit_action
           }
     liftIO $ void $ G.on win deleteEvent $ do
       liftIO $ widgetHide win
@@ -182,10 +184,11 @@ newNumPadWindow :: NumPadContext Window
 newNumPadWindow = do
   win <- liftIO $ windowNew
   liftIO $ windowSetKeepAbove win True
-  liftIO $ G.set win [windowSkipPagerHint := True,
-                      windowSkipTaskbarHint := True,
-                      windowAcceptFocus := False,
-                      windowFocusOnMap := False]
+  liftIO $ G.set win [ windowSkipPagerHint := True,
+                       windowSkipTaskbarHint := True,
+                       windowAcceptFocus := False,
+                       windowFocusOnMap := False
+                     ]
   liftIO $ windowSetTitle win ("WildBind Status" :: Text)
   win_x <- confWindowX <$> ask
   win_y <- confWindowY <$> ask
@@ -201,24 +204,25 @@ newNumPadTable = do
   tab <- liftIO $ tableNew 5 4 False
   -- NumLock is unboundable, so it's treatd in a different way from others.
   (\label -> liftIO $ labelSetText label ("NumLock" :: Text)) =<< addButton tab 0 1 0 1
-  descript_action_getter <- fmap mconcat $ sequence $ [
-    getter NumLDivide $ addButton tab 1 2 0 1,
-    getter NumLMulti $ addButton tab 2 3 0 1,
-    getter NumLMinus $ addButton tab 3 4 0 1,
-    getter NumL7 $ addButton tab 0 1 1 2,
-    getter NumL8 $ addButton tab 1 2 1 2,
-    getter NumL9 $ addButton tab 2 3 1 2,
-    getter NumLPlus $ addButton tab 3 4 1 3,
-    getter NumL4 $ addButton tab 0 1 2 3,
-    getter NumL5 $ addButton tab 1 2 2 3,
-    getter NumL6 $ addButton tab 2 3 2 3,
-    getter NumL1 $ addButton tab 0 1 3 4,
-    getter NumL2 $ addButton tab 1 2 3 4,
-    getter NumL3 $ addButton tab 2 3 3 4,
-    getter NumLEnter $ addButton tab 3 4 3 5,
-    getter NumL0 $ addButton tab 0 2 4 5,
-    getter NumLPeriod $ addButton tab 2 3 4 5
-    ]
+  descript_action_getter <-
+    fmap mconcat $ sequence $
+      [ getter NumLDivide $ addButton tab 1 2 0 1,
+        getter NumLMulti $ addButton tab 2 3 0 1,
+        getter NumLMinus $ addButton tab 3 4 0 1,
+        getter NumL7 $ addButton tab 0 1 1 2,
+        getter NumL8 $ addButton tab 1 2 1 2,
+        getter NumL9 $ addButton tab 2 3 1 2,
+        getter NumLPlus $ addButton tab 3 4 1 3,
+        getter NumL4 $ addButton tab 0 1 2 3,
+        getter NumL5 $ addButton tab 1 2 2 3,
+        getter NumL6 $ addButton tab 2 3 2 3,
+        getter NumL1 $ addButton tab 0 1 3 4,
+        getter NumL2 $ addButton tab 1 2 3 4,
+        getter NumL3 $ addButton tab 2 3 3 4,
+        getter NumLEnter $ addButton tab 3 4 3 5,
+        getter NumL0 $ addButton tab 0 2 4 5,
+        getter NumLPeriod $ addButton tab 2 3 4 5
+      ]
   let description_updater = \input -> case descript_action_getter $ toNumPad input of
         First (Just act) -> act
         First Nothing -> const $ return ()
