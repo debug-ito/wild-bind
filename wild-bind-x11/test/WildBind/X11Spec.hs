@@ -1,17 +1,16 @@
 {-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
 module WildBind.X11Spec (main, spec) where
 
-import System.IO (hPutStrLn,stderr)
-import System.Environment (lookupEnv)
-import Control.Exception (finally)
 import Control.Applicative ((<$>))
+import Control.Exception (finally)
+import Data.Time.Clock (getCurrentTime, diffUTCTime)
+import System.Environment (lookupEnv)
+import System.IO (hPutStrLn,stderr)
 import Test.Hspec
 
-import Data.Time.Clock (getCurrentTime, diffUTCTime)
-
-import WildBind (
-  FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent),
-  FrontEvent(FEChange,FEInput)
+import WildBind
+  ( FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent),
+    FrontEvent(FEChange,FEInput)
   )
 import qualified WildBind.Input.NumPad as NumPad
 import WildBind.X11 (withFrontEnd, ActiveWindow)

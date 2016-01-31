@@ -4,34 +4,33 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 -- 
 -- This module exports a 'FrontEnd' for X11 environments.
-module WildBind.X11 (
-  -- * X11 front-end
-  withFrontEnd,
-  -- * Windows in X11
-  Window,
-  ActiveWindow,
-  -- ** Accessor functions for Window
-  winInstance,
-  winClass,
-  winName
-) where
+module WildBind.X11
+       ( -- * X11 front-end
+         withFrontEnd,
+         -- * Windows in X11
+         Window,
+         ActiveWindow,
+         -- ** Accessor functions for Window
+         winInstance,
+         winClass,
+         winName
+       ) where
 
-import Control.Exception (bracket)
 import Control.Applicative ((<$>), empty)
-import Data.Bits ((.|.))
-import Data.IORef (IORef, newIORef, readIORef, writeIORef)
-
-import qualified Graphics.X11.Xlib as Xlib
+import Control.Concurrent.STM (atomically, TChan, newTChanIO, tryReadTChan, writeTChan)
+import Control.Exception (bracket)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Cont (ContT(ContT), runContT)
 import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
 import Control.Monad.Trans.List (ListT(ListT), runListT)
 import Control.Monad.Trans.Writer (WriterT, execWriterT, tell)
-import Control.Concurrent.STM (atomically, TChan, newTChanIO, tryReadTChan, writeTChan)
+import Data.Bits ((.|.))
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
+import qualified Graphics.X11.Xlib as Xlib
 
-import WildBind (
-  FrontEnd(FrontEnd, frontDefaultDescription, frontSetGrab, frontUnsetGrab, frontNextEvent),
-  FrontEvent(FEInput,FEChange)
+import WildBind
+  ( FrontEnd(FrontEnd, frontDefaultDescription, frontSetGrab, frontUnsetGrab, frontNextEvent),
+    FrontEvent(FEInput,FEChange)
   )
 import qualified WildBind.Description as WBD
 
@@ -40,12 +39,12 @@ import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winIn
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
 
 -- | The X11 front-end
-data X11Front k = X11Front {
-  x11Display :: Xlib.Display,
-  x11Debouncer :: Ndeb.Debouncer,
-  x11PrevActiveWindow :: IORef ActiveWindow,
-  x11PendingEvents :: TChan (FrontEvent ActiveWindow k)
-}
+data X11Front k =
+  X11Front { x11Display :: Xlib.Display,
+             x11Debouncer :: Ndeb.Debouncer,
+             x11PrevActiveWindow :: IORef ActiveWindow,
+             x11PendingEvents :: TChan (FrontEvent ActiveWindow k)
+           }
 
 x11RootWindow :: X11Front k -> Xlib.Window
 x11RootWindow = Xlib.defaultRootWindow . x11Display
@@ -124,31 +123,29 @@ grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -
 grabDef func front key = func (x11Display front) (x11RootWindow front) key
 
 nextEvent :: (KeySymLike k) => X11Front k -> IO (FrontEvent ActiveWindow k)
-nextEvent handle = do
-  mpending <- x11PopPendingEvent handle
-  case mpending of
-    Just eve -> return eve
-    Nothing -> nextEventFromX11
-  where
-    nextEventFromX11 = Xlib.allocaXEvent $ \xev -> do
-      Xlib.nextEvent (x11Display handle) xev
-      got_events <- processEvents xev
-      case got_events of
-        [] -> loop
-        (eve : rest) -> do
-          x11UnshiftPendingEvents handle rest
-          return eve
-    processEvents xev = runListT $ do
-      fevent <- convertEvent (x11Display handle) (x11Debouncer handle) xev
-      filterUnchangedEvent handle fevent
-      liftIO $ updateState handle fevent
-      return fevent
-    loop = nextEvent handle
+nextEvent handle = loop where
+  loop = do
+    mpending <- x11PopPendingEvent handle
+    case mpending of
+      Just eve -> return eve
+      Nothing -> nextEventFromX11
+  nextEventFromX11 = Xlib.allocaXEvent $ \xev -> do
+    Xlib.nextEvent (x11Display handle) xev
+    got_events <- processEvents xev
+    case got_events of
+      [] -> loop
+      (eve : rest) -> do
+        x11UnshiftPendingEvents handle rest
+        return eve
+  processEvents xev = runListT $ do
+    fevent <- convertEvent (x11Display handle) (x11Debouncer handle) xev
+    filterUnchangedEvent handle fevent
+    liftIO $ updateState handle fevent
+    return fevent
 
 makeFrontEnd :: (KeySymLike k, ModifierLike k, WBD.Describable k) => X11Front k -> FrontEnd ActiveWindow k
-makeFrontEnd f = FrontEnd {
-  frontDefaultDescription = WBD.describe,
-  frontSetGrab = grabDef xGrabKey f,
-  frontUnsetGrab = grabDef xUngrabKey f,
-  frontNextEvent = nextEvent f
-  }
+makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
+                            frontSetGrab = grabDef xGrabKey f,
+                            frontUnsetGrab = grabDef xUngrabKey f,
+                            frontNextEvent = nextEvent f
+                          }

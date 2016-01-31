@@ -4,24 +4,23 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 -- This is an internal module. Package users should not rely on this.
-module WildBind.X11.Internal.Key (
-  -- * Conversion between key types
-  KeySymLike(..), 
-  xEventToKeySymLike,
-  -- * Key grabs
-  ModifierLike,
-  xGrabKey, xUngrabKey
-) where
+module WildBind.X11.Internal.Key
+       ( -- * Conversion between key types
+         KeySymLike(..), 
+         xEventToKeySymLike,
+         -- * Key grabs
+         ModifierLike,
+         xGrabKey, xUngrabKey
+       ) where
 
 import Control.Applicative ((<$>), (<*>))
+import Control.Monad.Trans.Maybe (MaybeT(MaybeT))
 import Data.Bits ((.|.))
 import qualified Data.Bits as Bits
+import qualified Data.Map as M
 import Data.Maybe (mapMaybe, listToMaybe)
-
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
-import qualified Data.Map as M
-import Control.Monad.Trans.Maybe (MaybeT(MaybeT))
 
 import qualified WildBind.Input.NumPad as NumPad
 

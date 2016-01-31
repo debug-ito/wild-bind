@@ -33,23 +33,23 @@
 
 -- Toshio's personal note: 2015/05/06, 2010/12/05 - 19
 
-module WildBind.X11.Internal.NotificationDebouncer (
-  Debouncer,
-  withDebouncer,
-  notify,
-  xEventMask,
-  isDebouncedEvent
-) where
+module WildBind.X11.Internal.NotificationDebouncer
+       ( Debouncer,
+         withDebouncer,
+         notify,
+         xEventMask,
+         isDebouncedEvent
+       ) where
 
 import Control.Exception (bracket)
+import qualified Control.FoldDebounce as Fdeb
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
-import qualified Control.FoldDebounce as Fdeb
 
-data Debouncer = Debouncer {
-  ndTrigger :: Fdeb.Trigger () (),
-  ndMessageType :: Xlib.Atom
-}
+data Debouncer = Debouncer
+                 { ndTrigger :: Fdeb.Trigger () (),
+                   ndMessageType :: Xlib.Atom
+                 }
 
 -- | Create a Debouncer and run the specified action.
 withDebouncer :: Xlib.Display -> (Debouncer -> IO a) -> IO a

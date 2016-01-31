@@ -4,28 +4,27 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 -- This is an internal module. Package users should not rely on this.
-module WildBind.X11.Internal.Window (
-  -- * The 'Window' data type
-  Window,
-  ActiveWindow,
-  emptyWindow,
-  -- * Accessor functions for 'Window'
-  winInstance,
-  winClass,
-  winName,
-  -- * Functions
-  getActiveWindow
-) where
+module WildBind.X11.Internal.Window
+       ( -- * The 'Window' data type
+         Window,
+         ActiveWindow,
+         emptyWindow,
+         -- * Accessor functions for 'Window'
+         winInstance,
+         winClass,
+         winName,
+         -- * Functions
+         getActiveWindow
+       ) where
 
-import Data.Maybe (listToMaybe)
 import Control.Applicative ((<$>),(<|>),empty)
-
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Maybe (MaybeT(MaybeT),runMaybeT)
+import Data.Maybe (listToMaybe)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
-import Control.Monad.Trans.Maybe (MaybeT(MaybeT),runMaybeT)
-import Control.Monad.IO.Class (liftIO)
 
 -- | Information about window. You can inspect properties 'winInstance'
 -- and 'winClass' by @wmctrl@ command.
@@ -39,11 +38,12 @@ import Control.Monad.IO.Class (liftIO)
 -- > 0x02600003  0 totem.Totem           mydesktop Movie Player
 --
 -- In the above example, the third column shows @winInstance.winClass@.
-data Window = Window {
-  winInstance :: Text,  -- ^ name of the application instance (part of @WM_CLASS@ property)
-  winClass :: Text, -- ^ name of the application class (part of @WM_CLASS@ property)
-  winName :: Text  -- ^ what's shown in the title bar
-} deriving (Eq,Ord,Show)
+data Window =
+  Window
+  { winInstance :: Text,  -- ^ name of the application instance (part of @WM_CLASS@ property)
+    winClass :: Text, -- ^ name of the application class (part of @WM_CLASS@ property)
+    winName :: Text  -- ^ what's shown in the title bar
+  } deriving (Eq,Ord,Show)
 
 -- | Use this type especially when the 'Window' is active.
 type ActiveWindow = Window

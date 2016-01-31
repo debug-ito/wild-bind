@@ -6,16 +6,16 @@ import Test.QuickCheck (Arbitrary(arbitrary), arbitraryBoundedEnum, property)
 import WildBind.Input.NumPad (NumPadUnlockedInput,NumPadLockedInput)
 import WildBind.X11.Internal.Key (KeySymLike(fromKeySym,toKeySym))
 
-newtype NumPadUnlockedInput' = NumPadUnlockedInput' {
-  unwrapNumPadUnlockedInput :: NumPadUnlockedInput
-} deriving Show
+newtype NumPadUnlockedInput' =
+  NumPadUnlockedInput' { unwrapNumPadUnlockedInput :: NumPadUnlockedInput }
+  deriving Show
 
 instance Arbitrary NumPadUnlockedInput' where
   arbitrary = fmap NumPadUnlockedInput' arbitraryBoundedEnum
 
-newtype NumPadLockedInput' = NumPadLockedInput' {
-  unwrapNumPadLockedInput :: NumPadLockedInput
-} deriving Show
+newtype NumPadLockedInput' =
+  NumPadLockedInput' { unwrapNumPadLockedInput :: NumPadLockedInput }
+  deriving Show
 
 instance Arbitrary NumPadLockedInput' where
   arbitrary = fmap NumPadLockedInput' arbitraryBoundedEnum
