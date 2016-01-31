@@ -4,12 +4,12 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 -- Input types for number pad keys.
-module WildBind.Input.NumPad (
-  -- * NumLock disabled
-  NumPadUnlockedInput(..),
-  -- * NumLock enabled
-  NumPadLockedInput(..),
-) where
+module WildBind.Input.NumPad
+       ( -- * NumLock disabled
+         NumPadUnlockedInput(..),
+         -- * NumLock enabled
+         NumPadLockedInput(..),
+       ) where
 
 import WildBind.Description (Describable(describe))
 

@@ -3,39 +3,36 @@
 -- Description: Functions to create executable actions.
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 -- 
-module WildBind.Exec (
-  -- * Functions to build executable action
-  wildBind,
-  wildBind',
-  -- * Option for executable
-  Option,
-  def,
-  -- ** Accessor functions for 'Option'
-  optBindingHook
-) where
+module WildBind.Exec
+       ( -- * Functions to build executable action
+         wildBind,
+         wildBind',
+         -- * Option for executable
+         Option,
+         def,
+         -- ** Accessor functions for 'Option'
+         optBindingHook
+       ) where
 
-import Data.List ((\\))
 import Control.Applicative ((<$>))
-
-import Control.Monad.Trans.Class (lift)
-import qualified Control.Monad.Trans.State as State
-import qualified Control.Monad.Trans.Reader as Reader
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Class (lift)
+import qualified Control.Monad.Trans.Reader as Reader
+import qualified Control.Monad.Trans.State as State
 import Data.Default.Class (Default(def))
+import Data.List ((\\))
 
-import WildBind.Description (
-  ActionDescription
+import WildBind.Description (ActionDescription)
+import WildBind.FrontEnd
+  ( FrontEvent(FEChange,FEInput),
+    FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent)
   )
-import WildBind.FrontEnd (
-  FrontEvent(FEChange,FEInput),
-  FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent)
-  )
-import WildBind.Binding (
-  Action(actDo, actDescription),
-  Binding,
-  boundAction,
-  boundInputs,
-  boundActions
+import WildBind.Binding
+  ( Action(actDo, actDescription),
+    Binding,
+    boundAction,
+    boundInputs,
+    boundActions
   )
 
 type GrabSet i = [i]
@@ -58,16 +55,15 @@ wildBind' opt binding front =
 --
 -- You can get the default value of 'Option' by 'def' funcion, and
 -- modify its members via accessor functions listed below.
-data Option s i = Option {
-  optBindingHook :: [(i, ActionDescription)] -> IO ()
-  -- ^ An action executed when current binding may be
-  -- changed. Default: do nothing.
-  }
+data Option s i =
+  Option { optBindingHook :: [(i, ActionDescription)] -> IO ()
+           -- ^ An action executed when current binding may be
+           -- changed. Default: do nothing.
+         }
 
 instance Default (Option s i) where
-  def = Option {
-    optBindingHook = const $ return ()
-    }
+  def = Option { optBindingHook = const $ return () }
+
 
 ---
 

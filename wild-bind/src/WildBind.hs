@@ -4,13 +4,13 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 -- 
-module WildBind (
-  module WildBind.Description,
-  module WildBind.Binding,
-  module WildBind.FrontEnd,
-  module WildBind.Exec,
-  module WildBind.Input.NumPad
-) where
+module WildBind
+       ( module WildBind.Description,
+         module WildBind.Binding,
+         module WildBind.FrontEnd,
+         module WildBind.Exec,
+         module WildBind.Input.NumPad
+       ) where
 
 import WildBind.Description
 import WildBind.Binding

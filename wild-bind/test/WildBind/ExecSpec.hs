@@ -1,17 +1,18 @@
 module WildBind.ExecSpec (main, spec) where
 
-import Test.Hspec
 import Control.Applicative ((<$>))
-import Data.Monoid ((<>))
-import Control.Exception (bracket)
 import Control.Concurrent (forkIOWithUnmask, killThread, threadDelay)
 import Control.Concurrent.STM (atomically, TChan, readTChan, tryReadTChan, writeTChan, newTChanIO)
+import Control.Exception (bracket)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import qualified Control.Monad.Trans.State as State
+import Data.Monoid ((<>))
+import Test.Hspec
 
-import qualified WildBind.FrontEnd as WBF
 import qualified WildBind.Binding as WBB
 import qualified WildBind.Exec as WBE
+import qualified WildBind.FrontEnd as WBF
+
 import WildBind.ForTest (SampleInput(..), SampleState(..), SampleBackState(..))
 
 newtype EventChan s i = EventChan { unEventChan :: TChan (WBF.FrontEvent s i) }
@@ -21,11 +22,11 @@ data GrabHistory i = GSet i | GUnset i deriving (Show, Eq, Ord)
 newtype GrabChan i = GrabChan { unGrabChan :: TChan (GrabHistory i) }
 
 frontEnd :: EventChan s i -> GrabChan i -> WBF.FrontEnd s i
-frontEnd echan gchan = WBF.FrontEnd {
-  WBF.frontDefaultDescription = const "",
-  WBF.frontSetGrab = \i -> atomically $ writeTChan (unGrabChan gchan) (GSet i),
-  WBF.frontUnsetGrab = \i -> atomically $ writeTChan (unGrabChan gchan) (GUnset i),
-  WBF.frontNextEvent = atomically $ readTChan $ unEventChan echan
+frontEnd echan gchan = WBF.FrontEnd
+  { WBF.frontDefaultDescription = const "",
+    WBF.frontSetGrab = \i -> atomically $ writeTChan (unGrabChan gchan) (GSet i),
+    WBF.frontUnsetGrab = \i -> atomically $ writeTChan (unGrabChan gchan) (GUnset i),
+    WBF.frontNextEvent = atomically $ readTChan $ unEventChan echan
   }
 
 _write :: MonadIO m => TChan a -> a -> m ()

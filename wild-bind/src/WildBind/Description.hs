@@ -3,10 +3,10 @@
 -- Description: Types about ActionDescription
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
-module WildBind.Description (
-  ActionDescription,
-  Describable(..)
-) where
+module WildBind.Description
+       ( ActionDescription,
+         Describable(..)
+       ) where
 
 import Data.Text (Text)
 

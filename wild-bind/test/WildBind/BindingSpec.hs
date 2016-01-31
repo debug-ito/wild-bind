@@ -2,16 +2,15 @@ module WildBind.BindingSpec (main, spec) where
 
 import Control.Applicative ((<$>), (<*>), pure)
 import Control.Monad (void, join)
-import Data.Monoid (mempty, (<>))
-import Data.Maybe (isNothing, fromJust)
-import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
-
-import Test.Hspec
-import Test.QuickCheck (Gen, Arbitrary(arbitrary), property, listOf, sample')
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.State as State
+import Data.Maybe (isNothing, fromJust)
+import Data.Monoid (mempty, (<>))
+import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
 import qualified Lens.Micro as Lens
+import Test.Hspec
+import Test.QuickCheck (Gen, Arbitrary(arbitrary), property, listOf, sample')
 
 import qualified WildBind.Binding as WB
 import WildBind.ForTest (SampleInput(..), SampleState(..), SampleBackState(..))
@@ -46,12 +45,13 @@ outOnS out_ref input out_elem modifier = WB.on input "" $ do
   liftIO $ modifyIORef out_ref (++ [out_elem])
 
 genStatelessBinding :: Arbitrary a => IORef [a] -> Gen (WB.Binding s SampleInput)
-genStatelessBinding out_list = do
-  let outputRandomElem = do
-        out_elem <- arbitrary
-        return $ modifyIORef out_list (out_elem :)
+genStatelessBinding out_list =
   WB.binds <$> (listOf $ WB.on <$> arbitrary <*> pure "" <*> outputRandomElem)
-
+  where
+    outputRandomElem = do
+      out_elem <- arbitrary
+      return $ modifyIORef out_list (out_elem :)
+  
 generate :: Gen a -> IO a
 generate = fmap head . sample'
 

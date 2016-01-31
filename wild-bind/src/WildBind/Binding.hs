@@ -6,51 +6,52 @@
 -- This module exports functions to build and manipulate 'Binding', an
 -- object binding input symbols to actions.
 -- 
-module WildBind.Binding (
-  -- * Types
-  Action(Action,actDescription,actDo),
-  Binding,
-  Binding',
-  -- * Construction
-  binds,
-  binds',
-  on,
-  -- * Condition
-  caseFront,
-  caseBack,
-  caseBoth,
-  whenFront,
-  whenBack,
-  whenBoth,
-  -- * Conversion
-  startFrom,
-  extend,
-  extendAt,
-  convFront,
-  convInput,
-  convBack,
-  -- * Execution
-  boundAction,
-  boundAction',
-  boundActions,
-  boundActions',
-  boundInputs,
-  boundInputs'
-) where
+module WildBind.Binding
+       ( -- * Types
+         Action(Action,actDescription,actDo),
+         Binding,
+         Binding',
+         -- * Construction
+         binds,
+         binds',
+         on,
+         -- * Condition
+         caseFront,
+         caseBack,
+         caseBoth,
+         whenFront,
+         whenBack,
+         whenBoth,
+         -- * Conversion
+         startFrom,
+         extend,
+         extendAt,
+         convFront,
+         convInput,
+         convBack,
+         -- * Execution
+         boundAction,
+         boundAction',
+         boundActions,
+         boundActions',
+         boundInputs,
+         boundInputs'
+       ) where
 
+import Control.Monad.Trans.State (StateT, runStateT)
 import qualified Data.Map as M
 import Data.Monoid (Monoid(..))
-import Control.Monad.Trans.State (StateT, runStateT)
 import Lens.Micro ((^.), (.~), (&))
 import qualified Lens.Micro as Lens
 
 import WildBind.Description (ActionDescription)
 
 -- | Action done by WildBind
-data Action m a = Action {
-  actDescription :: ActionDescription, -- ^ Human-readable description of the action.
-  actDo :: m a -- ^ The actual job.
-}
+data Action m a =
+  Action
+  { actDescription :: ActionDescription, -- ^ Human-readable description of the action.
+    actDo :: m a -- ^ The actual job.
+  }
 
 instance Show (Action m a) where
   show a = "Action " ++ show (actDescription a)
@@ -64,9 +65,10 @@ instance Functor m => Functor (Action m) where
 --
 -- You can make the explicit state @bs@ implicit by 'startFrom'
 -- function.
-newtype Binding' bs fs i = Binding' {
-  unBinding' :: bs -> fs -> M.Map i (Action IO (Binding' bs fs i, bs))
-}
+newtype Binding' bs fs i =
+  Binding'
+  { unBinding' :: bs -> fs -> M.Map i (Action IO (Binding' bs fs i, bs))
+  }
 
 -- | WildBind back-end binding between inputs and actions. @s@ is the
 -- front-end state type, and @i@ is the input type.
@@ -224,7 +226,8 @@ binds' blists = Binding' $ \bs _ ->
 
 runStatefulAction :: Binding' bs fs i -> bs -> Action (StateT bs IO) () -> Action IO (Binding' bs fs i, bs)
 runStatefulAction next_b' cur_bs state_action =
-  let recursive_io = do
-        ((), next_bs) <- runStateT (actDo state_action) cur_bs
-        return (next_b', next_bs)
-  in state_action { actDo = recursive_io }
+  state_action { actDo = recursive_io }
+  where
+  recursive_io = do
+    ((), next_bs) <- runStateT (actDo state_action) cur_bs
+    return (next_b', next_bs)

@@ -1,8 +1,8 @@
-module WildBind.ForTest (
-  SampleInput(..),
-  SampleState(..),
-  SampleBackState(..)
-) where
+module WildBind.ForTest
+       ( SampleInput(..),
+         SampleState(..),
+         SampleBackState(..)
+       ) where
 
 import Control.Applicative ((<$>))
 import Test.QuickCheck (Arbitrary(arbitrary,shrink), arbitraryBoundedEnum)
