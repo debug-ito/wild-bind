@@ -5,38 +5,38 @@
 -- 
 -- This module exports everything you probably need to use WildBind in
 -- X11 environments.
-module WildBind.Task.X11 (
-  -- * Execution
-  wildNumPad,
-  wildNumPad',
-  -- * Re-exports
-  module WildBind.Binding,
-  module WildBind.Description,
-  module WildBind.Input.NumPad,
-  -- ** From basic modules
-  module Data.Monoid,
-  Text,
-  -- ** From "WindBind.X11"
-  Window, ActiveWindow, winInstance, winClass, winName,
-  -- ** From "WildBind.Indicator"
-  Indicator, NumPadPosition(..), updateDescription, getPresence, setPresence, togglePresence
-) where
+module WildBind.Task.X11
+       ( -- * Execution
+         wildNumPad,
+         wildNumPad',
+         -- * Re-exports
+         module WildBind.Binding,
+         module WildBind.Description,
+         module WildBind.Input.NumPad,
+         -- ** From basic modules
+         module Data.Monoid,
+         Text,
+         -- ** From "WindBind.X11"
+         Window, ActiveWindow, winInstance, winClass, winName,
+         -- ** From "WildBind.Indicator"
+         Indicator, NumPadPosition(..), updateDescription, getPresence, setPresence, togglePresence
+       ) where
+
+import Data.Monoid
+import Data.Text (Text)
 
 import WildBind.Binding
 import WildBind.Description
 import WildBind.Input.NumPad
-import WildBind.X11 (
-  Window, ActiveWindow, winInstance, winClass, winName,
-  withFrontEnd
+import WildBind.X11
+  ( Window, ActiveWindow, winInstance, winClass, winName,
+    withFrontEnd
   )
-import WildBind.Indicator (
-  Indicator, NumPadPosition(..),
-  updateDescription, getPresence, setPresence, togglePresence,
-  withNumPadIndicator, wildBindWithIndicator
+import WildBind.Indicator
+  ( Indicator, NumPadPosition(..),
+    updateDescription, getPresence, setPresence, togglePresence,
+    withNumPadIndicator, wildBindWithIndicator
   )
-import Data.Monoid
-import Data.Text (Text)
-
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike)
 
 -- | A convenient function to create an executable action with X11

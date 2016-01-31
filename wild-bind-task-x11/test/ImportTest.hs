@@ -1,12 +1,12 @@
 module Main (main) where
 
-import WildBind.Task.X11 (
-  wildNumPad, wildNumPad',
-  Binding, Binding',
-  NumPadUnlockedInput(..), NumPadLockedInput(..),
-  ActiveWindow,
-  Indicator,
-  (<>)
+import WildBind.Task.X11
+  ( wildNumPad, wildNumPad',
+    Binding, Binding',
+    NumPadUnlockedInput(..), NumPadLockedInput(..),
+    ActiveWindow,
+    Indicator,
+    (<>)
   )
 
 main :: IO ()
