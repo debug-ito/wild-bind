@@ -443,7 +443,7 @@ spec_conditionBoth :: Spec
 spec_conditionBoth = do
   describe "caseBoth" $ do
     it "chooses bindings according to front-end and back-end states" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      let b = WB.caseBoth $ \ (SS fs) (SB bs) ->
+      let b = WB.caseBoth $ \ (SB bs) (SS fs) ->
             if fs == "hoge" then
               WB.binds' [ outOnS out SIa 'a' (const $ SB $ bs + 1),
                           outOnS out SIb 'b' (const $ SB 0)

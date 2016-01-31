@@ -12,6 +12,7 @@ module WildBind.Binding
          Binding,
          Binding',
          -- * Construction
+         noBinds,
          binds,
          binds',
          on,
@@ -81,12 +82,16 @@ type Binding s i = Binding' () s i
 -- binding to the same key in the same front-end and back-end state,
 -- the binding from the right-hand one is used.
 instance Ord i => Monoid (Binding' bs fs i) where
-  mempty = Binding' $ \_ _ -> M.empty
+  mempty = noBinds
   mappend abind bbind = Binding' $ \bs fs ->
     let amap = mapResult (`mappend` bbind) id $ unBinding' abind bs fs
         bmap = mapResult (abind `mappend`) id $ unBinding' bbind bs fs
     in M.unionWith (\_ b -> b) amap bmap
-    
+
+-- | A 'Binding'' with no bindings. It's the same as 'mempty', except
+-- 'noBinds' requires no context.
+noBinds :: Binding' bs fs i
+noBinds = Binding' $ \_ _ -> M.empty
 
 -- | Get the 'Action' bound to the specified state @s@ and input @i@.
 boundAction :: (Ord i) => Binding s i -> s -> i -> Maybe (Action IO (Binding s i))
@@ -134,17 +139,17 @@ on input desc act = (input, Action { actDescription = desc, actDo = act })
 -- | Create a binding that behaves differently for different front-end
 -- states @fs@. See 'caseBoth', too.
 caseFront :: (fs -> Binding' bs fs i) -> Binding' bs fs i
-caseFront = undefined
+caseFront get_b = caseBoth $ \_ fs -> get_b fs
 
 -- | Create a binding that behaves differently for different back-end
 -- states @bs@. See 'caseBoth', too.
 caseBack :: (bs -> Binding' bs fs i) -> Binding' bs fs i
-caseBack = undefined
+caseBack get_b = caseBoth $ \bs _ -> get_b bs
 
 -- | Create a binding that behaves differently for different front-end
 -- and back-end states, @fs@ and @bs@.
-caseBoth :: (fs -> bs -> Binding' bs fs i) -> Binding' bs fs i
-caseBoth = undefined
+caseBoth :: (bs -> fs -> Binding' bs fs i) -> Binding' bs fs i
+caseBoth get_b = Binding' $ \bs fs -> unBinding' (get_b bs fs) bs fs
 
 -- | Add a condition on the front-end state to 'Binding'. See 'whenBoth', too.
 whenFront :: (fs -> Bool) -- ^ Condition about the front-end state.
@@ -168,10 +173,7 @@ whenBoth :: (bs -> fs -> Bool) -- ^ Condition about the back-end and front-end s
          -> Binding' bs fs i -- ^ Result Binding where the original
                              -- Binding is activated only when the
                              -- given condition is 'True'.
-whenBoth cond orig_bind = Binding' $ \bs fs ->
-  if cond bs fs
-  then mapResult (whenBoth cond) id $ unBinding' orig_bind bs fs
-  else M.empty
+whenBoth cond orig_bind = caseBoth $ \bs fs -> if cond bs fs then orig_bind else noBinds
 
 mapResult :: Functor m => (a -> a') -> (b -> b') -> M.Map i (Action m (a, b)) -> M.Map i (Action m (a',b'))
 mapResult amapper bmapper = (fmap . fmap) (\(a, b) -> (amapper a, bmapper b))
