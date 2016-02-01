@@ -11,16 +11,24 @@ module WildBind.Binding
          Action(Action,actDescription,actDo),
          Binding,
          Binding',
+         
          -- * Construction
+
+         -- | Functions to create fundamental 'Binding's.
+         --
+         -- To create complex 'Binding's, use <#Condition Condition> functions
+         -- described below and 'mappend' them together.
+         
          noBinds,
          binds,
          binds',
          on,
+         
          -- * Condition
          
-         -- | With these functions, you can create 'Binding's that
-         -- behave differently for different front-end and/or
-         -- back-end states.
+         -- | #Condition# With these functions, you can create
+         -- 'Binding's that behave differently for different front-end
+         -- and/or back-end states.
          --
          -- If you call the condition functions multiple times, the
          -- conditions are combined with AND logic.
