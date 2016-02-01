@@ -17,9 +17,16 @@ module WildBind.Binding
          binds',
          on,
          -- * Condition
-         caseFront,
-         caseBack,
-         caseBoth,
+         
+         -- | With these functions, you can create 'Binding's that
+         -- behave differently for different front-end and/or
+         -- back-end states.
+         --
+         -- If you call the condition functions multiple times, the
+         -- conditions are combined with AND logic.
+         ifFront,
+         ifBack,
+         ifBoth,
          whenFront,
          whenBack,
          whenBoth,
@@ -137,43 +144,47 @@ on input desc act = (input, Action { actDescription = desc, actDo = act })
 
 
 -- | Create a binding that behaves differently for different front-end
--- states @fs@. See 'caseBoth', too.
-caseFront :: (fs -> Binding' bs fs i) -> Binding' bs fs i
-caseFront get_b = caseBoth $ \_ fs -> get_b fs
+-- states @fs@.
+ifFront :: (fs -> Bool) -- ^ The predicate
+        -> Binding' bs fs i -- ^ Enabled if the predicate is 'True'
+        -> Binding' bs fs i -- ^ Enabled if the predicate is 'False'
+        -> Binding' bs fs i
+ifFront p = ifBoth $ \_ fs -> p fs
 
 -- | Create a binding that behaves differently for different back-end
--- states @bs@. See 'caseBoth', too.
-caseBack :: (bs -> Binding' bs fs i) -> Binding' bs fs i
-caseBack get_b = caseBoth $ \bs _ -> get_b bs
+-- states @bs@.
+ifBack :: (bs -> Bool) -- ^ The predicate
+       -> Binding' bs fs i -- ^ Enabled if the predicate is 'True'
+       -> Binding' bs fs i -- ^ Enabled if the predicate is 'False'
+       -> Binding' bs fs i
+ifBack p = ifBoth $ \bs _ -> p bs
 
 -- | Create a binding that behaves differently for different front-end
 -- and back-end states, @fs@ and @bs@.
-caseBoth :: (bs -> fs -> Binding' bs fs i) -> Binding' bs fs i
-caseBoth get_b = Binding' $ \bs fs -> unBinding' (get_b bs fs) bs fs
+ifBoth :: (bs -> fs -> Bool) -- ^ The predicate
+       -> Binding' bs fs i -- ^ Enabled if the predicate is 'True'
+       -> Binding' bs fs i -- ^ Enabled if the predicate is 'False'
+       -> Binding' bs fs i
+ifBoth = undefined
 
--- | Add a condition on the front-end state to 'Binding'. See 'whenBoth', too.
-whenFront :: (fs -> Bool) -- ^ Condition about the front-end state.
+-- | Add a condition on the front-end state to 'Binding'.
+whenFront :: (fs -> Bool) -- ^ The predicate.
+          -> Binding' bs fs i -- ^ Enabled if the predicate is 'True'
           -> Binding' bs fs i
-          -> Binding' bs fs i
-whenFront cond = whenBoth $ \_ fs -> cond fs
+whenFront p = whenBoth $ \_ fs -> p fs
 
--- infixr version of 'whenFront' may be useful, too.
-
--- | Add a condition on the back-end state to 'Binding'. See 'whenBoth', too.
-whenBack :: (bs -> Bool) -- ^ Condition about the back-end state.
+-- | Add a condition on the back-end state to 'Binding'.
+whenBack :: (bs -> Bool) -- ^ The predicate.
+         -> Binding' bs fs i -- ^ Enabled if the predicate is 'True'
          -> Binding' bs fs i
-         -> Binding' bs fs i
-whenBack cond = whenBoth $ \bs _ -> cond bs
+whenBack p = whenBoth $ \bs _ -> p bs
 
 -- | Add a condition on the back-end and front-end states to
--- 'Binding'. If you call this function multiple times, the conditions
--- are combined with AND logic.
-whenBoth :: (bs -> fs -> Bool) -- ^ Condition about the back-end and front-end states.
-         -> Binding' bs fs i -- ^ Original Binding.
-         -> Binding' bs fs i -- ^ Result Binding where the original
-                             -- Binding is activated only when the
-                             -- given condition is 'True'.
-whenBoth cond orig_bind = caseBoth $ \bs fs -> if cond bs fs then orig_bind else noBinds
+-- 'Binding'.
+whenBoth :: (bs -> fs -> Bool) -- ^ The predicate.
+         -> Binding' bs fs i -- ^ Enabled if the predicate is 'True'.
+         -> Binding' bs fs i
+whenBoth p b = ifBoth p b noBinds
 
 mapResult :: Functor m => (a -> a') -> (b -> b') -> M.Map i (Action m (a, b)) -> M.Map i (Action m (a',b'))
 mapResult amapper bmapper = (fmap . fmap) (\(a, b) -> (amapper a, bmapper b))
