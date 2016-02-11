@@ -113,10 +113,8 @@ wildBindSpec = do
         gchan `shouldNowMatch` [GUnset SIc]
     it "should enable/disable grabs when the back-end state changes" $ do
       ochan <- newTChanIO
-      let b' = WBB.caseBack $ \bs -> case bs of
-            (SB 0) -> WBB.binds' [outChanOnS ochan SIa 'A' (SB 1)]
-            (SB 1) -> WBB.binds' [outChanOnS ochan SIb 'B' (SB 0)]
-            _ -> mempty
+      let b' = WBB.ifBack (== (SB 0)) (WBB.binds' [outChanOnS ochan SIa 'A' (SB 1)])
+               $ WBB.whenBack (== (SB 1)) (WBB.binds' [outChanOnS ochan SIb 'B' (SB 0)])
           b = WBB.startFrom (SB 0) b'
       withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
         emitEvent echan $ WBF.FEChange (SS "")
@@ -160,11 +158,11 @@ optionSpec = do
       hook_chan <- newTChanIO
       out_chan <- newTChanIO
       let opt = WBE.def { WBE.optBindingHook = _write hook_chan  }
-          b = WBB.startFrom (SB 0) $ WBB.caseBack $ \bs -> case bs of
-            (SB 0) -> WBB.binds' [WBB.on SIa "a button" (out_chan `_write` 'a' >> State.put (SB 1))]
-            (SB 1) -> WBB.binds' [WBB.on SIa "A BUTTON" (out_chan `_write` 'A' >> State.put (SB 0)),
-                                  WBB.on SIc "c button" (out_chan `_write` 'c')]
-            _ -> mempty
+          b = WBB.startFrom (SB 0)
+              $ WBB.ifBack (== (SB 0)) (WBB.binds' [WBB.on SIa "a button" (out_chan `_write` 'a' >> State.put (SB 1))])
+              $ WBB.whenBack (== (SB 1)) ( WBB.binds' [WBB.on SIa "A BUTTON" (out_chan `_write` 'A' >> State.put (SB 0)),
+                                                       WBB.on SIc "c button" (out_chan `_write` 'c')]
+                                         )
       withWildBind' (WBE.wildBind' opt b) $ \(EventChan echan) (GrabChan gchan) -> do
         emitEvent echan $ WBF.FEChange (SS "")
         hook_chan `shouldNextMatch` [(SIa, "a button")]
