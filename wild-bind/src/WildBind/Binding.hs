@@ -173,7 +173,10 @@ ifBoth :: (bs -> fs -> Bool) -- ^ The predicate
        -> Binding' bs fs i -- ^ Enabled if the predicate is 'True'
        -> Binding' bs fs i -- ^ Enabled if the predicate is 'False'
        -> Binding' bs fs i
-ifBoth = undefined
+ifBoth p thenb elseb = Binding' $ \bs fs ->
+  if p bs fs
+  then mapResult (\nextb -> ifBoth p nextb elseb) id $ unBinding' thenb bs fs
+  else mapResult (\nextb -> ifBoth p thenb nextb) id $ unBinding' elseb bs fs
 
 -- | Add a condition on the front-end state to 'Binding'.
 whenFront :: (fs -> Bool) -- ^ The predicate.
