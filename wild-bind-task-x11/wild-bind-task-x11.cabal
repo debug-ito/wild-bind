@@ -22,7 +22,8 @@ library
   -- other-modules:
   build-depends:        base,
                         wild-bind, wild-bind-x11, wild-bind-indicator,
-                        text
+                        text,
+                        transformers
 
 -- executable wild-bind-task-x11
 --   default-language:     Haskell2010

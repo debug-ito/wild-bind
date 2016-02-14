@@ -14,6 +14,8 @@ module WildBind.Task.X11
          module WildBind.Description,
          module WildBind.Input.NumPad,
          -- ** From basic modules
+         module Control.Monad.IO.Class,
+         module Control.Monad.Trans.State,
          module Data.Monoid,
          Text,
          -- ** From "WindBind.X11"
@@ -22,6 +24,8 @@ module WildBind.Task.X11
          Indicator, NumPadPosition(..), updateDescription, getPresence, setPresence, togglePresence
        ) where
 
+import Control.Monad.IO.Class
+import Control.Monad.Trans.State
 import Data.Monoid
 import Data.Text (Text)
 
