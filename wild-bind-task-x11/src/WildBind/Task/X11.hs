@@ -61,7 +61,7 @@ wildNumPad :: (NumPadPosition i, KeySymLike i, ModifierLike i, Describable i, Or
               => Binding ActiveWindow i -> IO ()
 wildNumPad orig_binding = do
   let enter_likes = filter ((== NumLEnter) . toNumPad) $ enumFromTo minBound maxBound
-      enter_binds ind = binds $ map (\input -> on input "Toggle Indicator" $ togglePresence ind) enter_likes
+      enter_binds ind = binding $ map (\input -> (input, Action "Toggle Indicator" $ togglePresence ind)) enter_likes
   wildNumPad' $ \ind -> orig_binding <> enter_binds ind
 
 -- | A more flexible version of 'wildNumPad'. It passes you an

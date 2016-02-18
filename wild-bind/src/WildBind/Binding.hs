@@ -19,10 +19,9 @@ module WildBind.Binding
          -- To create complex 'Binding's, use <#Condition Condition> functions
          -- described below and 'mappend' them together.
          
-         noBinds,
-         binds,
-         binds',
-         on,
+         noBinding,
+         binding,
+         binding',
          
          -- * Condition
          
@@ -97,16 +96,16 @@ type Binding s i = Binding' () s i
 -- binding to the same key in the same front-end and back-end state,
 -- the binding from the right-hand one is used.
 instance Ord i => Monoid (Binding' bs fs i) where
-  mempty = noBinds
+  mempty = noBinding
   mappend abind bbind = Binding' $ \bs fs ->
     let amap = mapResult (`mappend` bbind) id $ unBinding' abind bs fs
         bmap = mapResult (abind `mappend`) id $ unBinding' bbind bs fs
     in M.unionWith (\_ b -> b) amap bmap
 
 -- | A 'Binding'' with no bindings. It's the same as 'mempty', except
--- 'noBinds' requires no context.
-noBinds :: Binding' bs fs i
-noBinds = Binding' $ \_ _ -> M.empty
+-- 'noBinding' requires no context.
+noBinding :: Binding' bs fs i
+noBinding = Binding' $ \_ _ -> M.empty
 
 -- | Get the 'Action' bound to the specified state @s@ and input @i@.
 boundAction :: (Ord i) => Binding s i -> s -> i -> Maybe (Action IO (Binding s i))
@@ -139,12 +138,13 @@ boundInputs' :: Binding' bs fs i -> bs -> fs -> [i]
 boundInputs' b bs fs = fmap fst $ boundActions' b bs fs
 
 -- | Build a 'Binding' with no explicit or implicit state.
-binds :: Ord i
-         => [(i, Action IO ())] -- ^ Bound pairs of input symbols and 'Action'.
-         -> Binding' bs fs i
-         -- ^ Result Binding. The given bindings are activated
-         -- regardless of the back-end or front-end state.
-binds blist = Binding' $ \bs _ -> (fmap . fmap) (const (binds blist, bs)) $ M.fromList blist
+binding :: Ord i
+        => [(i, Action IO ())] -- ^ Bound pairs of input symbols and 'Action'.
+        -> Binding' bs fs i
+        -- ^ Result Binding. The given bindings are activated
+        -- regardless of the back-end or front-end state.
+binding blist = impl where
+  impl = Binding' $ \bs _ -> (fmap . fmap) (const (impl, bs)) $ M.fromList blist
 
 -- | Build a single pair of binding.
 on :: i -> ActionDescription -> m a -> (i, Action m a)
@@ -195,7 +195,7 @@ whenBack p = whenBoth $ \bs _ -> p bs
 whenBoth :: (bs -> fs -> Bool) -- ^ The predicate.
          -> Binding' bs fs i -- ^ Enabled if the predicate is 'True'.
          -> Binding' bs fs i
-whenBoth p b = ifBoth p b noBinds
+whenBoth p b = ifBoth p b noBinding
 
 mapResult :: Functor m => (a -> a') -> (b -> b') -> M.Map i (Action m (a, b)) -> M.Map i (Action m (a',b'))
 mapResult amapper bmapper = (fmap . fmap) (\(a, b) -> (amapper a, bmapper b))
@@ -240,13 +240,13 @@ extend b = Binding' $ \bs fs ->
 
 -- | Build a 'Binding'' with an explicit state (but no implicit
 -- state).
-binds' :: Ord i
-       => [(i, Action (StateT bs IO) ())] -- ^ stateful binding lists
-       -> Binding' bs fs i
-       -- ^ The result 'Binding''. The given bindings are activated
-       -- regardless of the back-end or front-end state.
-binds' blists = Binding' $ \bs _ ->
-  fmap (runStatefulAction (binds' blists) bs) $ M.fromList $ blists
+binding' :: Ord i
+         => [(i, Action (StateT bs IO) ())] -- ^ stateful binding lists
+         -> Binding' bs fs i
+         -- ^ The result 'Binding''. The given bindings are activated
+         -- regardless of the back-end or front-end state.
+binding' blists = impl where
+  impl = Binding' $ \bs _ -> fmap (runStatefulAction impl bs) $ M.fromList $ blists
 
 runStatefulAction :: Binding' bs fs i -> bs -> Action (StateT bs IO) () -> Action IO (Binding' bs fs i, bs)
 runStatefulAction next_b' cur_bs state_action =
