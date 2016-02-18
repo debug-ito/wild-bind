@@ -33,10 +33,10 @@ _write :: MonadIO m => TChan a -> a -> m ()
 _write tc = liftIO . atomically . writeTChan tc
 
 outChanOn :: MonadIO m => TChan a -> i -> a -> (i, WBB.Action m ())
-outChanOn out_chan input out_elem = WBB.on input "" (out_chan `_write` out_elem)
+outChanOn out_chan input out_elem = (input, WBB.Action "" (out_chan `_write` out_elem))
 
 outChanOnS :: TChan a -> i -> a -> bs -> (i, WBB.Action (State.StateT bs IO) ())
-outChanOnS out_chan input out_elem next_state = WBB.on input "" $ do
+outChanOnS out_chan input out_elem next_state = (,) input $ WBB.Action "" $ do
   liftIO $ atomically $ writeTChan out_chan out_elem
   State.put next_state
 
@@ -83,8 +83,8 @@ wildBindSpec = do
   describe "wildBind" $ do
     it "should enable input grabs" $ do
       ochan <- newTChanIO
-      let b = WBB.binds [outChanOn ochan SIa 'A',
-                         outChanOn ochan SIb 'B']
+      let b = WBB.binding [outChanOn ochan SIa 'A',
+                           outChanOn ochan SIb 'B']
       withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
         emitEvent echan $ WBF.FEChange $ SS ""
         emitEvent echan $ WBF.FEInput SIa
@@ -93,11 +93,11 @@ wildBindSpec = do
         ghist `shouldMatchList` [GSet SIa, GSet SIb]
     it "should enable/disable grabs when the front-end state changes" $ do
       ochan <- newTChanIO
-      let b = (WBB.whenFront (\(SS s) -> s == "A") $ WBB.binds [outChanOn ochan SIa 'A'])
+      let b = (WBB.whenFront (\(SS s) -> s == "A") $ WBB.binding [outChanOn ochan SIa 'A'])
               <>
-              (WBB.whenFront (\(SS s) -> s == "B") $ WBB.binds [outChanOn ochan SIb 'B'])
+              (WBB.whenFront (\(SS s) -> s == "B") $ WBB.binding [outChanOn ochan SIb 'B'])
               <>
-              (WBB.whenFront (\(SS s) -> s == "C") $ WBB.binds [outChanOn ochan SIc 'C'])
+              (WBB.whenFront (\(SS s) -> s == "C") $ WBB.binding [outChanOn ochan SIc 'C'])
       withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
         mapM_ (emitEvent echan) $ changeAndInput (SS "A") SIa
         ochan `shouldProduce` 'A'
@@ -113,8 +113,8 @@ wildBindSpec = do
         gchan `shouldNowMatch` [GUnset SIc]
     it "should enable/disable grabs when the back-end state changes" $ do
       ochan <- newTChanIO
-      let b' = WBB.ifBack (== (SB 0)) (WBB.binds' [outChanOnS ochan SIa 'A' (SB 1)])
-               $ WBB.whenBack (== (SB 1)) (WBB.binds' [outChanOnS ochan SIb 'B' (SB 0)])
+      let b' = WBB.ifBack (== (SB 0)) (WBB.binding' [outChanOnS ochan SIa 'A' (SB 1)])
+               $ WBB.whenBack (== (SB 1)) (WBB.binding' [outChanOnS ochan SIb 'B' (SB 0)])
           b = WBB.startFrom (SB 0) b'
       withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
         emitEvent echan $ WBF.FEChange (SS "")
@@ -141,9 +141,10 @@ optionSpec = do
       hook_chan <- newTChanIO
       out_chan <- newTChanIO
       let opt = WBE.def { WBE.optBindingHook = _write hook_chan }
-          b = WBB.whenFront (== SS "hoge") $ WBB.binds [
-            WBB.on SIa "a button" (out_chan `_write` 'a'),
-            WBB.on SIb "b button" (out_chan `_write` 'b') ]
+          b = WBB.whenFront (== SS "hoge")
+              $ WBB.binding [ (SIa, WBB.Action "a button" (out_chan `_write` 'a')),
+                              (SIb, WBB.Action "b button" (out_chan `_write` 'b'))
+                            ]
       withWildBind' (WBE.wildBind' opt b) $ \(EventChan echan) (GrabChan gchan) -> do
         emitEvent echan $ WBF.FEChange (SS "hoge")
         hook_chan `shouldNextMatch` [(SIa, "a button"), (SIb, "b button")]
@@ -159,9 +160,10 @@ optionSpec = do
       out_chan <- newTChanIO
       let opt = WBE.def { WBE.optBindingHook = _write hook_chan  }
           b = WBB.startFrom (SB 0)
-              $ WBB.ifBack (== (SB 0)) (WBB.binds' [WBB.on SIa "a button" (out_chan `_write` 'a' >> State.put (SB 1))])
-              $ WBB.whenBack (== (SB 1)) ( WBB.binds' [WBB.on SIa "A BUTTON" (out_chan `_write` 'A' >> State.put (SB 0)),
-                                                       WBB.on SIc "c button" (out_chan `_write` 'c')]
+              $ WBB.ifBack (== (SB 0))
+              (WBB.binding' [(SIa, WBB.Action "a button" (out_chan `_write` 'a' >> State.put (SB 1)))])
+              $ WBB.whenBack (== (SB 1)) ( WBB.binding' [(SIa, WBB.Action "A BUTTON" (out_chan `_write` 'A' >> State.put (SB 0))),
+                                                         (SIc, WBB.Action "c button" (out_chan `_write` 'c'))]
                                          )
       withWildBind' (WBE.wildBind' opt b) $ \(EventChan echan) (GrabChan gchan) -> do
         emitEvent echan $ WBF.FEChange (SS "")
