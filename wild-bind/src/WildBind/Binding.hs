@@ -109,23 +109,23 @@ noBinding = Binding' $ \_ _ -> M.empty
 
 -- | Get the 'Action' bound to the specified state @s@ and input @i@.
 boundAction :: (Ord i) => Binding s i -> s -> i -> Maybe (Action IO (Binding s i))
-boundAction binding state input = (fmap . fmap) fst $ boundAction' binding () state input
+boundAction b state input = (fmap . fmap) fst $ boundAction' b () state input
 
 -- | Get the 'Action' bound to the specified back-end state @bs@,
 -- front-end state @fs@ and input @i@
 boundAction' :: (Ord i) => Binding' bs fs i -> bs -> fs -> i -> Maybe (Action IO (Binding' bs fs i, bs))
-boundAction' binding bs fs input = M.lookup input $ unBinding' binding bs fs
+boundAction' b bs fs input = M.lookup input $ unBinding' b bs fs
 
 -- | Get the list of all bound inputs @i@ and their corresponding
 -- actions for the specified front-end state @s@.
 boundActions :: Binding s i -> s -> [(i, Action IO (Binding s i))]
-boundActions binding state = fmap (\(i, act) -> (i, fmap fst act)) $ boundActions' binding () state
+boundActions b state = fmap (\(i, act) -> (i, fmap fst act)) $ boundActions' b () state
 
 -- | Get the list of all bound inputs @i@ and their corresponding
 -- actions for the specified back-end state @bs@ and front-end state
 -- @fs@.
 boundActions' :: Binding' bs fs i -> bs -> fs -> [(i, Action IO (Binding' bs fs i, bs))]
-boundActions' binding bs fs = M.toList $ unBinding' binding bs fs
+boundActions' b bs fs = M.toList $ unBinding' b bs fs
 
 -- | Get the list of all bound inputs @i@ for the specified front-end
 -- state @s@.
