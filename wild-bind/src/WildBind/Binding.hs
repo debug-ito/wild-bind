@@ -20,6 +20,9 @@ module WildBind.Binding
          -- described below and 'mappend' them together.
          
          noBinding,
+         Binder,
+         binds,
+         binds',
          binding,
          binding',
          
@@ -54,8 +57,9 @@ module WildBind.Binding
        ) where
 
 import Control.Monad.Trans.State (StateT, runStateT)
+import Control.Monad.Trans.Writer (Writer)
 import qualified Data.Map as M
-import Data.Monoid (Monoid(..))
+import Data.Monoid (Monoid(..), Endo)
 import Lens.Micro ((^.), (.~), (&))
 import qualified Lens.Micro as Lens
 
@@ -137,12 +141,27 @@ boundInputs b s = fmap fst $ boundActions b s
 boundInputs' :: Binding' bs fs i -> bs -> fs -> [i]
 boundInputs' b bs fs = fmap fst $ boundActions' b bs fs
 
--- | Build a 'Binding' with no explicit or implicit state.
-binding :: Ord i
-        => [(i, Action IO ())] -- ^ Bound pairs of input symbols and 'Action'.
-        -> Binding' bs fs i
-        -- ^ Result Binding. The given bindings are activated
-        -- regardless of the back-end or front-end state.
+
+-- | A monad to construct 'Binding''. @i@ is the input symbol, and @v@
+-- is supposed to be the 'Action' bound to @i@.
+type Binder i v = Writer (Endo [(i, v)])
+
+-- | Build a 'Binding' with no explicit or implicit state. The bound
+-- actions are activated regardless of the back-end or front-end
+-- state.
+binds :: Ord i => Binder i (Action IO ()) a -> Binding' bs fs i
+binds = undefined
+
+-- | Build a 'Binding'' with an explicit state (but no implicit
+-- state). The bound actions are activated regardless of the back-end
+-- or front-end state.
+binds' :: Ord i => Binder i (Action (StateT bs IO) ()) a -> Binding' bs fs i
+binds' = undefined
+
+
+
+-- | Non-monadic version of 'binds'.
+binding :: Ord i => [(i, Action IO ())] -> Binding' bs fs i
 binding blist = impl where
   impl = Binding' $ \bs _ -> (fmap . fmap) (const (impl, bs)) $ M.fromList blist
 
@@ -238,13 +257,8 @@ extend :: Binding fs i -> Binding' bs fs i
 extend b = Binding' $ \bs fs ->
   mapResult extend (const bs) $ unBinding' b () fs
 
--- | Build a 'Binding'' with an explicit state (but no implicit
--- state).
-binding' :: Ord i
-         => [(i, Action (StateT bs IO) ())] -- ^ stateful binding lists
-         -> Binding' bs fs i
-         -- ^ The result 'Binding''. The given bindings are activated
-         -- regardless of the back-end or front-end state.
+-- | Non-monadic version of 'binds''.
+binding' :: Ord i => [(i, Action (StateT bs IO) ())] -> Binding' bs fs i
 binding' blists = impl where
   impl = Binding' $ \bs _ -> fmap (runStatefulAction impl bs) $ M.fromList $ blists
 
