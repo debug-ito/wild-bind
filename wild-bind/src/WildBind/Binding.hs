@@ -23,6 +23,9 @@ module WildBind.Binding
          Binder,
          binds,
          binds',
+         on,
+         run,
+         as,
          binding,
          binding',
          
@@ -57,9 +60,9 @@ module WildBind.Binding
        ) where
 
 import Control.Monad.Trans.State (StateT, runStateT)
-import Control.Monad.Trans.Writer (Writer)
+import Control.Monad.Trans.Writer (Writer, tell)
 import qualified Data.Map as M
-import Data.Monoid (Monoid(..), Endo)
+import Data.Monoid (Monoid(..), Endo(Endo))
 import Lens.Micro ((^.), (.~), (&))
 import qualified Lens.Micro as Lens
 
@@ -158,17 +161,22 @@ binds = undefined
 binds' :: Ord i => Binder i (Action (StateT bs IO) ()) a -> Binding' bs fs i
 binds' = undefined
 
+-- | Create a 'Binder' that binds the action @v@ to the input @i@.
+on :: i -> v -> Binder i v ()
+on i v = tell $ Endo ((i,v) :)
 
+-- | Create an 'Action' that has empty 'ActionDescription'.
+run :: m a -> Action m a
+run a = Action { actDescription = "", actDo = a }
+
+-- | Set 'ActionDescription' to the given action.
+as :: ActionDescription -> Action m a -> Action m a
+as desc act = act { actDescription = desc }
 
 -- | Non-monadic version of 'binds'.
 binding :: Ord i => [(i, Action IO ())] -> Binding' bs fs i
 binding blist = impl where
   impl = Binding' $ \bs _ -> (fmap . fmap) (const (impl, bs)) $ M.fromList blist
-
--- | Build a single pair of binding.
-on :: i -> ActionDescription -> m a -> (i, Action m a)
-on input desc act = (input, Action { actDescription = desc, actDo = act })
-
 
 -- | Create a binding that behaves differently for different front-end
 -- states @fs@.
