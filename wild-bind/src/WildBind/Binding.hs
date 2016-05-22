@@ -60,9 +60,9 @@ module WildBind.Binding
        ) where
 
 import Control.Monad.Trans.State (StateT, runStateT)
-import Control.Monad.Trans.Writer (Writer, tell)
+import Control.Monad.Trans.Writer (Writer, tell, execWriter)
 import qualified Data.Map as M
-import Data.Monoid (Monoid(..), Endo(Endo))
+import Data.Monoid (Monoid(..), Endo(Endo, appEndo))
 import Lens.Micro ((^.), (.~), (&))
 import qualified Lens.Micro as Lens
 
@@ -149,17 +149,20 @@ boundInputs' b bs fs = fmap fst $ boundActions' b bs fs
 -- is supposed to be the 'Action' bound to @i@.
 type Binder i v = Writer (Endo [(i, v)])
 
+runBinder :: Binder i v a -> [(i, v)] -> [(i, v)]
+runBinder = appEndo . execWriter
+
 -- | Build a 'Binding' with no explicit or implicit state. The bound
 -- actions are activated regardless of the back-end or front-end
 -- state.
 binds :: Ord i => Binder i (Action IO ()) a -> Binding' bs fs i
-binds = undefined
+binds = binding . flip runBinder []
 
 -- | Build a 'Binding'' with an explicit state (but no implicit
 -- state). The bound actions are activated regardless of the back-end
 -- or front-end state.
 binds' :: Ord i => Binder i (Action (StateT bs IO) ()) a -> Binding' bs fs i
-binds' = undefined
+binds' = binding' . flip runBinder []
 
 -- | Create a 'Binder' that binds the action @v@ to the input @i@.
 on :: i -> v -> Binder i v ()

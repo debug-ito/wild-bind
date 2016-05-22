@@ -103,6 +103,7 @@ spec = do
   spec_stateful
   spec_extend
   spec_conditionBoth
+  spec_monadic
 
 spec_stateless :: Spec
 spec_stateless = do
@@ -500,4 +501,42 @@ spec_conditionBoth = do
       execAll (SS "1") [SIb]
       checkOut "+p-mm"
       
+spec_monadic :: Spec
+spec_monadic = describe "Monadic construction of Binding" $ do
+  describe "binds" $ do
+    it "constructs stateless Binding" $ withStrRef $ \out checkOut -> do
+      let putOut c = modifyIORef out (++ [c])
+          b = WB.binds $ do
+            WB.on SIa $ WB.run $ putOut 'a'
+            WB.on SIb $ WB.run $ do
+              putOut 'b'
+              putOut 'B'
+      actRun $ WB.boundAction b (SS "") SIa
+      checkOut "a"
+      actRun $ WB.boundAction b (SS "") SIb
+      checkOut "abB"
+  describe "binds'" $ do
+    it "constructs stateful Binding" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      State.put $ WB.startFrom (SB 0) $ WB.binds' $ do
+        WB.on SIa $ WB.run $ State.modify $ \(SB v) -> SB (v + 1)
+        WB.on SIb $ WB.run $ State.modify $ \(SB v) -> SB (v - 1)
+        WB.on SIc $ WB.run $ do
+          (SB cur) <- State.get
+          liftIO $ modifyIORef out (++ show cur)
+      execAll' [SIa, SIa, SIa]
+      checkOut ""
+      execAll' [SIc]
+      checkOut "3"
+      execAll' [SIb, SIb]
+      checkOut "3"
+      execAll' [SIc]
+      checkOut "31"
+  describe "as" $ do
+    it "sets ActionDescription" $ do
+      let b = WB.binds $ do
+            WB.on SIa $ WB.as "action for a" $ WB.run $ return ()
+            WB.on SIb $ WB.as "action for b" $ WB.run $ return ()
+      (WB.actDescription <$> WB.boundAction b (SS "") SIa) `shouldBe` Just "action for a"
+      (WB.actDescription <$> WB.boundAction b (SS "") SIb) `shouldBe` Just "action for b"
+      (WB.actDescription <$> WB.boundAction b (SS "") SIc) `shouldBe` Nothing
 
