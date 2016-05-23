@@ -155,6 +155,9 @@ runBinder = appEndo . execWriter
 -- | Build a 'Binding' with no explicit or implicit state. The bound
 -- actions are activated regardless of the back-end or front-end
 -- state.
+--
+-- If different actions are bound to the same input, the latter action
+-- wins.
 binds :: Ord i => Binder i (Action IO ()) a -> Binding' bs fs i
 binds = binding . flip runBinder []
 

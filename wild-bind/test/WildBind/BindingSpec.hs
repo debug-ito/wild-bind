@@ -123,6 +123,13 @@ spec_stateless = do
       checkOut "A"
       actRun $ WB.boundAction b (SS "") SIb
       checkOut "AB"
+    it "prefers the latter action if multiple actions are bound to the same input" $ withStrRef $ \out checkOut -> do
+      let b = WB.binding [ outOn out SIa '1',
+                           outOn out SIa '2',
+                           outOn out SIa '3'
+                         ]
+      actRun $ WB.boundAction b (SS "") SIa
+      checkOut "3"
   describe "whenFront" $ do
     it "adds a condition on the front-end state" $ withStrRef $ \out checkOut -> do
       let b = WB.whenFront (\(SS s) -> s == "hoge") $ WB.binding [outOn out SIa 'A']
@@ -265,6 +272,13 @@ spec_stateful = do
       WB.boundInputs' b (SB 10) (SS "hoge") `shouldBe` [SIa]
       void $ inputAll (WB.startFrom (SB 0) b) (SS "") $ replicate 12 SIa
       checkOut "012345678911"
+    it "prefers the latter action if multiple actions are bound to the same input" $ withStrRef $ \out checkOut -> do
+      let b = WB.startFrom (SB 0) $ WB.binding' [ outOn out SIa '1',
+                                                  outOn out SIa '2',
+                                                  outOn out SIa '3'
+                                                ]
+      actRun $ WB.boundAction b (SS "") SIa
+      checkOut "3"
     it "can create a stateful Binding with different bound inputs for different back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       State.put $ WB.startFrom (SB 0)
         $ WB.ifBack (== (SB 0)) (WB.binding' [outOnS out SIa 'A' (\_ -> SB 1)])
@@ -515,6 +529,13 @@ spec_monadic = describe "Monadic construction of Binding" $ do
       checkOut "a"
       actRun $ WB.boundAction b (SS "") SIb
       checkOut "abB"
+    it "prefers the latter action if multiple actions are bound to the same input" $ withStrRef $ \out checkOut -> do
+      let b = WB.binds $ do
+            WB.on SIa $ WB.run $ modifyIORef out (++ "1")
+            WB.on SIa $ WB.run $ modifyIORef out (++ "2")
+            WB.on SIa $ WB.run $ modifyIORef out (++ "3")
+      actRun $ WB.boundAction b (SS "") SIa
+      checkOut "3"
   describe "binds'" $ do
     it "constructs stateful Binding" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       State.put $ WB.startFrom (SB 0) $ WB.binds' $ do
@@ -531,6 +552,13 @@ spec_monadic = describe "Monadic construction of Binding" $ do
       checkOut "3"
       execAll' [SIc]
       checkOut "31"
+    it "prefers the latter action if multiple actions are bound to the same input" $ withStrRef $ \out checkOut -> do
+      let b = WB.startFrom (SB 0) $ WB.binds' $ do
+            WB.on SIa $ WB.run $ liftIO $ modifyIORef out (++ "1")
+            WB.on SIa $ WB.run $ liftIO $ modifyIORef out (++ "2")
+            WB.on SIa $ WB.run $ liftIO $ modifyIORef out (++ "3")
+      actRun $ WB.boundAction b (SS "") SIa
+      checkOut "3"
   describe "as" $ do
     it "sets ActionDescription" $ do
       let b = WB.binds $ do
