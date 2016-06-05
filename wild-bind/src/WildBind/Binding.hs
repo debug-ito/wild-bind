@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- |
 -- Module: WildBind.Binding
 -- Description: Functions to build Binding
@@ -147,10 +148,11 @@ boundInputs' b bs fs = fmap fst $ boundActions' b bs fs
 
 -- | A monad to construct 'Binding''. @i@ is the input symbol, and @v@
 -- is supposed to be the 'Action' bound to @i@.
-type Binder i v = Writer (Endo [(i, v)])
+newtype Binder i v a = Binder { unBinder :: Writer (Endo [(i, v)]) a }
+                       deriving (Monad,Applicative,Functor)
 
 runBinder :: Binder i v a -> [(i, v)] -> [(i, v)]
-runBinder = appEndo . execWriter
+runBinder = appEndo . execWriter . unBinder
 
 -- | Build a 'Binding' with no explicit or implicit state. The bound
 -- actions are activated regardless of the back-end or front-end
@@ -169,7 +171,7 @@ binds' = binding' . flip runBinder []
 
 -- | Create a 'Binder' that binds the action @v@ to the input @i@.
 on :: i -> v -> Binder i v ()
-on i v = tell $ Endo ((i,v) :)
+on i v = Binder $ tell $ Endo ((i,v) :)
 
 -- | Create an 'Action' that has empty 'ActionDescription'.
 run :: m a -> Action m a
