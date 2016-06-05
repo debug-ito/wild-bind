@@ -249,7 +249,7 @@ convInput mapper orig_bind = Binding' $ \bs fs ->
 convBack :: (bs -> bs') -> (bs' -> bs) -> Binding' bs fs i -> Binding' bs' fs i
 convBack mapper cmapper = extendAt $ Lens.lens cmapper (\_ bs -> mapper bs)
 
--- | Extend the given 'Binding'' with the given 'Lens'', so that the
+-- | Extend the given 'Binding'' with the given 'Lens.Lens'', so that the
 -- 'Binding'' can be part of a 'Binding'' with the bigger state @bs'@
 extendAt :: Lens.Lens' bs' bs -- ^ a lens that focuses on @bs@, which is part of the bigger state @bs'@.
          -> Binding' bs fs i
