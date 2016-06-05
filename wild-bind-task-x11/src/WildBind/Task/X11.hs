@@ -47,7 +47,8 @@ import WildBind.X11.Internal.Key (KeySymLike, ModifierLike)
 -- 'FrontEnd' and 'Indicator' for a number pad.
 --
 -- > main :: IO ()
--- > main = wildNumPad $ binds [on NumCenter "test" $ putStrLn "You pushed center."]
+-- > main = wildNumPad $ binds $ do
+-- >   on NumCenter $ run $ putStrLn "You pushed center."
 -- 
 -- Note that the executable must be compiled by ghc with
 -- __@-threaded@ option enabled.__
