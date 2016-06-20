@@ -173,13 +173,20 @@ binds' = binding' . flip runBinder []
 on :: i -> v -> Binder i v ()
 on i v = Binder $ tell $ Endo ((i,v) :)
 
--- | Create an 'Action' that has empty 'ActionDescription'.
-run :: m a -> Action m a
-run a = Action { actDescription = "", actDo = a }
+-- | Transform the given action @m a@ into an 'Action' and apply the
+-- continuation to it. Usually used as an operator.
+run :: (Action m a -> b) -> m a -> b
+run cont raw_act = cont $ Action { actDescription = "", actDo = raw_act }
 
--- | Set 'ActionDescription' to the given action.
-as :: ActionDescription -> Action m a -> Action m a
-as desc act = act { actDescription = desc }
+infixl 2 `run`
+
+-- | Transform the given continuation so that the 'ActionDescription'
+-- is set to the 'Action' passed to the continuation. Usually used as
+-- an operator.
+as :: (Action m a -> b) -> ActionDescription -> Action m a -> b
+as cont desc act = cont $ act { actDescription = desc }
+
+infixl 2 `as`
 
 -- | Non-monadic version of 'binds'.
 binding :: Ord i => [(i, Action IO ())] -> Binding' bs fs i
