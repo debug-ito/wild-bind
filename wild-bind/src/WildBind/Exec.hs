@@ -9,7 +9,7 @@ module WildBind.Exec
          wildBind',
          -- * Option for executable
          Option,
-         def,
+         defOption,
          -- ** Accessor functions for 'Option'
          optBindingHook
        ) where
@@ -19,7 +19,6 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.Reader as Reader
 import qualified Control.Monad.Trans.State as State
-import Data.Default.Class (Default(def))
 import Data.List ((\\))
 
 import WildBind.Description (ActionDescription)
@@ -44,7 +43,7 @@ updateGrab f before after = do
 
 -- | Combines the 'FrontEnd' and the 'Binding' and returns the executable.
 wildBind :: (Ord i) => Binding s i -> FrontEnd s i -> IO ()
-wildBind = wildBind' def
+wildBind = wildBind' defOption
 
 -- | Build the executable with 'Option'.
 wildBind' :: (Ord i) => Option s i -> Binding s i -> FrontEnd s i -> IO ()
@@ -53,19 +52,16 @@ wildBind' opt binding front =
 
 -- | WildBind configuration options.
 --
--- You can get the default value of 'Option' by 'def' funcion, and
--- modify its members via accessor functions listed below.
+-- You can get the default value of 'Option' by 'defOption' funcion,
+-- and modify its members via accessor functions listed below.
 data Option s i =
   Option { optBindingHook :: [(i, ActionDescription)] -> IO ()
            -- ^ An action executed when current binding may be
            -- changed. Default: do nothing.
          }
 
-instance Default (Option s i) where
-  def = Option { optBindingHook = const $ return () }
-
-
----
+defOption :: Option s i
+defOption = Option { optBindingHook = const $ return () }
 
 -- | Internal state. fst is the current Binding, snd is the current front-end state.
 type WBState s i = (Binding s i, Maybe s)

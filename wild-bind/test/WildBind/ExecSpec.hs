@@ -140,7 +140,7 @@ optionSpec = do
     it "hooks change of binding because front-end state changes" $ do
       hook_chan <- newTChanIO
       out_chan <- newTChanIO
-      let opt = WBE.def { WBE.optBindingHook = _write hook_chan }
+      let opt = WBE.defOption { WBE.optBindingHook = _write hook_chan }
           b = WBB.whenFront (== SS "hoge")
               $ WBB.binding [ (SIa, WBB.Action "a button" (out_chan `_write` 'a')),
                               (SIb, WBB.Action "b button" (out_chan `_write` 'b'))
@@ -158,7 +158,7 @@ optionSpec = do
     it "hooks change of binding because back-end state changes" $ do
       hook_chan <- newTChanIO
       out_chan <- newTChanIO
-      let opt = WBE.def { WBE.optBindingHook = _write hook_chan  }
+      let opt = WBE.defOption { WBE.optBindingHook = _write hook_chan  }
           b = WBB.startFrom (SB 0)
               $ WBB.ifBack (== (SB 0))
               (WBB.binding' [(SIa, WBB.Action "a button" (out_chan `_write` 'a' >> State.put (SB 1)))])

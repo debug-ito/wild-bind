@@ -30,8 +30,7 @@ library
                         text,
                         containers,
                         transformers,
-                        microlens,
-                        data-default-class
+                        microlens
 
 -- executable wild-bind
 --   default-language:     Haskell2010

@@ -54,7 +54,7 @@ import qualified Graphics.UI.Gtk as G (get, set, on)
 
 import WildBind ( ActionDescription, Option(optBindingHook),
                   FrontEnd(frontDefaultDescription), Binding,
-                  wildBind', def
+                  wildBind', defOption
                 )
 import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
 
@@ -170,7 +170,7 @@ withNumPadIndicator action = do
 -- | Run 'WildBind.wildBind' with the given 'Indicator'. 'ActionDescription's
 -- are shown by the 'Indicator'.
 wildBindWithIndicator :: (Ord i, Enum i, Bounded i) => Indicator s i -> Binding s i -> FrontEnd s i -> IO ()
-wildBindWithIndicator ind binding front = wildBind' (def { optBindingHook = bindingHook ind front }) binding front
+wildBindWithIndicator ind binding front = wildBind' (defOption { optBindingHook = bindingHook ind front }) binding front
 
 -- | Create an action appropriate for 'optBindingHook' in 'Option'
 -- from 'Indicator' and 'FrontEnd'.
