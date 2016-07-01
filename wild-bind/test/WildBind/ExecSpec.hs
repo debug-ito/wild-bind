@@ -128,6 +128,16 @@ wildBindSpec = do
         ochan `shouldProduce` 'B'
         threadDelay 10000
         gchan `shouldNowMatch` [GUnset SIb, GSet SIa]
+    it "should crush expeptions from bound actions" $ do
+      ochan <- newTChanIO
+      let b = WBB.binds $ do
+            WBB.on SIa `WBB.run` (fail "ERROR!!")
+            WBB.on SIb `WBB.run` (atomically $ writeTChan ochan 'b')
+      withWildBind b $ \(EventChan echan) _ -> do
+        emitEvent echan $ WBF.FEChange (SS "")
+        emitEvent echan $ WBF.FEInput SIa
+        emitEvent echan $ WBF.FEInput SIa
+        ochan `shouldProduce` 'b'
 
 shouldNextMatch :: (Show a, Eq a) => TChan [a] -> [a] -> IO ()
 shouldNextMatch tc expected = do
