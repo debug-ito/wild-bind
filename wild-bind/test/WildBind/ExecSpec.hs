@@ -129,7 +129,7 @@ wildBindSpec = do
         ochan `shouldProduce` 'B'
         threadDelay 10000
         gchan `shouldNowMatch` [GUnset SIb, GSet SIa]
-    it "should crush expeptions from bound actions" $ do
+    it "should crush exceptions from bound actions" $ do
       ochan <- newTChanIO
       let b = WBB.binds $ do
             WBB.on SIa `WBB.run` (fail "ERROR!!")
@@ -139,6 +139,32 @@ wildBindSpec = do
         emitEvent echan $ WBF.FEInput SIa
         emitEvent echan $ WBF.FEInput SIa
         ochan `shouldProduce` 'b'
+    it "should keep the current back-state when exception is thrown from bound actions" $ do
+      ochan <- newTChanIO
+      let killing_b = WBB.binds' $ WBB.on SIa `WBB.run` do
+            State.put (SB 0)
+            liftIO $ fail "ERROR!"
+          b = WBB.startFrom (SB 0) $ (killing_b <>)
+              $ WBB.ifBack (== SB 0)
+              ( WBB.binds' $ WBB.on SIb `WBB.run` do
+                   liftIO $ atomically $ writeTChan ochan 'b'
+                   State.put (SB 1)
+              )
+              ( WBB.binds' $ WBB.on SIc `WBB.run` do
+                   liftIO $ atomically $ writeTChan ochan 'c'
+                   State.put (SB 0)
+              )
+      withWildBind b $ \(EventChan echan) (GrabChan gchan) -> do
+        emitEvent echan $ WBF.FEChange (SS "")
+        emitEvent echan $ WBF.FEInput SIa
+        emitEvent echan $ WBF.FEInput SIb
+        ochan `shouldProduce` 'b'
+        gchan `shouldNowMatch` [GSet SIa, GSet SIb,  GUnset SIb, GSet SIc]
+        emitEvent echan $ WBF.FEInput SIa
+        emitEvent echan $ WBF.FEInput SIc
+        ochan `shouldProduce` 'c'
+        gchan `shouldNowMatch` [GUnset SIc, GSet SIb]
+
 
 shouldNextMatch :: (Show a, Eq a) => TChan [a] -> [a] -> IO ()
 shouldNextMatch tc expected = do
