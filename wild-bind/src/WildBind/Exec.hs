@@ -107,20 +107,27 @@ updateBinding front after_binding = do
     Just state -> updateWBState front after_binding state
 
 wildBindInContext :: (Ord i) => FrontEnd s i -> WBContext s i ()
-wildBindInContext front = do
-  event <- liftIO $ frontNextEvent front
-  case event of
-    FEChange state ->
-      updateFrontState front state
-    FEInput input -> do
-      (cur_binding, mcur_state) <- State.get
-      case mcur_state >>= \s -> (,) s <$> boundAction cur_binding s input of
-        Nothing -> return ()
-        Just (cur_state, action) -> do
-          handler <- optCatch <$> askOption
-          next_binding <- liftIO ( actDo action `catch` \exception -> do
-                                      handler cur_state input exception
-                                      return cur_binding
-                                 )
-          updateBinding front next_binding
-  wildBindInContext front
+wildBindInContext front = impl where
+  impl = do
+    event <- liftIO $ frontNextEvent front
+    case event of
+      FEChange state ->
+        updateFrontState front state
+      FEInput input -> do
+        (cur_binding, mcur_state) <- State.get
+        case stateAndAction cur_binding mcur_state input of
+          Nothing -> return ()
+          Just (cur_state, action) -> do
+            handler <- getExceptionHandler cur_binding cur_state input
+            next_binding <- liftIO $ actDo action `catch` handler
+            updateBinding front next_binding
+    wildBindInContext front
+  stateAndAction binding mstate input = do
+    state <- mstate
+    action <- boundAction binding state input
+    return (state, action)
+  getExceptionHandler binding state input = do
+    opt_catch <- optCatch <$> askOption
+    return $ \e -> do
+      opt_catch state input e
+      return binding
