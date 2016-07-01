@@ -11,15 +11,18 @@ module WildBind.Exec
          Option,
          defOption,
          -- ** Accessor functions for 'Option'
-         optBindingHook
+         optBindingHook,
+         optCatch
        ) where
 
 import Control.Applicative ((<$>))
+import Control.Exception (SomeException)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.Reader as Reader
 import qualified Control.Monad.Trans.State as State
 import Data.List ((\\))
+import System.IO (hPutStrLn, stderr)
 
 import WildBind.Description (ActionDescription)
 import WildBind.FrontEnd
@@ -55,13 +58,20 @@ wildBind' opt binding front =
 -- You can get the default value of 'Option' by 'defOption' funcion,
 -- and modify its members via accessor functions listed below.
 data Option s i =
-  Option { optBindingHook :: [(i, ActionDescription)] -> IO ()
+  Option { optBindingHook :: [(i, ActionDescription)] -> IO (),
            -- ^ An action executed when current binding may be
            -- changed. Default: do nothing.
+
+           optCatch :: s -> i -> SomeException -> IO ()
+           -- ^ the handler for exceptions thrown from bound
+           -- actions. Default: just print the 'SomeException' to
+           -- 'stderr' and ignore it.
          }
 
 defOption :: Option s i
-defOption = Option { optBindingHook = const $ return () }
+defOption = Option { optBindingHook = const $ return (),
+                     optCatch = \_ _ exception -> hPutStrLn stderr ("Exception from WildBind action: " ++ show exception)
+                   }
 
 -- | Internal state. fst is the current Binding, snd is the current front-end state.
 type WBState s i = (Binding s i, Maybe s)

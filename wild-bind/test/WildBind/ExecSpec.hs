@@ -3,10 +3,11 @@ module WildBind.ExecSpec (main, spec) where
 import Control.Applicative ((<$>))
 import Control.Concurrent (forkIOWithUnmask, killThread, threadDelay)
 import Control.Concurrent.STM (atomically, TChan, readTChan, tryReadTChan, writeTChan, newTChanIO)
-import Control.Exception (bracket)
+import Control.Exception (bracket, throw, fromException)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import qualified Control.Monad.Trans.State as State
 import Data.Monoid ((<>))
+import System.IO.Error (userError)
 import Test.Hspec
 
 import qualified WildBind.Binding as WBB
@@ -191,4 +192,17 @@ optionSpec = do
         out_chan `shouldProduce` 'A'
         hook_chan `shouldNextMatch` [(SIa, "a button")]
         gchan `shouldNowMatch` [GUnset SIc]
+  describe "optCatch" $ do
+    it "receives front-state, input and exception" $ do
+      hook_chan <- newTChanIO
+      let catcher fs input err = atomically $ writeTChan hook_chan (fs, input, err)
+          opt = WBE.defOption { WBE.optCatch = catcher }
+          b = WBB.binds $ WBB.on SIa `WBB.run` (throw $ userError "BOOM!")
+      withWildBind' (WBE.wildBind' opt b) $ \(EventChan echan) _ -> do
+        emitEvent echan $ WBF.FEChange (SS "front state")
+        emitEvent echan $ WBF.FEInput SIa
+        (got_state, got_input, got_exception) <- atomically $ readTChan hook_chan
+        got_state `shouldBe` SS "front state"
+        got_input `shouldBe` SIa
+        fromException got_exception `shouldBe` Just (userError "BOOM!")
         
