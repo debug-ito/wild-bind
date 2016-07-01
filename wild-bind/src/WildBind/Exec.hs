@@ -16,7 +16,7 @@ module WildBind.Exec
        ) where
 
 import Control.Applicative ((<$>))
-import Control.Exception (SomeException)
+import Control.Exception (SomeException, catch)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.Reader as Reader
@@ -114,9 +114,13 @@ wildBindInContext front = do
       updateFrontState front state
     FEInput input -> do
       (cur_binding, mcur_state) <- State.get
-      case mcur_state >>= \state -> boundAction cur_binding state input of
+      case mcur_state >>= \s -> (,) s <$> boundAction cur_binding s input of
         Nothing -> return ()
-        Just action -> do
-          next_binding <- liftIO $ actDo action
+        Just (cur_state, action) -> do
+          handler <- optCatch <$> askOption
+          next_binding <- liftIO ( actDo action `catch` \exception -> do
+                                      handler cur_state input exception
+                                      return cur_binding
+                                 )
           updateBinding front next_binding
   wildBindInContext front

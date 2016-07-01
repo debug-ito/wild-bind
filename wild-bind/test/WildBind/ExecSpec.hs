@@ -137,7 +137,7 @@ wildBindSpec = do
       withWildBind b $ \(EventChan echan) _ -> do
         emitEvent echan $ WBF.FEChange (SS "")
         emitEvent echan $ WBF.FEInput SIa
-        emitEvent echan $ WBF.FEInput SIa
+        emitEvent echan $ WBF.FEInput SIb
         ochan `shouldProduce` 'b'
     it "should keep the current back-state when exception is thrown from bound actions" $ do
       ochan <- newTChanIO
