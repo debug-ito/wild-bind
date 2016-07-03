@@ -18,3 +18,4 @@ binding :: Indicator ActiveWindow NumPadUnlockedInput -> Binding ActiveWindow Nu
 binding ind = binds $ do
   on NumEnter `as` "Toggle indicator" `run` togglePresence ind
   on NumMinus `as` "Quit" `run` quit ind
+  on NumHome `as` "BOOM!" `run` fail "exception thrown"
