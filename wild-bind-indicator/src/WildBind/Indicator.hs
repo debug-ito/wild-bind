@@ -144,7 +144,6 @@ withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO ()) -> IO ()
 withNumPadIndicator action = do
   void $ initGUI
   conf <- numPadConfig
-  let quit_action = mainQuit
   status_icon <- flip runReaderT conf $ do
     win <- newNumPadWindow
     (tab, updater) <- newNumPadTable
@@ -153,7 +152,7 @@ withNumPadIndicator action = do
           { updateDescription = \i d -> postGUIAsync $ updater i d,
             getPresence = postGUISync $ G.get win widgetVisible,
             setPresence = \visible -> postGUIAsync (if visible then widgetShowAll win else widgetHide win),
-            quit = quit_action
+            quit = postGUISync $ mainQuit
           }
     liftIO $ void $ G.on win deleteEvent $ do
       liftIO $ widgetHide win
@@ -161,7 +160,7 @@ withNumPadIndicator action = do
     liftIO $ void $ forkOS $ action indicator
     liftIO =<< statusIconNewFromFile <$> (confIconPath <$> ask)
   G.on status_icon statusIconPopupMenu $ \mbutton time -> do
-    menu <- makeStatusMenu quit_action
+    menu <- makeStatusMenu mainQuit
     menuPopup menu $ (\button -> return (button, time)) =<< mbutton
   status_icon_ref <- newIORef status_icon
   mainGUI
