@@ -3,16 +3,40 @@ module Main (main) where
 
 import Data.Monoid (mempty)
 
-import WildBind (Binding, binds, on, run, as)
+import Control.Exception (throw)
+import System.Environment (getArgs)
+import WildBind (Binding, binds, on, run, as, wildBind', defOption, optBindingHook, optCatch)
 import WildBind.Input.NumPad (NumPadUnlockedInput(..))
 import WildBind.X11 (withFrontEnd, ActiveWindow)
 import WildBind.Indicator
-  ( Indicator, withNumPadIndicator, wildBindWithIndicator, togglePresence,
-    quit
+  ( Indicator, withNumPadIndicator, wildBindWithIndicator, togglePresence, quit,
+    bindingHook
   )
 
 main :: IO ()
-main = withNumPadIndicator $ \ind -> withFrontEnd (wildBindWithIndicator ind $ binding ind)
+main = do
+  arg <- fmap headOrEmpty $ getArgs
+  withNumPadIndicator $ selectMain arg
+  where
+    headOrEmpty (h:_) = h
+    headOrEmpty _ = ""
+    selectMain arg | arg == "error" = mainError
+                   | otherwise = mainDefault
+
+mainDefault :: Indicator ActiveWindow NumPadUnlockedInput -> IO ()
+mainDefault ind = do
+  putStrLn "mainDefault"
+  withFrontEnd (wildBindWithIndicator ind $ binding ind)
+
+mainError :: Indicator ActiveWindow NumPadUnlockedInput -> IO ()
+mainError ind = do
+  putStrLn "mainError"
+  withFrontEnd $ \front -> wildBind' (my_option front) (binding ind) front
+  where
+    my_option front = defOption { optBindingHook = bindingHook ind front,
+                                  optCatch = rethrower
+                                }
+    rethrower _ _ e = throw e
 
 binding :: Indicator ActiveWindow NumPadUnlockedInput -> Binding ActiveWindow NumPadUnlockedInput
 binding ind = binds $ do
