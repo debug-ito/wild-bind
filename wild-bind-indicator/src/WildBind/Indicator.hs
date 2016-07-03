@@ -159,7 +159,7 @@ withNumPadIndicator action = do
       return True -- Do not emit 'destroy' signal
     liftIO $ void $ forkOS $ action indicator
     liftIO =<< statusIconNewFromFile <$> (confIconPath <$> ask)
-  G.on status_icon statusIconPopupMenu $ \mbutton time -> do
+  void $ G.on status_icon statusIconPopupMenu $ \mbutton time -> do
     menu <- makeStatusMenu mainQuit
     menuPopup menu $ (\button -> return (button, time)) =<< mbutton
   status_icon_ref <- newIORef status_icon
@@ -253,5 +253,5 @@ makeStatusMenu quit_action = do
   quit_item <- menuItemNewWithMnemonic ("_Quit" :: Text)
   containerAdd menu quit_item
   widgetShowAll quit_item
-  G.on quit_item menuItemActivated quit_action
+  void $ G.on quit_item menuItemActivated quit_action
   return menu
