@@ -48,7 +48,8 @@ import Graphics.UI.Gtk
     containerAdd,
     deleteEvent,
     statusIconNewFromFile, statusIconPopupMenu,
-    Menu, menuNew, menuItemNewWithMnemonic, menuItemActivated, menuPopup
+    Menu, menuNew, menuItemNewWithMnemonic, menuItemActivated, menuPopup,
+    checkMenuItemNewWithMnemonic, checkMenuItemSetActive, checkMenuItemToggled
   )
 import qualified Graphics.UI.Gtk as G (get, set, on)
 import System.IO (stderr, hPutStrLn)
@@ -159,10 +160,11 @@ withNumPadIndicator action = do
       liftIO $ widgetHide win
       return True -- Do not emit 'destroy' signal
     liftIO $ void $ forkFinally (action indicator) finalAction
-    liftIO =<< statusIconNewFromFile <$> (confIconPath <$> ask)
-  void $ G.on status_icon statusIconPopupMenu $ \mbutton time -> do
-    menu <- makeStatusMenu mainQuit
-    menuPopup menu $ (\button -> return (button, time)) =<< mbutton
+    status_icon' <- liftIO . statusIconNewFromFile =<< (confIconPath <$> ask)
+    liftIO $ void $ G.on status_icon' statusIconPopupMenu $ \mbutton time -> do
+      menu <- makeStatusMenu indicator
+      menuPopup menu $ (\button -> return (button, time)) =<< mbutton
+    return status_icon'
   status_icon_ref <- newIORef status_icon
   mainGUI
   void $ readIORef status_icon_ref -- to prevent status_icon from being garbage-collected. See https://github.com/gtk2hs/gtk2hs/issues/60
@@ -255,11 +257,21 @@ addButton tab left right top bottom = do
   liftIO $ widgetSetSizeRequest lab (bw * (right - left)) (bh * (bottom - top))
   return lab
 
-makeStatusMenu :: IO () -> IO Menu
-makeStatusMenu quit_action = do
-  menu <- menuNew
-  quit_item <- menuItemNewWithMnemonic ("_Quit" :: Text)
-  containerAdd menu quit_item
-  widgetShowAll quit_item
-  void $ G.on quit_item menuItemActivated quit_action
-  return menu
+makeStatusMenu :: Indicator s i -> IO Menu
+makeStatusMenu ind = impl where
+  impl = do
+    menu <- menuNew
+    containerAdd menu =<< makeQuitItem
+    containerAdd menu =<< makeToggler
+    return menu
+  makeQuitItem = do
+    quit_item <- menuItemNewWithMnemonic ("_Quit" :: Text)
+    widgetShowAll quit_item
+    void $ G.on quit_item menuItemActivated (quit ind)
+    return quit_item
+  makeToggler = do
+    toggler <- checkMenuItemNewWithMnemonic ("_Toggle indicator" :: Text)
+    widgetShowAll toggler
+    checkMenuItemSetActive toggler =<< getPresence ind
+    void $ G.on toggler checkMenuItemToggled (togglePresence ind)
+    return toggler
