@@ -26,7 +26,7 @@ module WildBind.Indicator
        ) where
 
 import Control.Applicative ((<$>))
-import Control.Concurrent (forkOS)
+import Control.Concurrent (forkFinally)
 import Control.Monad (void, forM_)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
@@ -51,6 +51,7 @@ import Graphics.UI.Gtk
     Menu, menuNew, menuItemNewWithMnemonic, menuItemActivated, menuPopup
   )
 import qualified Graphics.UI.Gtk as G (get, set, on)
+import System.IO (stderr, hPutStrLn)
 
 import WildBind ( ActionDescription, Option(optBindingHook),
                   FrontEnd(frontDefaultDescription), Binding,
@@ -157,7 +158,7 @@ withNumPadIndicator action = do
     liftIO $ void $ G.on win deleteEvent $ do
       liftIO $ widgetHide win
       return True -- Do not emit 'destroy' signal
-    liftIO $ void $ forkOS $ action indicator
+    liftIO $ void $ forkFinally (action indicator) finalAction
     liftIO =<< statusIconNewFromFile <$> (confIconPath <$> ask)
   void $ G.on status_icon statusIconPopupMenu $ \mbutton time -> do
     menu <- makeStatusMenu mainQuit
@@ -165,6 +166,13 @@ withNumPadIndicator action = do
   status_icon_ref <- newIORef status_icon
   mainGUI
   void $ readIORef status_icon_ref -- to prevent status_icon from being garbage-collected. See https://github.com/gtk2hs/gtk2hs/issues/60
+  where
+    finalAction ret = do
+      case ret of
+        Right _ -> return ()
+        Left exception -> hPutStrLn stderr ("Fatal Error from WildBind: " ++ show exception)
+      postGUIAsync mainQuit
+
 
 -- | Run 'WildBind.wildBind' with the given 'Indicator'. 'ActionDescription's
 -- are shown by the 'Indicator'.
