@@ -283,7 +283,7 @@ makeStatusMenu ind = impl where
     void $ G.on quit_item menuItemActivated (quit ind)
     return quit_item
   makeToggler = do
-    toggler <- checkMenuItemNewWithMnemonic ("_Toggle indicator" :: Text)
+    toggler <- checkMenuItemNewWithMnemonic ("_Toggle window" :: Text)
     widgetShowAll toggler
     checkMenuItemSetActive toggler =<< getPresence ind
     void $ G.on toggler checkMenuItemToggled (togglePresence ind)
