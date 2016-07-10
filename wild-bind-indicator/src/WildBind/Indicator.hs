@@ -87,6 +87,15 @@ data Indicator s i =
 togglePresence :: Indicator s i -> IO ()
 togglePresence ind = (setPresence ind . not) =<< getPresence ind
 
+-- | Convert actions in the input 'Indicator' so that those actions
+-- can be executed from a non-GTK-main thread.
+transportIndicator :: Indicator s i -> Indicator s i
+transportIndicator ind = Indicator { updateDescription = \i d -> postGUIAsync $ updateDescription ind i d,
+                                     getPresence = postGUISync $ getPresence ind,
+                                     setPresence = \visible -> postGUIAsync $ setPresence ind visible,
+                                     quit = postGUISync $ quit ind
+                                   }
+
 
 -- | Something that can be mapped to number pad's key positions.
 class NumPadPosition a where
@@ -143,37 +152,41 @@ type NumPadContext = ReaderT NumPadConfig IO
 -- 
 -- The executable must be compiled by ghc with __@-threaded@ option enabled.__
 withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO ()) -> IO ()
-withNumPadIndicator action = do
-  void $ initGUI
-  conf <- numPadConfig
-  status_icon <- flip runReaderT conf $ do
+withNumPadIndicator action = impl where
+  impl = do
+    void $ initGUI
+    conf <- numPadConfig
+    indicator <- createMainWinAndIndicator conf
+    status_icon <- createStatusIcon conf indicator
+    status_icon_ref <- newIORef status_icon
+    mainGUI
+    void $ readIORef status_icon_ref -- to prevent status_icon from being garbage-collected. See https://github.com/gtk2hs/gtk2hs/issues/60
+  createMainWinAndIndicator conf = flip runReaderT conf $ do
     win <- newNumPadWindow
     (tab, updater) <- newNumPadTable
     liftIO $ containerAdd win tab
     let indicator = Indicator
-          { updateDescription = \i d -> postGUIAsync $ updater i d,
-            getPresence = postGUISync $ G.get win widgetVisible,
-            setPresence = \visible -> postGUIAsync (if visible then widgetShowAll win else widgetHide win),
-            quit = postGUISync $ mainQuit
+          { updateDescription = \i d -> updater i d,
+            getPresence = G.get win widgetVisible,
+            setPresence = \visible -> if visible then widgetShowAll win else widgetHide win,
+            quit = mainQuit
           }
     liftIO $ void $ G.on win deleteEvent $ do
       liftIO $ widgetHide win
       return True -- Do not emit 'destroy' signal
-    liftIO $ void $ forkFinally (action indicator) finalAction
-    status_icon' <- liftIO . statusIconNewFromFile =<< (confIconPath <$> ask)
-    liftIO $ void $ G.on status_icon' statusIconPopupMenu $ \mbutton time -> do
+    liftIO $ void $ forkFinally (action $ transportIndicator indicator) finalAction
+    return indicator
+  finalAction ret = do
+    case ret of
+      Right _ -> return ()
+      Left exception -> hPutStrLn stderr ("Fatal Error from WildBind: " ++ show exception)
+    postGUIAsync mainQuit
+  createStatusIcon conf indicator = do
+    status_icon <- statusIconNewFromFile $ confIconPath conf
+    void $ G.on status_icon statusIconPopupMenu $ \mbutton time -> do
       menu <- makeStatusMenu indicator
       menuPopup menu $ (\button -> return (button, time)) =<< mbutton
-    return status_icon'
-  status_icon_ref <- newIORef status_icon
-  mainGUI
-  void $ readIORef status_icon_ref -- to prevent status_icon from being garbage-collected. See https://github.com/gtk2hs/gtk2hs/issues/60
-  where
-    finalAction ret = do
-      case ret of
-        Right _ -> return ()
-        Left exception -> hPutStrLn stderr ("Fatal Error from WildBind: " ++ show exception)
-      postGUIAsync mainQuit
+    return status_icon
 
 
 -- | Run 'WildBind.wildBind' with the given 'Indicator'. 'ActionDescription's
