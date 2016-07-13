@@ -45,6 +45,9 @@ module WildBind.Binding
          whenBack,
          whenBoth,
          -- * Conversion
+         advice,
+         before,
+         after,
          startFrom,
          extend,
          extendAt,
@@ -81,6 +84,22 @@ instance Show (Action m a) where
 
 instance Functor m => Functor (Action m) where
   fmap f a = a { actDo = fmap f (actDo a) }
+
+-- | Make an 'Action' that runs the given monadic action before the
+-- original 'Action'.
+before :: (Monad m)
+       => m () -- ^ the monadic action prepended
+       -> Action m a -- ^ the original 'Action'.
+       -> Action m a
+before = undefined
+
+-- | Make an 'Action' that runs the given monadic action after the
+-- original 'Action'.
+after :: (Monad m)
+      => m () -- ^ the monadic action appended.
+      -> Action m a -- ^ the original 'Action'.
+      -> Action m a
+after = undefined
 
 -- | WildBind back-end binding with both explicit and implicit
 -- states. @bs@ is the explicit back-end state, @fs@ is the front-end
@@ -187,6 +206,11 @@ as :: (Action m a -> b) -> ActionDescription -> Action m a -> b
 as cont desc act = cont $ act { actDescription = desc }
 
 infixl 2 `as`
+
+-- | Transform the actions in the given 'Binder'.
+advice :: (v -> v') -> Binder i v a -> Binder i v' a
+advice = undefined
+
 
 -- | Non-monadic version of 'binds'.
 binding :: Ord i => [(i, Action IO ())] -> Binding' bs fs i
