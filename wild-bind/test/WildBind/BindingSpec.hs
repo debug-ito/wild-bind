@@ -258,6 +258,20 @@ spec_conversions = do
       checkOut "01"
       execAll' [SIa]
       checkOut "012"
+  describe "advice" $ do
+    it "converts all actions in Binder" $ withStrRef $ \out checkOut -> do
+      let convert_action a = a { WB.actDescription = WB.actDescription a <> "!!",
+                                 WB.actDo = WB.actDo a >> (modifyIORef out (++ "!"))
+                               }
+          b = WB.binds $ WB.advice convert_action $ do
+            WB.on SIa `WB.as` "action a" `WB.run` modifyIORef out (++ "A")
+            WB.on SIb `WB.as` "action b" `WB.run` modifyIORef out (++ "B")
+      (WB.actDescription <$> WB.boundAction b () SIa) `shouldBe` Just "action a!!"
+      (WB.actDescription <$> WB.boundAction b () SIb) `shouldBe` Just "action b!!"
+      void $ inputAll b () [SIa]
+      checkOut "A!"
+      void $ inputAll b () [SIb]
+      checkOut "A!B!"
 
 spec_stateful :: Spec
 spec_stateful = do
