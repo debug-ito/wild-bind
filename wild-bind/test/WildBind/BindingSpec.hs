@@ -286,7 +286,7 @@ spec_conversions = do
       let act = WB.Action { WB.actDescription = "desc",
                             WB.actDo = modifyIORef out (++ "ORIG")
                           }
-          got = WB.before (modifyIORef out (++ "after")) act
+          got = WB.after (modifyIORef out (++ "after")) act
       WB.actDescription got `shouldBe` "desc"
       WB.actDo got
       checkOut "ORIGafter"

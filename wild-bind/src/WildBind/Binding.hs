@@ -63,8 +63,9 @@ module WildBind.Binding
          boundInputs'
        ) where
 
+import Control.Applicative (Applicative, (<*), (*>))
 import Control.Monad.Trans.State (StateT, runStateT)
-import Control.Monad.Trans.Writer (Writer, tell, execWriter)
+import Control.Monad.Trans.Writer (Writer, tell, execWriter, mapWriter)
 import qualified Data.Map as M
 import Data.Monoid (Monoid(..), Endo(Endo, appEndo))
 import Lens.Micro ((^.), (.~), (&))
@@ -87,19 +88,19 @@ instance Functor m => Functor (Action m) where
 
 -- | Make an 'Action' that runs the given monadic action before the
 -- original 'Action'.
-before :: (Monad m)
+before :: (Applicative m)
        => m b -- ^ the monadic action prepended
        -> Action m a -- ^ the original 'Action'.
        -> Action m a
-before = undefined
+before hook act = act { actDo = hook *> actDo act }
 
 -- | Make an 'Action' that runs the given monadic action after the
 -- original 'Action'.
-after :: (Monad m)
+after :: (Applicative m)
       => m b -- ^ the monadic action appended.
       -> Action m a -- ^ the original 'Action'.
       -> Action m a
-after = undefined
+after hook act = act { actDo = actDo act <* hook }
 
 -- | WildBind back-end binding with both explicit and implicit
 -- states. @bs@ is the explicit back-end state, @fs@ is the front-end
@@ -209,7 +210,10 @@ infixl 2 `as`
 
 -- | Transform the actions in the given 'Binder'.
 advice :: (v -> v') -> Binder i v a -> Binder i v' a
-advice = undefined
+advice f = Binder . mapWriter f_writer . unBinder where
+  f_writer (a, e) = (a, f_endo e)
+  f_endo (Endo prepender) = Endo ((map f_pair $ prepender []) ++)
+  f_pair (i, v) = (i, f v)
 
 
 -- | Non-monadic version of 'binds'.
