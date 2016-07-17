@@ -88,7 +88,7 @@ instance Functor m => Functor (Action m) where
 -- | Make an 'Action' that runs the given monadic action before the
 -- original 'Action'.
 before :: (Monad m)
-       => m () -- ^ the monadic action prepended
+       => m b -- ^ the monadic action prepended
        -> Action m a -- ^ the original 'Action'.
        -> Action m a
 before = undefined
@@ -96,7 +96,7 @@ before = undefined
 -- | Make an 'Action' that runs the given monadic action after the
 -- original 'Action'.
 after :: (Monad m)
-      => m () -- ^ the monadic action appended.
+      => m b -- ^ the monadic action appended.
       -> Action m a -- ^ the original 'Action'.
       -> Action m a
 after = undefined
