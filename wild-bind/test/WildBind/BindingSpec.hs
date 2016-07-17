@@ -272,6 +272,24 @@ spec_conversions = do
       checkOut "A!"
       void $ inputAll b () [SIb]
       checkOut "A!B!"
+  describe "before" $ do
+    it "prepends a monadic action" $ withStrRef $ \out checkOut -> do
+      let act = WB.Action { WB.actDescription = "desc",
+                            WB.actDo = modifyIORef out (++ "ORIG")
+                          }
+          got = WB.before (modifyIORef out (++ "before")) act
+      WB.actDescription got `shouldBe` "desc"
+      WB.actDo got
+      checkOut "beforeORIG"
+  describe "after" $ do
+    it "appends a monadic action" $ withStrRef $ \out checkOut -> do
+      let act = WB.Action { WB.actDescription = "desc",
+                            WB.actDo = modifyIORef out (++ "ORIG")
+                          }
+          got = WB.before (modifyIORef out (++ "after")) act
+      WB.actDescription got `shouldBe` "desc"
+      WB.actDo got
+      checkOut "ORIGafter"
 
 spec_stateful :: Spec
 spec_stateful = do
