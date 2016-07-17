@@ -272,6 +272,7 @@ spec_conversions = do
       checkOut "A!"
       void $ inputAll b () [SIb]
       checkOut "A!B!"
+    it "preserves the order of binding." $ (True `shouldBe` False) --- TODO
   describe "before" $ do
     it "prepends a monadic action" $ withStrRef $ \out checkOut -> do
       let act = WB.Action { WB.actDescription = "desc",
