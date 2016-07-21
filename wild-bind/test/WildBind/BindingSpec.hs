@@ -272,7 +272,31 @@ spec_conversions = do
       checkOut "A!"
       void $ inputAll b () [SIb]
       checkOut "A!B!"
-    it "preserves the order of binding." $ (True `shouldBe` False) --- TODO
+    it "preserves the order of binding." $ withStrRef $ \out checkOut -> do
+      let b = WB.binds $ WB.advice (WB.before $ modifyIORef out (++ "A")) $ do
+            WB.on SIa `WB.run` modifyIORef out (++ "1")
+            WB.on SIa `WB.run` modifyIORef out (++ "2")
+            WB.on SIa `WB.run` modifyIORef out (++ "3")
+      void $ inputAll b () [SIa]
+      checkOut "A3"
+    it "can nest" $ withStrRef $ \out checkOut -> do
+      let b = WB.binds $ do
+            WB.on SIa `WB.run` modifyIORef out (++ "1")
+            WB.advice (WB.before $ modifyIORef out (++ "*")) $ do
+              WB.on SIb `WB.run` modifyIORef out (++ "3")
+              WB.advice (WB.after $ modifyIORef out (++ "@")) $ do
+                WB.on SIa `WB.run` modifyIORef out (++ "4")
+                WB.on SIc `WB.run` modifyIORef out (++ "5")
+              WB.advice (WB.after $ modifyIORef out (++ "#")) $ do
+                WB.on SIb `WB.run` modifyIORef out (++ "6")
+                WB.on SIc `WB.run` modifyIORef out (++ "7")
+              WB.on SIa `WB.run` modifyIORef out (++ "8")
+      void $ inputAll b () [SIa]
+      checkOut "*8"
+      void $ inputAll b () [SIb]
+      checkOut "*8*6#"
+      void $ inputAll b () [SIc]
+      checkOut "*8*6#*7#"
   describe "before" $ do
     it "prepends a monadic action" $ withStrRef $ \out checkOut -> do
       let act = WB.Action { WB.actDescription = "desc",
