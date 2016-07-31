@@ -180,13 +180,15 @@ runBinder = appEndo . execWriter . unBinder
 --
 -- If different actions are bound to the same input, the latter action
 -- wins.
-binds :: Ord i => Binder i (Action IO ()) a -> Binding' bs fs i
+--
+-- Result of action (@r@) is discarded.
+binds :: Ord i => Binder i (Action IO r) a -> Binding' bs fs i
 binds = binding . flip runBinder []
 
 -- | Build a 'Binding'' with an explicit state (but no implicit
 -- state). The bound actions are activated regardless of the back-end
 -- or front-end state.
-binds' :: Ord i => Binder i (Action (StateT bs IO) ()) a -> Binding' bs fs i
+binds' :: Ord i => Binder i (Action (StateT bs IO) r) a -> Binding' bs fs i
 binds' = binding' . flip runBinder []
 
 -- | Create a 'Binder' that binds the action @v@ to the input @i@.
@@ -217,7 +219,7 @@ advice f = Binder . mapWriter f_writer . unBinder where
 
 
 -- | Non-monadic version of 'binds'.
-binding :: Ord i => [(i, Action IO ())] -> Binding' bs fs i
+binding :: Ord i => [(i, Action IO r)] -> Binding' bs fs i
 binding blist = impl where
   impl = Binding' $ \bs _ -> (fmap . fmap) (const (impl, bs)) $ M.fromList blist
 
@@ -309,14 +311,14 @@ extend b = Binding' $ \bs fs ->
   mapResult extend (const bs) $ unBinding' b () fs
 
 -- | Non-monadic version of 'binds''.
-binding' :: Ord i => [(i, Action (StateT bs IO) ())] -> Binding' bs fs i
+binding' :: Ord i => [(i, Action (StateT bs IO) r)] -> Binding' bs fs i
 binding' blists = impl where
   impl = Binding' $ \bs _ -> fmap (runStatefulAction impl bs) $ M.fromList $ blists
 
-runStatefulAction :: Binding' bs fs i -> bs -> Action (StateT bs IO) () -> Action IO (Binding' bs fs i, bs)
+runStatefulAction :: Binding' bs fs i -> bs -> Action (StateT bs IO) r -> Action IO (Binding' bs fs i, bs)
 runStatefulAction next_b' cur_bs state_action =
   state_action { actDo = recursive_io }
   where
   recursive_io = do
-    ((), next_bs) <- runStateT (actDo state_action) cur_bs
+    (_, next_bs) <- runStateT (actDo state_action) cur_bs
     return (next_b', next_bs)
