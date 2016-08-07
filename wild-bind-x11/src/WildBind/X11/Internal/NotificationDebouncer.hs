@@ -3,7 +3,7 @@
 -- Description: debouce X11 notification events
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
--- This is an internal module. End-users should not rely on it.
+-- __This is an internal module. End-users should not rely on it.__
 --
 -- WildBind.X11 module receives some notification events to update the
 -- current state of the desktop (usually it is the active
@@ -57,7 +57,8 @@ withDebouncer disp action = do
   mtype <- Xlib.internAtom disp "_WILDBIND_NOTIFY_CHANGE" False
   bracket (newTrigger disp mtype) (Fdeb.close) $ \trigger -> action (Debouncer trigger mtype)
 
--- | Notify the 'Debouncer' that a notification event arrives.
+-- | Notify the 'Debouncer' that a notification event arrives. After a
+-- while, the 'Debouncer' emits a ClientMessage X11 event.
 notify :: Debouncer -> IO ()
 notify deb = Fdeb.send (ndTrigger deb) ()
 
@@ -82,7 +83,8 @@ sendClientMessage disp mtype = Xlib.allocaXEvent $ \xev -> do
   Xlib.sendEvent disp root_win False xEventMask xev
   Xlib.flush disp
 
--- | Check if the given event is the debounced event.
+-- | Check if the given event is the debounced ClientMessage X11
+-- event.
 isDebouncedEvent :: Debouncer -> Xlib.XEventPtr -> IO Bool
 isDebouncedEvent deb xev = do
   ev <- XlibE.getEvent xev
