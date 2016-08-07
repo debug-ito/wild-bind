@@ -21,7 +21,7 @@ module WildBind.Task.X11
          -- ** From "WindBind.X11"
          Window, ActiveWindow, winInstance, winClass, winName,
          -- ** From "WildBind.Indicator"
-         Indicator, NumPadPosition(..), updateDescription, getPresence, setPresence, togglePresence
+         Indicator, NumPadPosition(..), updateDescription, getPresence, setPresence, togglePresence, quit
        ) where
 
 import Control.Monad.IO.Class
@@ -38,7 +38,7 @@ import WildBind.X11
   )
 import WildBind.Indicator
   ( Indicator, NumPadPosition(..),
-    updateDescription, getPresence, setPresence, togglePresence,
+    updateDescription, getPresence, setPresence, togglePresence, quit,
     withNumPadIndicator, wildBindWithIndicator
   )
 import WildBind.X11.Internal.Key (KeySymLike, ModifierLike)
@@ -48,13 +48,13 @@ import WildBind.X11.Internal.Key (KeySymLike, ModifierLike)
 --
 -- > main :: IO ()
 -- > main = wildNumPad $ binds $ do
--- >   on NumCenter $ run $ putStrLn "You pushed center."
+-- >   on NumCenter `run` putStrLn "You pushed center."
 -- 
 -- Note that the executable must be compiled by ghc with
 -- __@-threaded@ option enabled.__
 --
--- With this function, the Enter key is bound to toggling the
--- 'Indicator', ignoring the binding you provide.
+-- With this function, the Enter key on the numpad is bound to
+-- toggling the 'Indicator', ignoring the binding you provide.
 --
 -- For the input type @i@, you can use 'NumPadUnlockedInput' or
 -- 'NumPadLockedInput'.
