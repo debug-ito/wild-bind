@@ -41,12 +41,19 @@ library
 --   -- other-extensions:    
 --   build-depends:        base >=4 && <5
 
+flag test-numpad-interactive
+  description: Run tests that require the user to interact with the test script via a numpad.
+  default: False
+
 test-suite spec
   type:                 exitcode-stdio-1.0
   default-language:     Haskell2010
   hs-source-dirs:       test
   ghc-options:          -Wall -fno-warn-unused-imports -threaded
+  if flag(test-numpad-interactive)
+    cpp-options:        -DTEST_NUMPAD_INTERACTIVE
   main-is:              Spec.hs
+  other-extensions:     FlexibleContexts, ScopedTypeVariables, CPP
   other-modules:        WildBind.X11Spec,
                         WildBind.X11.Internal.KeySpec,
                         WildBind.X11.Internal.NotificationDebouncerSpec

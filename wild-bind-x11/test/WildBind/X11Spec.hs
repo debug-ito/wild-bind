@@ -1,10 +1,9 @@
-{-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts, ScopedTypeVariables, CPP #-}
 module WildBind.X11Spec (main, spec) where
 
 import Control.Applicative ((<$>))
 import Control.Exception (finally)
 import Data.Time.Clock (getCurrentTime, diffUTCTime)
-import System.Environment (lookupEnv)
 import System.IO (hPutStrLn,stderr)
 import Test.Hspec
 
@@ -18,19 +17,13 @@ import WildBind.X11 (withFrontEnd, ActiveWindow)
 main :: IO ()
 main = hspec spec
 
-checkEnv :: String -> IO Bool
-checkEnv env_name = (== "1") <$> maybe "" id <$> lookupEnv env_name
+maybeRun :: Expectation -> Expectation
+#ifdef TEST_NUMPAD_INTERACTIVE
+maybeRun = id
+#else
+maybeRun _ = pendingWith ("You need to set test_numpad_interactive flag to run the test.")
+#endif
 
-whenEnv :: String -> Expectation -> Expectation
-whenEnv env_name act = do
-  ret <- checkEnv env_name
-  if ret
-  then act
-  else pendingWith ("You need to set " ++ env_name ++ "=1 to run the test")
-
-
-whenNumPad :: Expectation -> Expectation
-whenNumPad = whenEnv "WILDBIND_TEST_NUMPAD"
 
 p :: String -> IO ()
 p = hPutStrLn stderr . ("--- " ++)
@@ -77,9 +70,9 @@ spec = do
         frontSetGrab f1 NumPad.NumLeft `shouldReturn` ()
         frontSetGrab f2 NumPad.NumLeft `shouldReturn` ()
   describe "X11Front - NumPadUnlockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ withFrontEnd $ \(f :: FrontEnd ActiveWindow NumPad.NumPadUnlockedInput) -> do
+    it "should grab/ungrab keys" $ maybeRun $ withFrontEnd $ \(f :: FrontEnd ActiveWindow NumPad.NumPadUnlockedInput) -> do
       grabCase f
   describe "X11Front - NumPadLockedInput" $ do
-    it "should grab/ungrab keys" $ whenNumPad $ withFrontEnd $ \(f :: FrontEnd ActiveWindow NumPad.NumPadLockedInput) -> do
+    it "should grab/ungrab keys" $ maybeRun $ withFrontEnd $ \(f :: FrontEnd ActiveWindow NumPad.NumPadLockedInput) -> do
       grabCase f
 
