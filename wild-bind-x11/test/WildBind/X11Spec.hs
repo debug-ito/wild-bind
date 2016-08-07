@@ -68,7 +68,7 @@ spec = do
     it "should first emit FEChange event when initialized" $ withFrontEnd $ \f -> do
       p "try to get the first event..."
       (ev, time) <- stopWatchMsec $ frontNextEvent f :: IO (FrontEvent ActiveWindow NumPad.NumPadUnlockedInput, Int)
-      time `shouldSatisfy` (< 100)
+      time `shouldSatisfy` (< 500)
       case ev of
         FEChange _ -> return ()
         _ -> expectationFailure ("FEChange is expected, but got " ++ show ev)

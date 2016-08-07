@@ -62,7 +62,7 @@ notify :: Debouncer -> IO ()
 notify deb = Fdeb.send (ndTrigger deb) ()
 
 debounceDelay :: Int
-debounceDelay = 50000
+debounceDelay = 200000
 
 newTrigger :: Xlib.Display -> Xlib.Atom -> IO (Fdeb.Trigger () ())
 newTrigger disp mtype = Fdeb.new (Fdeb.forVoid $ sendClientMessage disp mtype)
