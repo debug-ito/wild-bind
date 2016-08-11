@@ -1,8 +1,15 @@
 # WildBind
 
-**This project is still in progress.**
+WildBind is a dynamic and programmable key binding framework for number pads.
 
-TBW
+Features:
+
+- It supports X11 desktop environments.
+- It binds any action to number pad keys.
+- Key bindings are written in Haskell (actually, it's just a bunch of Haskell modules).
+- Key bindings can be **dynamic**, i.e. you can use different key bindings for different active windows.
+- Key bindings can be **stateful**, e.g. you can bind actions to **sequences** of keys.
+
 
 ## Getting Started
 
@@ -15,6 +22,8 @@ TBW
 ## Stateful Binding
 
 ## Bind to Keys with NumLock Enabled
+
+## For Programmers
 
 ## Author
 
