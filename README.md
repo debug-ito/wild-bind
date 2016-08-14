@@ -23,6 +23,14 @@ Features:
 
 ## Bind to Keys with NumLock Enabled
 
+## External Tools
+
+TBW.
+
+- xdotool
+- wmctrl
+- boring-window-switcher
+
 ## For Programmers
 
 ## Author
