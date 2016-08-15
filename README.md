@@ -59,7 +59,33 @@ To deactivate the binding, right-click the icon and select "Quit" item.
 
 ## Combine Bindings
 
+TBW
+
+- Multiple `on` statements
+- Binding is a Monoid. We can mappend them together.
+
 ## Dynamic Binding Based on ActiveWindow
+
+TBW
+
+- Example of `ifFront`
+- `whenFront` and maapend them
+- Operations on ActiveWindow
+
+## Binding Description
+
+TWB
+
+- `as` function
+- help window
+
+## Types and Modules
+
+TBW
+
+- Type of Binding
+- NumPadUnlockedInput
+- Window
 
 ## Stateful Binding
 
@@ -74,6 +100,10 @@ TBW.
 - boring-window-switcher
 
 ## For Programmers
+
+TBW
+
+- wild-bind package family
 
 ## Author
 
