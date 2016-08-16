@@ -158,10 +158,21 @@ Here, `defaultBinding` is enabled in most cases because it doesn't have any `whe
 
 ## Binding Description
 
-TWB
 
-- `as` function
-- help window
+When you build a complex binding, sometimes you have no idea what actions are bound to which keys. To help understand behavior of a binding, you can set descriptions to bound actions using `as` function.
+
+```haskell
+forFirefox = whenFront isFirefox $ binds $ do
+  on NumRight `as` "Go to right tab" `run` pushKey "Ctrl+Tab"
+  on NumLeft `as` "Go to left tab" `run` pushKey "Ctrl+Shift+Tab"
+  where
+    isFirefox active_window = winClass active_window == "Firefox"
+```
+
+Notice the `as` function is inserted between `on` and `run` functions.
+
+TBW: press Enter to toggle help window. maybe with screen-shot?
+
 
 ## Types and Modules
 
