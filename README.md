@@ -171,7 +171,11 @@ forFirefox = whenFront isFirefox $ binds $ do
 
 Notice the `as` function is inserted between `on` and `run` functions.
 
-TBW: press Enter to toggle help window. maybe with screen-shot?
+To see the description of current binding, press Enter key on a num pad. It shows a window like this:
+
+TBW: add screenshot
+
+Press Enter key again to hide the window.
 
 
 ## Types and Modules
