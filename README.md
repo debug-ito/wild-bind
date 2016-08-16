@@ -38,9 +38,10 @@ Let's start with the simplest "Hello, world" binding. Save the following text as
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Task.X11
 
-main = wildNumPad $ binds $ do
-  on NumCenter `run` putStrLn "Hello, world!"
+main = wildNumPad myBinding
 
+myBinding = binds $ do
+  on NumCenter `run` putStrLn "Hello, world!"
 ```
 
 This binds an action to the 5 key (NumLock disabled) on a num pad.
@@ -59,10 +60,40 @@ To deactivate the binding, right-click the icon and select "Quit" item.
 
 ## Combine Bindings
 
-TBW
+Of course, you can bind actions to more than one keys. To do that, just repeat `on` statements.
 
-- Multiple `on` statements
-- Binding is a Monoid. We can mappend them together.
+```haskell
+#/usr/bin/env stack
+-- stack runghc --package process
+
+{-# LANGUAGE OverloadedStrings #-}
+import WildBind.Task.X11
+import System.Process (spawnCommand)
+
+main = wildNumPad myBinding
+
+myBinding = binds $ do
+  on NumCenter `run` putStrLn "Hello, world!"
+  on NumPageUp `run` spawnCommand "firefox"
+```
+
+This script uses [System.Process](http://hackage.haskell.org/package/process/docs/System-Process.html) module and binds to the PageUp key an action to launch Firefox.
+
+Or, you can combine independent bindings to get a complex binding by `<>` operator.
+
+```haskell
+myBinding = simplestBinding <> firefoxBinding
+
+simplestBinding = binds $ do
+  on NumCenter `run` putStrLn "Hello, world!"
+
+firefoxBinding = binds $ do
+  on NumPageUp `run` spawnCommand "firefox"
+```
+
+This is possible because a Binding object is a [Monoid](http://hackage.haskell.org/package/base/docs/Data-Monoid.html#t:Monoid).
+
+
 
 ## Dynamic Binding Based on ActiveWindow
 
@@ -71,6 +102,7 @@ TBW
 - Example of `ifFront`
 - `whenFront` and maapend them
 - Operations on ActiveWindow
+- conditional override by `<>`
 
 ## Binding Description
 
