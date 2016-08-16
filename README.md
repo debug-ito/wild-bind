@@ -180,15 +180,25 @@ Press Enter key again to hide the window.
 
 ## Types and Modules
 
-TBW
+Before entering the most complicated part of WildBind, let's introduce data types used in the previous examples.
 
-- Type of Binding
-- NumPadUnlockedInput
-- Window
+The most important type is `Binding`, which is the type of `myBinding`.
+
+```haskell
+myBinding :: Binding ActiveWindow NumPadUnlockedInput
+```
+
+The above type means that `myBinding` binds actions to the input key type of `NumPadUnlockedInput`, and that it changes binding based on `ActiveWindow`.
+
+`Binding` type is defined in WildBind.Binding module. This module also defines a lot of functions to build `Binding`, such as `binds`, `on`, `run`, `as` and `whenFront`.
+
+`NumPadUnlockedInput` is the type for keys on a num pad when NumLock is disabled. It is defined in WildBind.Input.NumPad module. `NumCenter` and `NumLeft` are its data constructors. If you want to use WildBind with NumLock enabled, use `NumPadLockedInput`.
+
+`ActiveWindow` is the type for an active window. It is defined in WildBind.X11. You can inspect the window by accessor functions such as `winClass`.
+
 
 ## Stateful Binding
 
-## Bind to Keys with NumLock Enabled
 
 ## External Tools
 
