@@ -97,12 +97,45 @@ This is possible because a Binding object is a [Monoid](http://hackage.haskell.o
 
 ## Dynamic Binding Based on ActiveWindow
 
-TBW
+Now let's make our binding more interesting.
 
-- Example of `ifFront`
-- `whenFront` and maapend them
-- Operations on ActiveWindow
-- conditional override by `<>`
+WildBind allows you to create a binding that **changes dynamically according to the active window (the window having keyboard focus)**.
+
+```haskell
+pushKey key = spawnCommand ("xdotool key " <> key)  ----------------- (1)
+
+myBinding = forFirefox <> forVLC  ----------------------------------- (2)
+
+forFirefox = whenFront isFirefox $ binds $ do  ---------------------- (3)
+  on NumRight `run` pushKey "Ctrl+Tab"  ----------------------------- (4)
+  on NumLeft `run` pushKey "Ctrl+Shift+Tab"
+  where
+    isFirefox active_window = winClass active_window == "Firefox" --- (5)
+
+forVLC = whenFront isVLC $ binds $ do  ------------------------------ (6)
+  on NumRight `run` pushKey "Ctrl+Right"
+  on NumLeft `run` pushKey "Ctrl+Left"
+  where
+    isVLC active_window = winClass active_window == "vlc"
+```
+
+The above script makes binding on → and ← keys on a num pad, but they behave differently for different applications. Let's look into it in detail.
+
+First, we define a support function `pushKey` **(1)**. It generates a fake keyboard input specified by the argument. It uses an external tool called [xdotool](https://github.com/jordansissel/xdotool).
+
+Then we define `myBinding` **(2)**, which is combination of one for Firefox and one for VLC media player.
+
+In the definition of `forFirefox`, we use `whenFront` function **(3)**. `whenFront` function adds a condition to the binding. The binding is active only when the predicate (`isFirefox`, in this case) returns `True`. The predicate `isFirefox` is defined later at **(5)**. It takes an `ActiveWindow` object, and checks if the active window is Firefox or not.
+
+Binding definitions of `forFirefox` are just like previous examples **(4)**. Here we bind "Right tab" action to → key and "Left tab" action to ← key. However, these bindings are enabled only when a window for Firefox is active.
+
+Definition of `forVLC` is similar to `forFirefox` **(6)**. This time we bind "Jump forward" action to → key and "Jump backward" action to ← key.
+
+Using `whenFront` and `<>` functions like the above example, you can build bindings that adapt to the currently active window and Do What You Mean&trade;.
+
+## Binding Override by `<>`
+
+TBW. global default and conditional override.
 
 ## Binding Description
 
