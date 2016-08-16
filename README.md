@@ -135,7 +135,26 @@ Using `whenFront` and `<>` functions like the above example, you can build bindi
 
 ## Binding Override by `<>`
 
-TBW. global default and conditional override.
+Binding combination operator `<>` prefers the right-hand binding. That is, if left-hand and right-hand bindings both bind actions to the same key, the right-hand binding wins.
+
+This feature is often useful in combination of `whenFront`.
+
+```haskell
+myBinding = defaultBinding <> forFirefox
+
+defaultBinding = binds $ do
+  on NumRight `run` putStrLn "right is pushed."
+  on NumLeft `run` putStrLn "left is pushed."
+
+forFirefox = whenFront isFirefox $ binds $ do
+  on NumRight `run` pushKey "Ctrl+Tab"
+  on NumLeft `run` pushKey "Ctrl+Shift+Tab"
+  where
+    isFirefox active_window = winClass active_window == "Firefox"
+```
+
+Here, `defaultBinding` is enabled in most cases because it doesn't have any `whenFront` condition. When a window for Firefox becomes active, `forFirefox` binding is enabled. Because `forFirefox` is the right-hand, it overrides bindings by `defaultBinding`, and provides actions specific to Firefox.
+
 
 ## Binding Description
 
