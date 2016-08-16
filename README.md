@@ -200,6 +200,47 @@ The above type means that `myBinding` binds actions to the input key type of `Nu
 ## Stateful Binding
 
 
+So far, bound actions are just plain `IO ()`, and `Binding` has no internal state.
+
+```haskell
+myBinding :: Binding ActiveWindow NumPadUnlockedInput
+myBinding = binds $ do
+  on NumCenter `run` boundAction
+
+boundAction :: IO ()
+boundAction = putStrLn "Hello, world!"
+```
+
+WildBind has a built-in support for stateful keybindings. A binding object can have its own state of arbitrary type, and behave differently according to the state.
+
+```haskell
+#/usr/bin/env stack
+-- stack runghc
+
+{-# LANGUAGE OverloadedStrings #-}
+import WildBind.Task.X11
+import System.Process (spawnCommand)
+
+main = wildNumPad myBinding
+
+myBinding' :: Binding' Int ActiveWindow NumPadUnlockedInput
+myBinding' = binds' $ do
+  on NumUp `run` upAction
+  on NumDown `run` downAction
+  on NumCenter `run` centerAction
+
+upAction, downAction, centerAction :: StateT Int IO ()
+upAction = modify (+ 1)
+downAction = modify (subtract 1)
+centerAction = do
+  current_state <- get
+  liftIO $ putStrLn ("Current state is = " ++ show current_state)
+
+myBinding :: Binding ActiveWindow NumPadUnlockedInput
+myBinding = startFrom 0 myBinding'
+```
+
+
 ## External Tools
 
 TBW.
