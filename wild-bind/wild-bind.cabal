@@ -29,8 +29,7 @@ library
   build-depends:        base,
                         text,
                         containers,
-                        transformers,
-                        microlens
+                        transformers
 
 -- executable wild-bind
 --   default-language:     Haskell2010
@@ -52,7 +51,7 @@ test-suite spec
                         WildBind.BindingSpec
                         WildBind.ForTest
   build-depends:        base, wild-bind,
-                        transformers, microlens,
+                        transformers,
                         hspec,
                         QuickCheck,
                         stm

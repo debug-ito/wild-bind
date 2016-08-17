@@ -50,7 +50,6 @@ module WildBind.Binding
          after,
          startFrom,
          extend,
-         extendAt,
          convFront,
          convInput,
          convBack,
@@ -68,8 +67,6 @@ import Control.Monad.Trans.State (StateT, runStateT)
 import Control.Monad.Trans.Writer (Writer, tell, execWriter, mapWriter)
 import qualified Data.Map as M
 import Data.Monoid (Monoid(..), Endo(Endo, appEndo))
-import Lens.Micro ((^.), (.~), (&))
-import qualified Lens.Micro as Lens
 
 import WildBind.Description (ActionDescription)
 
@@ -282,17 +279,29 @@ convInput :: Ord i' => (i -> i') -> Binding' bs fs i -> Binding' bs fs i'
 convInput mapper orig_bind = Binding' $ \bs fs ->
   mapResult (convInput mapper) id $ M.mapKeys mapper $ unBinding' orig_bind bs fs
 
--- | Invariant-map the back-end state.
-convBack :: (bs -> bs') -> (bs' -> bs) -> Binding' bs fs i -> Binding' bs' fs i
-convBack mapper cmapper = extendAt $ Lens.lens cmapper (\_ bs -> mapper bs)
-
--- | Extend the given 'Binding'' with the given 'Lens.Lens'', so that the
--- 'Binding'' can be part of a 'Binding'' with the bigger state @bs'@
-extendAt :: Lens.Lens' bs' bs -- ^ a lens that focuses on @bs@, which is part of the bigger state @bs'@.
+-- | Convert the back-end state. Intuitively, it converts a small
+-- state type @bs@ into a bigger state type @bs'@, which includes
+-- @bs@.
+--
+-- For example, if you have a 'Control.Lens.Lens'' @l@, you can do
+--
+-- > convBack (set l) (view l) b
+convBack :: (bs -> bs' -> bs') -- ^ A setter. It's supposed to set
+                               -- @bs@ into the original @bs'@ and
+                               -- return the result.
+         -> (bs' -> bs) -- ^ A getter. It's supposed to extract @bs@
+                        -- from @bs'@.
          -> Binding' bs fs i
          -> Binding' bs' fs i
-extendAt lens orig_bind = Binding' $ \bs' fs ->
-  mapResult (extendAt lens) (\bs -> bs' & lens .~ bs) $ unBinding' orig_bind (bs' ^. lens) fs
+convBack = undefined
+
+-- -- | Extend the given 'Binding'' with the given 'Lens.Lens'', so that the
+-- -- 'Binding'' can be part of a 'Binding'' with the bigger state @bs'@
+-- extendAt :: Lens.Lens' bs' bs -- ^ a lens that focuses on @bs@, which is part of the bigger state @bs'@.
+--          -> Binding' bs fs i
+--          -> Binding' bs' fs i
+-- extendAt lens orig_bind = Binding' $ \bs' fs ->
+--   mapResult (extendAt lens) (\bs -> bs' & lens .~ bs) $ unBinding' orig_bind (bs' ^. lens) fs
 
 -- | Convert 'Binding'' to 'Binding' by hiding the explicit state
 -- @bs@.
@@ -307,8 +316,7 @@ startFrom init_state b' = Binding' $ \() front_state ->
 -- | Extend 'Binding' to 'Binding''. In the result 'Binding'', the
 -- explicit back-end state is just ignored and unmodified.
 extend :: Binding fs i -> Binding' bs fs i
-extend b = Binding' $ \bs fs ->
-  mapResult extend (const bs) $ unBinding' b () fs
+extend = convBack (const id) (const ())
 
 -- | Non-monadic version of 'binds''.
 binding' :: Ord i => [(i, Action (StateT bs IO) r)] -> Binding' bs fs i
