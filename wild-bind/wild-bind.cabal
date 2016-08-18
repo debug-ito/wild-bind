@@ -47,6 +47,7 @@ test-suite spec
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m"
   main-is:              Spec.hs
   default-extensions:   OverloadedStrings FlexibleInstances MultiParamTypeClasses
+  other-extensions:     RankNTypes
   other-modules:        WildBind.ExecSpec,
                         WildBind.BindingSpec
                         WildBind.ForTest
@@ -54,7 +55,8 @@ test-suite spec
                         transformers,
                         hspec,
                         QuickCheck,
-                        stm
+                        stm,
+                        microlens
 
 source-repository head
   type:                 git

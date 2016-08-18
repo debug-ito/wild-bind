@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 module WildBind.BindingSpec (main, spec) where
 
 import Control.Applicative ((<$>), (<*>), pure)
@@ -26,6 +27,10 @@ lSB = Lens.lens _lSB (\bsb sb -> bsb { _lSB = sb })
 
 rSB :: Lens.Lens' BiggerSampleBackState SampleBackState
 rSB = Lens.lens _rSB (\bsb sb -> bsb { _rSB = sb })
+
+-- 'view' is since microlens-0.3.5.0
+view :: Lens.Lens' s a -> s -> a
+view = flip (Lens.^.)
 
 newStrRef :: MonadIO m => m (IORef String)
 newStrRef = liftIO $ newIORef []
@@ -100,6 +105,7 @@ spec :: Spec
 spec = do
   spec_stateless
   spec_conversions
+  spec_convBack
   spec_stateful
   spec_extend
   spec_conditionBoth
@@ -242,22 +248,6 @@ spec_conversions = do
       WB.boundInputs b (SS "") `shouldMatchList` ["SIa"]
       actRun $ WB.boundAction b (SS "") "SIa"
       checkOut "A"
-  describe "convBack" $ do
-    it "converts the back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      let act = do
-            out_elem <- head <$> show <$> unSB <$> State.get
-            liftIO $ modifyIORef out (++ [out_elem])
-            State.modify succ
-          orig_b = WB.binding' [(SIa, WB.Action "" act)]
-          b = WB.convBack unSB SB orig_b
-      State.put $ WB.startFrom 0 b
-      checkInputsS' [SIa]
-      execAll' [SIa]
-      checkOut "0"
-      execAll' [SIa]
-      checkOut "01"
-      execAll' [SIa]
-      checkOut "012"
   describe "advice" $ do
     it "converts all actions in Binder" $ withStrRef $ \out checkOut -> do
       let convert_action a = a { WB.actDescription = WB.actDescription a <> "!!",
@@ -315,6 +305,54 @@ spec_conversions = do
       WB.actDescription got `shouldBe` "desc"
       WB.actDo got
       checkOut "ORIGafter"
+
+spec_convBack :: Spec
+spec_convBack = do
+  describe "convBack" $ do
+    it "can convert the back-end state by isomorphism" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let act = do
+            out_elem <- head <$> show <$> unSB <$> State.get
+            liftIO $ modifyIORef out (++ [out_elem])
+            State.modify succ
+          orig_b = WB.binding' [(SIa, WB.Action "" act)]
+          b = WB.convBack (\s _-> unSB s) SB orig_b
+      State.put $ WB.startFrom 0 b
+      checkInputsS' [SIa]
+      execAll' [SIa]
+      checkOut "0"
+      execAll' [SIa]
+      checkOut "01"
+      execAll' [SIa]
+      checkOut "012"
+    it "can convert the back-end state by a lens" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let bl = WB.ifBack (== (SB 0)) (WB.binding' [outOnS out SIa '0' (\_ -> SB 1)])
+               $ WB.whenBack (== (SB 1)) (WB.binding' [outOnS out SIa '1' (\_ -> SB 0)])
+          br = WB.ifBack (== (SB 0)) (WB.binding' [outOnS out SIb '2' (\_ -> SB 1)])
+               $ WB.whenBack(== (SB 1)) (WB.binding' [outOnS out SIb '3' (\_ -> SB 0)])
+          bg = WB.whenBack (== (BSB (SB 0) (SB 0))) $ WB.binding' [outOnS out SIc '4' (\_ -> BSB (SB 1) (SB 1))]
+          convBackByLens :: Lens.Lens' s a -> WB.Binding' a f i -> WB.Binding' s f i
+          convBackByLens l = WB.convBack (Lens.set l) (view l)
+          b = (convBackByLens lSB bl) <> (convBackByLens rSB br) <> bg
+      State.put $ WB.startFrom (BSB (SB 0) (SB 0)) b
+      checkInputsS' [SIa, SIb, SIc]
+      execAll' [SIa]
+      checkOut "0"
+      checkInputsS' [SIa, SIb]
+      execAll' [SIb]
+      checkOut "02"
+      checkInputsS' [SIa, SIb]
+      execAll' [SIb]
+      checkOut "023"
+      checkInputsS' [SIa, SIb]
+      execAll' [SIa]
+      checkOut "0231"
+      checkInputsS' [SIa, SIb, SIc]
+      execAll' [SIc]
+      checkOut "02314"
+      checkInputsS' [SIa, SIb]
+      execAll' [SIa, SIb]
+      checkOut "0231413"
+    
 
 spec_stateful :: Spec
 spec_stateful = do
@@ -442,34 +480,6 @@ spec_stateful = do
 
 spec_extend :: Spec
 spec_extend = do
-  describe "extendAt" $ do
-    it "extend the explicit state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
-      let bl = WB.ifBack (== (SB 0)) (WB.binding' [outOnS out SIa '0' (\_ -> SB 1)])
-               $ WB.whenBack (== (SB 1)) (WB.binding' [outOnS out SIa '1' (\_ -> SB 0)])
-          br = WB.ifBack (== (SB 0)) (WB.binding' [outOnS out SIb '2' (\_ -> SB 1)])
-               $ WB.whenBack(== (SB 1)) (WB.binding' [outOnS out SIb '3' (\_ -> SB 0)])
-          bg = WB.whenBack (== (BSB (SB 0) (SB 0))) $ WB.binding' [outOnS out SIc '4' (\_ -> BSB (SB 1) (SB 1))]
-          b = (WB.extendAt lSB bl) <> (WB.extendAt rSB br) <> bg
-      State.put $ WB.startFrom (BSB (SB 0) (SB 0)) b
-      checkInputsS' [SIa, SIb, SIc]
-      execAll' [SIa]
-      checkOut "0"
-      checkInputsS' [SIa, SIb]
-      execAll' [SIb]
-      checkOut "02"
-      checkInputsS' [SIa, SIb]
-      execAll' [SIb]
-      checkOut "023"
-      checkInputsS' [SIa, SIb]
-      execAll' [SIa]
-      checkOut "0231"
-      checkInputsS' [SIa, SIb, SIc]
-      execAll' [SIc]
-      checkOut "02314"
-      checkInputsS' [SIa, SIb]
-      execAll' [SIa, SIb]
-      checkOut "0231413"
-
   describe "extend" $ do
     it "extends a stateless Binding" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       let bl :: WB.Binding SampleState SampleInput
