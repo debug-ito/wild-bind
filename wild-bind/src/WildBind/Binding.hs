@@ -293,15 +293,8 @@ convBack :: (bs -> bs' -> bs') -- ^ A setter. It's supposed to set
                         -- from @bs'@.
          -> Binding' bs fs i
          -> Binding' bs' fs i
-convBack = undefined
-
--- -- | Extend the given 'Binding'' with the given 'Lens.Lens'', so that the
--- -- 'Binding'' can be part of a 'Binding'' with the bigger state @bs'@
--- extendAt :: Lens.Lens' bs' bs -- ^ a lens that focuses on @bs@, which is part of the bigger state @bs'@.
---          -> Binding' bs fs i
---          -> Binding' bs' fs i
--- extendAt lens orig_bind = Binding' $ \bs' fs ->
---   mapResult (extendAt lens) (\bs -> bs' & lens .~ bs) $ unBinding' orig_bind (bs' ^. lens) fs
+convBack setter getter orig_bind = Binding' $ \bs' fs ->
+  mapResult (convBack setter getter) (\bs -> setter bs bs') $ unBinding' orig_bind (getter bs') fs
 
 -- | Convert 'Binding'' to 'Binding' by hiding the explicit state
 -- @bs@.
