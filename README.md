@@ -247,7 +247,25 @@ Finally, you have to convert `Binding'` into `Binding` with `startFrom` function
 
 Converting `Binding'` into `Binding` may seem that it discards the binding's state. Don't worry. The state is just hidden inside `Binding`. The state still exists, but it's not accessible anymore.
 
-TBW. mention `whenBack`, `ifBack` ...
+You can completely change keybinding based on the state of the `Binding'`. `ifBack` function is useful for that.
+
+```haskell
+myBinding' :: Binding' Int ActiveWindow NumPadUnlockedInput
+myBinding' = ifBack (>= 10) forTooBigState
+           $ forOtherCase
+  where
+    forTooBigState = binds' $ do
+      on NumCenter `run` centerAction
+      on NumDown `run` downAction
+    upBinding = binds' $ do
+      on NumUp `run` upAction
+    forOtherCase = forTooBigState <> upBinding
+```
+
+The above script sets upper bound to the state. If the state reaches 10, the `upAction` is no longer bound.
+
+`ifBack p b1 b2` creates a `Binding'` that chooses between `b1` and `b2`. `p` is a predicate for the state of the `Binding'`. If `p` is `True`, `b1` is enabled. Otherwise, `b2` is enabled.
+
 
 ## External Tools
 
