@@ -32,7 +32,7 @@ The last command triggers a lot of downloading and building. Be patient.
 Let's start with the simplest "Hello, world" binding. Save the following text as `simplest.hs` in the cloned Git directory.
 
 ```haskell
-#/usr/bin/env stack
+#!/usr/bin/env stack
 -- stack runghc
 
 {-# LANGUAGE OverloadedStrings #-}
@@ -63,7 +63,7 @@ To deactivate the binding, right-click the icon and select "Quit" item.
 Of course, you can bind actions to more than one keys. To do that, just repeat `on` statements.
 
 ```haskell
-#/usr/bin/env stack
+#!/usr/bin/env stack
 -- stack runghc --package process
 
 {-# LANGUAGE OverloadedStrings #-}
@@ -119,7 +119,7 @@ forVLC = whenFront isVLC $ binds $ do  ------------------------------ (6)
     isVLC active_window = winClass active_window == "vlc"
 ```
 
-The above script makes binding on → and ← keys on a num pad, but they behave differently for different applications. Let's look into it in detail.
+The above script makes binding on → and ← keys on a num pad, but they behave differently for different applications.
 
 First, we define a support function `pushKey` **(1)**. It generates a fake keyboard input specified by the argument. It uses an external tool called [xdotool](https://github.com/jordansissel/xdotool).
 
@@ -173,7 +173,7 @@ Notice the `as` function is inserted between `on` and `run` functions.
 
 To see the description of current binding, press Enter key on a num pad. It shows a window like this:
 
-TBW: add screenshot
+![(screen shot)](https://raw.githubusercontent.com/debug-ito/wild-bind/master/resource/shot_description_window.png)
 
 Press Enter key again to hide the window.
 
@@ -211,25 +211,24 @@ boundAction :: IO ()
 boundAction = putStrLn "Hello, world!"
 ```
 
-WildBind has a built-in support for stateful keybindings. A binding object can have its own state of arbitrary type, and behave differently according to the state.
+WildBind has a built-in support for **stateful keybindings**. A binding object can have its own state of arbitrary type, and behave differently according to the state.
 
 ```haskell
-#/usr/bin/env stack
+#!/usr/bin/env stack
 -- stack runghc
 
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Task.X11
-import System.Process (spawnCommand)
 
 main = wildNumPad myBinding
 
-myBinding' :: Binding' Int ActiveWindow NumPadUnlockedInput
-myBinding' = binds' $ do
+myBinding' :: Binding' Int ActiveWindow NumPadUnlockedInput  -------- (1)
+myBinding' = binds' $ do  ------------------------------------------- (2)
   on NumUp `run` upAction
   on NumDown `run` downAction
   on NumCenter `run` centerAction
 
-upAction, downAction, centerAction :: StateT Int IO ()
+upAction, downAction, centerAction :: StateT Int IO ()  ------------- (3)
 upAction = modify (+ 1)
 downAction = modify (subtract 1)
 centerAction = do
@@ -237,9 +236,18 @@ centerAction = do
   liftIO $ putStrLn ("Current state is = " ++ show current_state)
 
 myBinding :: Binding ActiveWindow NumPadUnlockedInput
-myBinding = startFrom 0 myBinding'
+myBinding = startFrom 0 myBinding'  --------------------------------- (4)
 ```
 
+Here, we have `myBinding'` of type `Binding'` **(1)**. The first type argument for `Binding'` (in this case, `Int`) is the type of this binding's state. To create a `Binding'` we use `binds'` function **(2)** instead of `binds`.
+
+When you use `binds'` to create a stateful binding, you have to specify stateful actions. In this case, the actions are of the type `StateT Int IO ()` **(3)**. Functions for `StateT`, such as `modify`, `get` and `put`, are re-exported by WildBind.Task.X11, so you can use them to write stateful actions.
+
+Finally, you have to convert `Binding'` into `Binding` with `startFrom` function **(4)**. This function gives a `Binding'` its initial state. In the above script, the state starts from zero.
+
+Converting `Binding'` into `Binding` may seem that it discards the binding's state. Don't worry. The state is just hidden inside `Binding`. The state still exists, but it's not accessible anymore.
+
+TBW. mention `whenBack`, `ifBack` ...
 
 ## External Tools
 
