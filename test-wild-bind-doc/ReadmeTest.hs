@@ -1,12 +1,11 @@
 module Main (main) where
 
 import Control.Applicative ((<$>))
+import System.IO (withFile, IOMode(ReadMode), hGetContents)
 import Test.Hspec
 
 main :: IO ()
-main = do
-  specs <- map specFor <$> makeTestCases <$> extractExamples <$> loadREADME
-  hspec $ sequence_ specs
+main = withREADME $ \readme_doc -> hspec $ sequence_ $ map specFor $ makeTestCases $ extractExamples readme_doc
 
 specFor :: TestCase -> Spec
 specFor tc = describe label $ do
@@ -14,9 +13,8 @@ specFor tc = describe label $ do
   where
     label = "example " ++ (show $ tcIndex tc)
 
-loadREADME :: IO String
-loadREADME = undefined
-
+withREADME :: (String -> IO a) -> IO a
+withREADME cont = withFile "../README.md" ReadMode $ \h -> cont =<< hGetContents h
 
 type CodeBlock = String
 
