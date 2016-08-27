@@ -1,6 +1,8 @@
 module Main (main) where
 
 import Control.Applicative ((<$>))
+import Data.Foldable (foldl')
+import Data.List (isPrefixOf)
 import System.IO (withFile, IOMode(ReadMode), hGetContents)
 import Test.Hspec
 
@@ -23,8 +25,25 @@ data TestCase = TestCase { tcIndex :: Int,
                            tcBody :: CodeBlock
                          } deriving (Show,Eq,Ord)
 
+data CodeAcc = CodeAcc { caCurrent :: Maybe CodeBlock,
+                         caResult :: [CodeBlock]
+                       } deriving (Show,Eq,Ord)
+
 extractExamples :: String -> [CodeBlock]
-extractExamples = undefined
+extractExamples = obtainResult . foldl' f start . lines where
+  start = CodeAcc Nothing []
+  f acc line = case caCurrent acc of
+    Nothing | line == "```haskell" -> acc { caCurrent = Just "" }
+            | otherwise -> acc
+    Just cur | line == "```" -> finish cur acc
+             | "#!" `isPrefixOf` line -> acc
+             | otherwise -> acc { caCurrent = Just $ unlines [cur, line] }
+  finish cur acc = CodeAcc { caCurrent = Nothing,
+                             caResult = cur : caResult acc
+                           }
+  obtainResult CodeAcc { caCurrent = mcur, caResult = ret } = maybe ret (\cur -> cur : ret) mcur
+  
+
 
 prefixFor :: Int -> CodeBlock
 prefixFor = undefined
