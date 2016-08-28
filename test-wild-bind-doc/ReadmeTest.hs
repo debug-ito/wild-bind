@@ -1,9 +1,12 @@
 module Main (main) where
 
 import Control.Applicative ((<$>))
+import Control.Exception (finally)
+import Data.Bool (bool)
 import Data.Foldable (foldl')
 import Data.List (isPrefixOf)
-import System.IO (withFile, IOMode(ReadMode), hGetContents)
+import System.Directory (doesFileExist, removeFile)
+import System.IO (withFile, IOMode(ReadMode), hGetContents, FilePath, writeFile)
 import Test.Hspec
 
 main :: IO ()
@@ -46,7 +49,7 @@ extractExamples = obtainResult . foldl' f start . lines where
 
 
 prefixFor :: Int -> CodeBlock
-prefixFor = undefined
+prefixFor _ = "" -- TODO
 
 makeTestCases :: [CodeBlock] -> [TestCase]
 makeTestCases = map f . zip [0 ..] where
@@ -57,4 +60,15 @@ makeTestCases = map f . zip [0 ..] where
 
 
 checkCompile :: TestCase -> Expectation
-checkCompile = undefined
+checkCompile tc = impl where
+  impl = withTempFile tempSource sourceContent doCheck
+  sourceContent = unlines [tcPrefix tc, tcBody tc]
+  tempSource = "temp_readme_test.hs"
+  doCheck = sourceContent `shouldBe` ""  -- TODO.
+  
+
+withTempFile :: FilePath -> String -> IO a -> IO a
+withTempFile filename content act = (createFile >> act) `finally` cleanFile where
+  createFile = writeFile filename content
+  cleanFile = bool (return ()) (removeFile filename) =<< doesFileExist filename
+

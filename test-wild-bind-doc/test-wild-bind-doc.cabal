@@ -15,4 +15,5 @@ test-suite spec
   main-is:              ReadmeTest.hs
   default-extensions:   OverloadedStrings
   build-depends:        base, wild-bind-task-x11,
-                        hspec
+                        hspec,
+                        directory
