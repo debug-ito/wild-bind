@@ -21,7 +21,7 @@ specFor :: TestCase -> Spec
 specFor tc = describe label $ do
   it "should compile OK" $ checkCompile tc
   where
-    label = "example " ++ (show $ tcIndex tc)
+    label = "==== example " ++ (show $ tcIndex tc)
 
 withREADME :: (String -> IO a) -> IO a
 withREADME cont = withFile "../README.md" ReadMode $ \h -> cont =<< hGetContents h
@@ -61,6 +61,7 @@ import System.Process (spawnCommand)
 
 main = wildNumPad myBinding
 |]
+
 prefixFor _ = "" -- TODO. other cases
 
 makeTestCases :: [CodeBlock] -> [TestCase]
