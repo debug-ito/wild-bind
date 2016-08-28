@@ -16,4 +16,5 @@ test-suite spec
   default-extensions:   OverloadedStrings
   build-depends:        base, wild-bind-task-x11,
                         hspec,
-                        directory
+                        directory,
+                        process

@@ -6,7 +6,9 @@ import Data.Bool (bool)
 import Data.Foldable (foldl')
 import Data.List (isPrefixOf, reverse)
 import System.Directory (doesFileExist, removeFile)
+import System.Exit (ExitCode(ExitSuccess))
 import System.IO (withFile, IOMode(ReadMode), hGetContents, FilePath, writeFile)
+import System.Process (waitForProcess, spawnCommand)
 import Test.Hspec
 
 main :: IO ()
@@ -64,7 +66,8 @@ checkCompile tc = impl where
   impl = withTempFile tempSource sourceContent doCheck
   sourceContent = tcPrefix tc ++ tcBody tc
   tempSource = "temp_readme_test.hs"
-  doCheck = sourceContent `shouldBe` ""  -- TODO.
+  doCheck = (waitForProcess =<< spawnCommand cmdline) `shouldReturn` ExitSuccess
+  cmdline = "stack ghc " ++ tempSource
   
 
 withTempFile :: FilePath -> String -> IO a -> IO a
