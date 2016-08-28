@@ -62,7 +62,7 @@ makeTestCases = map f . zip [0 ..] where
 checkCompile :: TestCase -> Expectation
 checkCompile tc = impl where
   impl = withTempFile tempSource sourceContent doCheck
-  sourceContent = unlines [tcPrefix tc, tcBody tc]
+  sourceContent = tcPrefix tc ++ tcBody tc
   tempSource = "temp_readme_test.hs"
   doCheck = sourceContent `shouldBe` ""  -- TODO.
   
