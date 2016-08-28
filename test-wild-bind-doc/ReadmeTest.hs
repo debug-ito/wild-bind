@@ -4,7 +4,7 @@ import Control.Applicative ((<$>))
 import Control.Exception (finally)
 import Data.Bool (bool)
 import Data.Foldable (foldl')
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, reverse)
 import System.Directory (doesFileExist, removeFile)
 import System.IO (withFile, IOMode(ReadMode), hGetContents, FilePath, writeFile)
 import Test.Hspec
@@ -40,11 +40,11 @@ extractExamples = obtainResult . foldl' f start . lines where
             | otherwise -> acc
     Just cur | line == "```" -> finish cur acc
              | "#!" `isPrefixOf` line -> acc
-             | otherwise -> acc { caCurrent = Just $ unlines [cur, line] }
+             | otherwise -> acc { caCurrent = Just $ (cur ++ line ++ "\n") }
   finish cur acc = CodeAcc { caCurrent = Nothing,
                              caResult = cur : caResult acc
                            }
-  obtainResult CodeAcc { caCurrent = mcur, caResult = ret } = maybe ret (\cur -> cur : ret) mcur
+  obtainResult CodeAcc { caCurrent = mcur, caResult = ret } = reverse $ maybe ret (\cur -> cur : ret) mcur
   
 
 
