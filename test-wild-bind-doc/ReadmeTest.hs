@@ -2,6 +2,7 @@ module Main (main) where
 
 import Control.Applicative ((<$>))
 import Control.Exception (finally)
+import Control.Monad (forM_)
 import Data.Bool (bool)
 import Data.Foldable (foldl')
 import Data.List (isPrefixOf, reverse)
@@ -62,16 +63,16 @@ makeTestCases = map f . zip [0 ..] where
 
 
 checkCompile :: TestCase -> Expectation
-checkCompile tc = impl where
-  impl = withTempFile tempSource sourceContent doCheck
+checkCompile tc = withTempSourceFile tempSourceBase sourceContent doCheck where
+  tempSourceBase = "temp_readme_test"
   sourceContent = tcPrefix tc ++ tcBody tc
-  tempSource = "temp_readme_test.hs"
   doCheck = (waitForProcess =<< spawnCommand cmdline) `shouldReturn` ExitSuccess
-  cmdline = "stack ghc " ++ tempSource
+  cmdline = "stack ghc " ++ tempSourceBase ++ ".hs"
   
 
-withTempFile :: FilePath -> String -> IO a -> IO a
-withTempFile filename content act = (createFile >> act) `finally` cleanFile where
-  createFile = writeFile filename content
-  cleanFile = bool (return ()) (removeFile filename) =<< doesFileExist filename
+withTempSourceFile :: FilePath -> String -> IO a -> IO a
+withTempSourceFile filebase content act = (createFile >> act) `finally` cleanFiles where
+  createFile = writeFile (filebase ++ ".hs") content
+  cleanFiles = forM_ [".hs", ".o", ".hi", ""] $ \ext -> cleanFile (filebase ++ ext)
+  cleanFile filename = bool (return ()) (removeFile filename) =<< doesFileExist filename
 
