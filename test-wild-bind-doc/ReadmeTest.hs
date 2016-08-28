@@ -1,3 +1,4 @@
+{-# LANGUAGE QuasiQuotes #-}
 module Main (main) where
 
 import Control.Applicative ((<$>))
@@ -11,6 +12,7 @@ import System.Exit (ExitCode(ExitSuccess))
 import System.IO (withFile, IOMode(ReadMode), hGetContents, FilePath, writeFile)
 import System.Process (waitForProcess, spawnCommand)
 import Test.Hspec
+import Text.RawString.QQ (r)
 
 main :: IO ()
 main = withREADME $ \readme_doc -> hspec $ sequence_ $ map specFor $ makeTestCases $ extractExamples readme_doc
@@ -52,7 +54,14 @@ extractExamples = obtainResult . foldl' f start . lines where
 
 
 prefixFor :: Int -> CodeBlock
-prefixFor _ = "" -- TODO
+prefixFor 2 = [r|
+{-# LANGUAGE OverloadedStrings #-}
+import WildBind.Task.X11
+import System.Process (spawnCommand)
+
+main = wildNumPad myBinding
+|]
+prefixFor _ = "" -- TODO. other cases
 
 makeTestCases :: [CodeBlock] -> [TestCase]
 makeTestCases = map f . zip [0 ..] where
