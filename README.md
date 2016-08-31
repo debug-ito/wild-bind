@@ -205,10 +205,10 @@ So far, bound actions are just plain `IO ()`, and `Binding` has no internal stat
 ```haskell
 myBinding :: Binding ActiveWindow NumPadUnlockedInput
 myBinding = binds $ do
-  on NumCenter `run` boundAction
+  on NumCenter `run` myAction
 
-boundAction :: IO ()
-boundAction = putStrLn "Hello, world!"
+myAction :: IO ()
+myAction = putStrLn "Hello, world!"
 ```
 
 WildBind has a built-in support for **stateful keybindings**. A binding object can have its own state of arbitrary type, and behave differently according to the state.
