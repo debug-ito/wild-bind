@@ -54,15 +54,59 @@ extractExamples = obtainResult . foldl' f start . lines where
 
 
 prefixFor :: Int -> CodeBlock
-prefixFor 2 = [r|
+prefixFor 2 = prefix_basic_process
+prefixFor 3 = prefix_basic_process
+prefixFor 4 = prefix_with_pushKey
+prefixFor 5 = prefix_with_pushKey ++ [r|
+myBinding = forFirefox
+
+|]
+
+prefixFor 6 = prefix_basic_process ++ [r|
+myBinding = binds $ do
+  on NumCenter `run` putStrLn "Hello, world!"
+
+|]
+
+prefixFor 7 = prefix_basic_process
+prefixFor 9 = [r|
+{-# LANGUAGE OverloadedStrings #-}
+import WildBind.Task.X11
+
+main = wildNumPad myBinding
+
+upAction, downAction, centerAction :: StateT Int IO ()  ------------- (3)
+upAction = modify (+ 1)
+downAction = modify (subtract 1)
+centerAction = do
+  current_state <- get
+  liftIO $ putStrLn ("Current state is = " ++ show current_state)
+
+myBinding :: Binding ActiveWindow NumPadUnlockedInput
+myBinding = startFrom 0 myBinding'  --------------------------------- (4)
+
+|]
+
+prefixFor _ = ""
+
+prefix_basic_process :: CodeBlock
+prefix_basic_process =  [r|
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Task.X11
 import System.Process (spawnCommand)
 
 main = wildNumPad myBinding
+
 |]
 
-prefixFor _ = "" -- TODO. other cases
+prefix_with_pushKey :: CodeBlock
+prefix_with_pushKey = prefix_basic_process ++ [r|
+
+pushKey key = spawnCommand ("xdotool key " <> key)
+
+|]
+
+
 
 makeTestCases :: [CodeBlock] -> [TestCase]
 makeTestCases = map f . zip [0 ..] where
