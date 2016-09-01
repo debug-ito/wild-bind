@@ -603,6 +603,19 @@ spec_monadic = describe "Monadic construction of Binding" $ do
             WB.on SIa `WB.run` modifyIORef out (++ "3")
       actRun $ WB.boundAction b (SS "") SIa
       checkOut "3"
+  describe "Binder" $ do
+    it "can bind actions with different result types" $ withStrRef $ \out checkOut -> do
+      let ret_b :: String
+          ret_b = "return by b"
+          b = WB.binds $ do  -- it's ok if it compiles..
+            WB.on SIa `WB.run` do
+              modifyIORef out (++ "a")
+              return ()
+            WB.on SIb `WB.run` do
+              modifyIORef out (++ "b")
+              return ret_b
+      actRun $ WB.boundAction b (SS "") SIb
+      checkOut "b"
   describe "binds'" $ do
     it "constructs stateful Binding" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       State.put $ WB.startFrom (SB 0) $ WB.binds' $ do

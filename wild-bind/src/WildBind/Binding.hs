@@ -193,9 +193,10 @@ on :: i -> v -> Binder i v ()
 on i v = Binder $ tell $ Endo ((i,v) :)
 
 -- | Transform the given action @m a@ into an 'Action' and apply the
--- continuation to it. Usually used as an operator.
-run :: (Action m a -> b) -> m a -> b
-run cont raw_act = cont $ Action { actDescription = "", actDo = raw_act }
+-- continuation to it. It discards the result of action (type
+-- @a@). Usually used as an operator.
+run :: Functor m => (Action m () -> b) -> m a -> b
+run cont raw_act = cont $ Action { actDescription = "", actDo = fmap (const ()) raw_act }
 
 infixl 2 `run`
 
