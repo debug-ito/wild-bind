@@ -267,19 +267,22 @@ The above script sets upper bound to the state. If the state reaches 10, the `up
 `ifBack p b1 b2` creates a `Binding'` that chooses between `b1` and `b2`. `p` is a predicate for the state of the `Binding'`. If `p` is `True`, `b1` is enabled. Otherwise, `b2` is enabled.
 
 
+
 ## External Tools
 
-TBW.
+There are some tools that are pretty useful in combination with WildBind. You can use those tools via  [System.Process](http://hackage.haskell.org/package/process/docs/System-Process.html) module.
 
-- xdotool
-- wmctrl
-- boring-window-switcher
+- [xdotool](https://github.com/jordansissel/xdotool): We have already introduced this module above. It is an automation tool for X11. It inspects windows, manipulates windows and generates keyboard/mouse events.
+- [xautomation](https://www.hoopajoo.net/projects/xautomation.html): It is similar to xdotool, but it also contains a program called `visgrep`.  `visgrep` is a simple image matching tool. It searches an image for an image pattern, and returns its location.
+- [wmctrl](https://sites.google.com/site/tstyblo/wmctrl): It is a tool to interact with window managers for X11. It inspects and manipulates windows.
+- [boring-window-switcher](https://github.com/debug-ito/boring-window-switcher): It is a pretty simple window switcher for X11. It is useful when you want to switch windows ONLY WITH YOUR NUMBER PAD.
 
-## For Programmers
 
-TBW
+## Advanced Topics
 
-- wild-bind package family
+Advanced topics, such as wild-bind package architecture, can be found in [wild-bind's package README](https://github.com/debug-ito/wild-bind/tree/master/wild-bind).
+
+
 
 ## Author
 
