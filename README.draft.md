@@ -70,6 +70,13 @@ Then hit 5 key with NumLock disabled and it shows "Hello, world!" on the console
 
 To deactivate the binding, right-click the icon and select "Quit" item.
 
+If you prefer building a binary executable, use `stack ghc`.
+
+    $ stack ghc -- -threaded simplest.hs
+    $ ./simplest
+
+Note that `-threaded` option is necessary.
+
 
 ## Combine Bindings
 
