@@ -10,6 +10,19 @@ Features:
 - Key bindings can be **dynamic**, i.e. you can use different key bindings for different active windows.
 - Key bindings can be **stateful**, e.g. you can bind actions to **sequences** of keys.
 
+## Contents
+
+- [Getting Started](#getting-started)
+- [Simplest Binding](#simplest-binding)
+- [Combine Bindings](#combine-bindings)
+- [Dynamic Binding Based on ActiveWindow](#dynamic-binding-based-on-activewindow)
+- [Binding Override by <>](#binding-override-by-)
+- [Binding Description](#binding-description)
+- [Types and Modules](#types-and-modules)
+- [Stateful Binding](#stateful-binding)
+- [External Tools](#external-tools)
+- [Advanced Topics](#advanced-topics)
+
 
 ## Getting Started
 
