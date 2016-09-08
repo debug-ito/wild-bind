@@ -5,12 +5,25 @@
 --
 -- 
 module WildBind
-       ( module WildBind.Description,
-         module WildBind.Binding,
+       ( module WildBind.Binding,
+         -- | Defines 'Binding' and many functions to build it.
+         
          module WildBind.FrontEnd,
+         -- | Defines 'FrontEnd', an interface between 'Binding' and a
+         -- desktop environment.
+         
          module WildBind.Exec,
+         -- | Defines functions to combine 'Binding' and 'FrontEnd'
+         -- into an executable action. You can customize its behavior
+         -- via 'Option'.
+         
+         module WildBind.Description,
+         -- | Defines 'ActionDescription'.
+         
          module WildBind.Input.NumPad
+         -- | Defines input symbol types for number pad keys.
        ) where
+
 
 import WildBind.Description
 import WildBind.Binding
