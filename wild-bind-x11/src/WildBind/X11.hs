@@ -17,8 +17,9 @@ module WildBind.X11
        ) where
 
 import Control.Applicative ((<$>), empty)
+import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.STM (atomically, TChan, newTChanIO, tryReadTChan, writeTChan)
-import Control.Exception (bracket)
+import Control.Exception (bracket, throwIO)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Cont (ContT(ContT), runContT)
 import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
@@ -68,23 +69,25 @@ openMyDisplay = Xlib.openDisplay ""
 -- 'WildBind.Input.NumPad.NumPadLockedInput' are currently supported.
 -- 
 -- Code using this function must be compiled __with @-threaded@ option enabled__
--- in @ghc@. Otherwise, the behavior of the resulting action is undefined.
+-- in @ghc@. Otherwise, it aborts.
 --
 -- Note that bound actions are executed when the key is released. That
 -- way, you can deliver events to the window that originally has the
 -- keyboard focus.
 --
 withFrontEnd :: (KeySymLike i, ModifierLike i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
-withFrontEnd = runContT $ do
-  disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
-  notif_disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
-  debouncer <- ContT $ Ndeb.withDebouncer notif_disp
-  liftIO $ Xlib.selectInput disp (Xlib.defaultRootWindow disp)
-    (Xlib.substructureNotifyMask .|. Ndeb.xEventMask)
-  awin_ref <- liftIO $ newIORef emptyWindow
-  pending_events <- liftIO $ newTChanIO
-  liftIO $ Ndeb.notify debouncer
-  return $ makeFrontEnd $ X11Front disp debouncer awin_ref pending_events
+withFrontEnd = if rtsSupportsBoundThreads then impl else error_impl where
+  impl = runContT $ do
+    disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
+    notif_disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
+    debouncer <- ContT $ Ndeb.withDebouncer notif_disp
+    liftIO $ Xlib.selectInput disp (Xlib.defaultRootWindow disp)
+      (Xlib.substructureNotifyMask .|. Ndeb.xEventMask)
+    awin_ref <- liftIO $ newIORef emptyWindow
+    pending_events <- liftIO $ newTChanIO
+    liftIO $ Ndeb.notify debouncer
+    return $ makeFrontEnd $ X11Front disp debouncer awin_ref pending_events
+  error_impl _ = throwIO $ userError "You need to build with -threaded option when you use WildBind.X11.withFrontEnd function."
 
 tellElem :: Monad m => a -> WriterT [a] m ()
 tellElem a = tell [a]

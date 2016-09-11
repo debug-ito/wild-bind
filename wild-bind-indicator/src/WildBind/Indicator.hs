@@ -26,7 +26,8 @@ module WildBind.Indicator
        ) where
 
 import Control.Applicative ((<$>))
-import Control.Concurrent (forkFinally)
+import Control.Concurrent (forkFinally, rtsSupportsBoundThreads)
+import Control.Exception (throwIO)
 import Control.Monad (void, forM_)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
@@ -151,8 +152,10 @@ type NumPadContext = ReaderT NumPadConfig IO
 -- > main = withNumPadIndicator $ \indicator -> ...
 -- 
 -- The executable must be compiled by ghc with __@-threaded@ option enabled.__
+-- Otherwise, it aborts.
 withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO ()) -> IO ()
-withNumPadIndicator action = impl where
+withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_impl where
+  error_impl = throwIO $ userError "You need to build with -threaded option when you use WildBind.Indicator.withNumPadIndicator function."
   impl = do
     void $ initGUI
     conf <- numPadConfig
