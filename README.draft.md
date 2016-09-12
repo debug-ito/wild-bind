@@ -1,5 +1,7 @@
 # WildBind
 
+![icon](https://raw.githubusercontent.com/debug-ito/wild-bind/master/resource/icon.png)
+
 WildBind is a dynamic and programmable key binding framework for number pads.
 
 Features:
