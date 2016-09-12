@@ -6,15 +6,15 @@
 -- Input types for number pad keys.
 module WildBind.Input.NumPad
        ( -- * NumLock disabled
-         NumPadUnlockedInput(..),
+         NumPadUnlocked(..),
          -- * NumLock enabled
-         NumPadLockedInput(..),
+         NumPadLocked(..),
        ) where
 
 import WildBind.Description (Describable(describe))
 
 -- | Number pad key input with NumLock disabled.
-data NumPadUnlockedInput
+data NumPadUnlocked
   = NumInsert
   | NumEnd
   | NumDown
@@ -33,7 +33,7 @@ data NumPadUnlockedInput
   | NumDelete
   deriving (Eq,Ord,Show,Bounded,Enum)
 
-instance Describable NumPadUnlockedInput where
+instance Describable NumPadUnlocked where
   describe input = case input of
     NumHome -> "Home"
     NumUp -> "↑"
@@ -54,7 +54,7 @@ instance Describable NumPadUnlockedInput where
 
 
 -- | Number pad key input with NumLock enabled.
-data NumPadLockedInput
+data NumPadLocked
   = NumL0
   | NumL1
   | NumL2
@@ -73,7 +73,7 @@ data NumPadLockedInput
   | NumLPeriod
   deriving (Eq,Ord,Show,Bounded,Enum)
 
-instance Describable NumPadLockedInput where
+instance Describable NumPadLocked where
   describe input = case input of
     NumL0 -> "0"
     NumL1 -> "1"

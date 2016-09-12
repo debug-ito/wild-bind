@@ -38,7 +38,7 @@ instance KeySymLike Xlib.KeySym where
 fromKeySymDef :: (Bounded k, Enum k) => (k -> Xlib.KeySym) -> Xlib.KeySym -> Maybe k
 fromKeySymDef to_conv ks = M.lookup ks $ M.fromList $ map (\n -> (to_conv n, n)) $ enumFromTo minBound maxBound 
 
-instance KeySymLike NumPad.NumPadUnlockedInput where
+instance KeySymLike NumPad.NumPadUnlocked where
   fromKeySym = fromKeySymDef toKeySym
   toKeySym n = case n of
     NumPad.NumUp -> Xlib.xK_KP_Up
@@ -58,7 +58,7 @@ instance KeySymLike NumPad.NumPadUnlockedInput where
     NumPad.NumMinus -> Xlib.xK_KP_Subtract
     NumPad.NumPlus -> Xlib.xK_KP_Add
 
-instance KeySymLike NumPad.NumPadLockedInput where
+instance KeySymLike NumPad.NumPadLocked where
   -- Xlib handles the [(.) (Delete)] key in a weird way. In the input
   -- event, it brings XK_KP_Decimal when NumLock enabled, XK_KP_Delete
   -- when NumLock disabled. However, XKeysymToKeycode() function won't
@@ -103,10 +103,10 @@ data ModifierKey = ModNumLock deriving (Eq,Ord,Show,Bounded,Enum)
 class ModifierLike k where
   toModifiers :: k -> [ModifierKey]
 
-instance ModifierLike NumPad.NumPadUnlockedInput where
+instance ModifierLike NumPad.NumPadUnlocked where
   toModifiers _ = []
 
-instance ModifierLike NumPad.NumPadLockedInput where
+instance ModifierLike NumPad.NumPadLocked where
   toModifiers _ = [ModNumLock]
 
 -- | Convert a 'KeySymLike' into a KeyCode and ButtonMask for grabbing.

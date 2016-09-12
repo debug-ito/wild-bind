@@ -59,7 +59,7 @@ import WildBind ( ActionDescription, Option(optBindingHook),
                   FrontEnd(frontDefaultDescription), Binding,
                   wildBind', defOption
                 )
-import WildBind.Input.NumPad (NumPadUnlockedInput(..), NumPadLockedInput(..))
+import WildBind.Input.NumPad (NumPadUnlocked(..), NumPadLocked(..))
 
 import Paths_wild_bind_indicator (getDataFileName)
 
@@ -100,12 +100,12 @@ transportIndicator ind = Indicator { updateDescription = \i d -> postGUIAsync $ 
 
 -- | Something that can be mapped to number pad's key positions.
 class NumPadPosition a where
-  toNumPad :: a -> NumPadLockedInput
+  toNumPad :: a -> NumPadLocked
 
-instance NumPadPosition NumPadLockedInput where
+instance NumPadPosition NumPadLocked where
   toNumPad = id
 
-instance NumPadPosition NumPadUnlockedInput where
+instance NumPadPosition NumPadUnlocked where
   toNumPad input = case input of
     NumInsert -> NumL0
     NumEnd -> NumL1

@@ -65,8 +65,8 @@ openMyDisplay = Xlib.openDisplay ""
 -- The X11 'FrontEnd' watches and provides 'ActiveWindow' as the
 -- front-end state. 'ActiveWindow' keeps information about the window
 -- currently active. As for the input type @i@,
--- 'WildBind.Input.NumPad.NumPadUnlockedInput' and
--- 'WildBind.Input.NumPad.NumPadLockedInput' are currently supported.
+-- 'WildBind.Input.NumPad.NumPadUnlocked' and
+-- 'WildBind.Input.NumPad.NumPadLocked' are currently supported.
 -- 
 -- Code using this function must be compiled __with @-threaded@ option enabled__
 -- in @ghc@. Otherwise, it aborts.

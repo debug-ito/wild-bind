@@ -56,8 +56,8 @@ import WildBind.X11.Internal.Key (KeySymLike, ModifierLike)
 -- With this function, the Enter key on the numpad is bound to
 -- toggling the 'Indicator', ignoring the binding you provide.
 --
--- For the input type @i@, you can use 'NumPadUnlockedInput' or
--- 'NumPadLockedInput'.
+-- For the input type @i@, you can use 'NumPadUnlocked' or
+-- 'NumPadLocked'.
 wildNumPad :: (NumPadPosition i, KeySymLike i, ModifierLike i, Describable i, Ord i, Enum i, Bounded i)
               => Binding ActiveWindow i -> IO ()
 wildNumPad orig_binding = do

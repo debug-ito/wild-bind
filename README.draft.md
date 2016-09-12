@@ -207,14 +207,14 @@ Before entering the most complicated part of WildBind, let's introduce data type
 The most important type is `Binding`, which is the type of `myBinding`.
 
 ```haskell
-myBinding :: Binding ActiveWindow NumPadUnlockedInput
+myBinding :: Binding ActiveWindow NumPadUnlocked
 ```
 
-The above type means that `myBinding` binds actions to the input key type of `NumPadUnlockedInput`, and that it changes binding based on `ActiveWindow`.
+The above type means that `myBinding` binds actions to the input key type of `NumPadUnlocked`, and that it changes binding based on `ActiveWindow`.
 
 `Binding` type is defined in WildBind.Binding module. This module also defines a lot of functions to build `Binding`, such as `binds`, `on`, `run`, `as` and `whenFront`.
 
-`NumPadUnlockedInput` is the type for keys on a num pad when NumLock is disabled. It is defined in WildBind.Input.NumPad module. `NumCenter` and `NumLeft` are its data constructors. If you want to use WildBind with NumLock enabled, use `NumPadLockedInput`.
+`NumPadUnlocked` is the type for keys on a num pad when NumLock is disabled. It is defined in WildBind.Input.NumPad module. `NumCenter` and `NumLeft` are its data constructors. If you want to use WildBind with NumLock enabled, use `NumPadLocked`.
 
 `ActiveWindow` is the type for an active window. It is defined in WildBind.X11. You can inspect the window by accessor functions such as `winClass`.
 
@@ -225,7 +225,7 @@ The above type means that `myBinding` binds actions to the input key type of `Nu
 So far, bound actions are just plain `IO ()`, and `Binding` has no internal state.
 
 ```haskell
-myBinding :: Binding ActiveWindow NumPadUnlockedInput
+myBinding :: Binding ActiveWindow NumPadUnlocked
 myBinding = binds $ do
   on NumCenter `run` myAction
 
@@ -244,7 +244,7 @@ import WildBind.Task.X11
 
 main = wildNumPad myBinding
 
-myBinding' :: Binding' Int ActiveWindow NumPadUnlockedInput  -------- (1)
+myBinding' :: Binding' Int ActiveWindow NumPadUnlocked  ------------- (1)
 myBinding' = binds' $ do  ------------------------------------------- (2)
   on NumUp `run` upAction
   on NumDown `run` downAction
@@ -257,7 +257,7 @@ centerAction = do
   current_state <- get
   liftIO $ putStrLn ("Current state is = " ++ show current_state)
 
-myBinding :: Binding ActiveWindow NumPadUnlockedInput
+myBinding :: Binding ActiveWindow NumPadUnlocked
 myBinding = startFrom 0 myBinding'  --------------------------------- (4)
 ```
 
@@ -272,7 +272,7 @@ Converting `Binding'` into `Binding` may seem that it discards the binding's sta
 You can completely change keybinding based on the state of the `Binding'`. `ifBack` function is useful for that.
 
 ```haskell
-myBinding' :: Binding' Int ActiveWindow NumPadUnlockedInput
+myBinding' :: Binding' Int ActiveWindow NumPadUnlocked
 myBinding' = ifBack (>= 10) forTooBigState
            $ forOtherCase
   where

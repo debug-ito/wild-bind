@@ -60,7 +60,7 @@ spec = do
   describe "X11Front" $ do
     it "should first emit FEChange event when initialized" $ withFrontEnd $ \f -> do
       p "try to get the first event..."
-      (ev, time) <- stopWatchMsec $ frontNextEvent f :: IO (FrontEvent ActiveWindow NumPad.NumPadUnlockedInput, Int)
+      (ev, time) <- stopWatchMsec $ frontNextEvent f :: IO (FrontEvent ActiveWindow NumPad.NumPadUnlocked, Int)
       time `shouldSatisfy` (< 500)
       case ev of
         FEChange _ -> return ()
@@ -69,10 +69,10 @@ spec = do
       withFrontEnd $ \f2 -> do
         frontSetGrab f1 NumPad.NumLeft `shouldReturn` ()
         frontSetGrab f2 NumPad.NumLeft `shouldReturn` ()
-  describe "X11Front - NumPadUnlockedInput" $ do
-    it "should grab/ungrab keys" $ maybeRun $ withFrontEnd $ \(f :: FrontEnd ActiveWindow NumPad.NumPadUnlockedInput) -> do
+  describe "X11Front - NumPadUnlocked" $ do
+    it "should grab/ungrab keys" $ maybeRun $ withFrontEnd $ \(f :: FrontEnd ActiveWindow NumPad.NumPadUnlocked) -> do
       grabCase f
-  describe "X11Front - NumPadLockedInput" $ do
-    it "should grab/ungrab keys" $ maybeRun $ withFrontEnd $ \(f :: FrontEnd ActiveWindow NumPad.NumPadLockedInput) -> do
+  describe "X11Front - NumPadLocked" $ do
+    it "should grab/ungrab keys" $ maybeRun $ withFrontEnd $ \(f :: FrontEnd ActiveWindow NumPad.NumPadLocked) -> do
       grabCase f
 

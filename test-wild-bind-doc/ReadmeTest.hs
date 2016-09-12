@@ -82,7 +82,7 @@ centerAction = do
   current_state <- get
   liftIO $ putStrLn ("Current state is = " ++ show current_state)
 
-myBinding :: Binding ActiveWindow NumPadUnlockedInput
+myBinding :: Binding ActiveWindow NumPadUnlocked
 myBinding = startFrom 0 myBinding'  --------------------------------- (4)
 
 |]
