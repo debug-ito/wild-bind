@@ -193,11 +193,11 @@ forFirefox = whenFront isFirefox $ binds $ do
 
 Notice the `as` function is inserted between `on` and `run` functions.
 
-To see the description of current binding, press Enter key on a num pad. It shows a window like this:
+To see the description of current binding, press "/" (divide) key on a num pad. It shows a window like this:
 
 ![(screen shot)](https://raw.githubusercontent.com/debug-ito/wild-bind/master/resource/shot_description_window.png)
 
-Press Enter key again to hide the window.
+Press "/" key again to hide the window.
 
 
 ## Types and Modules

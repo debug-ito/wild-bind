@@ -40,6 +40,6 @@ mainError ind = do
 
 binding :: Indicator ActiveWindow NumPadUnlocked -> Binding ActiveWindow NumPadUnlocked
 binding ind = binds $ do
-  on NumEnter `as` "Toggle description" `run` togglePresence ind
+  on NumDivide `as` "Toggle description" `run` togglePresence ind
   on NumMinus `as` "Quit" `run` quit ind
   on NumHome `as` "BOOM!" `run` fail "exception thrown"

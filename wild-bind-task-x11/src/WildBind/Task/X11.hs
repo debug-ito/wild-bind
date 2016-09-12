@@ -53,17 +53,16 @@ import WildBind.X11.Internal.Key (KeySymLike, ModifierLike)
 -- Note that the executable must be compiled by ghc with
 -- __@-threaded@ option enabled.__
 --
--- With this function, the Enter key on the numpad is bound to
--- toggling the 'Indicator', ignoring the binding you provide.
+-- With this function, the @"/"@ (divide) key on the numpad is bound
+-- to toggling the 'Indicator', ignoring the binding you provide.
 --
 -- For the input type @i@, you can use 'NumPadUnlocked' or
 -- 'NumPadLocked'.
 wildNumPad :: (NumPadPosition i, KeySymLike i, ModifierLike i, Describable i, Ord i, Enum i, Bounded i)
               => Binding ActiveWindow i -> IO ()
-wildNumPad orig_binding = do
-  let enter_likes = filter ((== NumLEnter) . toNumPad) $ enumFromTo minBound maxBound
-      enter_binds ind = binding $ map (\input -> (input, Action "Toggle description" $ togglePresence ind)) enter_likes
-  wildNumPad' $ \ind -> orig_binding <> enter_binds ind
+wildNumPad orig_binding = wildNumPad' $ \ind -> orig_binding <> help_binds ind where
+  help_binds ind = binding $ map (\input -> (input, Action "Toggle description" $ togglePresence ind)) help_likes
+  help_likes = filter ((== NumLDivide) . toNumPad) $ enumFromTo minBound maxBound
 
 -- | A more flexible version of 'wildNumPad'. It passes you an
 -- 'Indicator', and uses the 'Binding' you return as-is.
