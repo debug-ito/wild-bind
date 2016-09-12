@@ -18,6 +18,7 @@ module WildBind.X11.Internal.Window
        ) where
 
 import Control.Applicative ((<$>),(<|>),empty)
+import Control.Monad (guard)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT),runMaybeT)
 import Data.Maybe (listToMaybe)
@@ -57,6 +58,7 @@ getActiveWindow :: Xlib.Display -> IO ActiveWindow
 getActiveWindow disp = maybe emptyWindow id <$> runMaybeT getActiveWindowM where
   getActiveWindowM = do
     awin <- xGetActiveWindow disp
+    guard (awin /= 0) -- sometimes X11 returns 0 (NULL) as a window ID, which I think is always invalid
     name <- xGetWindowName disp awin
     class_hint <- liftIO $ xGetClassHint disp awin
     return $ (uncurry Window) class_hint name
