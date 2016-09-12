@@ -214,7 +214,7 @@ newNumPadWindow = do
                        windowAcceptFocus := False,
                        windowFocusOnMap := False
                      ]
-  liftIO $ windowSetTitle win ("WildBind Status" :: Text)
+  liftIO $ windowSetTitle win ("WildBind Description" :: Text)
   win_x <- confWindowX <$> ask
   win_y <- confWindowY <$> ask
   liftIO $ windowMove win win_x win_y
@@ -286,7 +286,7 @@ makeStatusMenu ind = impl where
     void $ G.on quit_item menuItemActivated (quit ind)
     return quit_item
   makeToggler = do
-    toggler <- checkMenuItemNewWithMnemonic ("_Toggle window" :: Text)
+    toggler <- checkMenuItemNewWithMnemonic ("_Toggle description" :: Text)
     widgetShowAll toggler
     checkMenuItemSetActive toggler =<< getPresence ind
     void $ G.on toggler checkMenuItemToggled (togglePresence ind)
