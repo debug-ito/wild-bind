@@ -43,7 +43,7 @@ import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
 data X11Front k =
   X11Front { x11Display :: Xlib.Display,
              x11Debouncer :: Ndeb.Debouncer,
-             x11PrevActiveWindow :: IORef ActiveWindow,
+             x11PrevActiveWindow :: IORef (Maybe ActiveWindow),
              x11PendingEvents :: TChan (FrontEvent ActiveWindow k)
            }
 
@@ -83,7 +83,7 @@ withFrontEnd = if rtsSupportsBoundThreads then impl else error_impl where
     debouncer <- ContT $ Ndeb.withDebouncer notif_disp
     liftIO $ Xlib.selectInput disp (Xlib.defaultRootWindow disp)
       (Xlib.substructureNotifyMask .|. Ndeb.xEventMask)
-    awin_ref <- liftIO $ newIORef emptyWindow
+    awin_ref <- liftIO $ newIORef Nothing
     pending_events <- liftIO $ newTChanIO
     liftIO $ Ndeb.notify debouncer
     return $ makeFrontEnd $ X11Front disp debouncer awin_ref pending_events
@@ -113,14 +113,16 @@ convertEvent disp deb xev = ListT $ execWriterT $ convertEventWriter where
 
 filterUnchangedEvent :: X11Front k -> FrontEvent ActiveWindow k -> ListT IO ()
 filterUnchangedEvent front (FEChange new_state) = do
-  old_state <- liftIO $ readIORef $ x11PrevActiveWindow front
-  if new_state == old_state then empty else return ()
+  m_old_state <- liftIO $ readIORef $ x11PrevActiveWindow front
+  case m_old_state of
+   Nothing -> return ()
+   Just old_state -> if new_state == old_state then empty else return ()
 filterUnchangedEvent _ _ = return ()
 
 updateState :: X11Front k -> FrontEvent ActiveWindow k -> IO ()
 updateState front fev = case fev of
   (FEInput _) -> return ()
-  (FEChange s) -> writeIORef (x11PrevActiveWindow front) s
+  (FEChange s) -> writeIORef (x11PrevActiveWindow front) (Just s)
 
 grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front k -> k -> IO ()
 grabDef func front key = func (x11Display front) (x11RootWindow front) key
