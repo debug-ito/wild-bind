@@ -15,8 +15,9 @@ test-suite spec
   main-is:              ReadmeTest.hs
   default-extensions:   OverloadedStrings
   other-extensions:     QuasiQuotes
-  build-depends:        base, wild-bind-task-x11,
-                        hspec,
-                        directory,
-                        process,
-                        raw-strings-qq
+  build-depends:        base >=0 && <999.99,
+                        wild-bind-task-x11 >=0 && <999.99,
+                        hspec >=0 && <999.99,
+                        directory >=0 && <999.99,
+                        process >=0 && <999.99,
+                        raw-strings-qq >=0 && <999.99

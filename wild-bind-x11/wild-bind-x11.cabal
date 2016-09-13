@@ -23,14 +23,14 @@ library
                         WildBind.X11.Internal.Window,
                         WildBind.X11.Internal.NotificationDebouncer
 --  other-modules:        
-  build-depends:        base,
-                        wild-bind,
-                        text,
-                        X11,
-                        containers,
-                        transformers,
-                        fold-debounce,
-                        stm
+  build-depends:        base >=0 && <999.99,
+                        wild-bind >=0 && <999.99,
+                        text >=0 && <999.99,
+                        X11 >=0 && <999.99,
+                        containers >=0 && <999.99,
+                        transformers >=0 && <999.99,
+                        fold-debounce >=0 && <999.99,
+                        stm >=0 && <999.99
 
 -- executable wild-bind-x11
 --   default-language:     Haskell2010
@@ -59,9 +59,9 @@ test-suite spec
                         WildBind.X11.Internal.NotificationDebouncerSpec
   build-depends:        base, wild-bind-x11,
                         wild-bind, X11,
-                        hspec,
-                        QuickCheck,
-                        time
+                        hspec >=0 && <999.99,
+                        QuickCheck >=0 && <999.99,
+                        time >=0 && <999.99
 
 source-repository head
   type:                 git
