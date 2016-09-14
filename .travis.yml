@@ -118,7 +118,7 @@ install:
   set -ex
   case "$BUILD" in
     stack)
-      stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies
+      stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies $TARGET
       ;;
     cabal)
       cabal --version
