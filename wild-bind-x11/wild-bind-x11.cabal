@@ -56,7 +56,8 @@ test-suite spec
   other-extensions:     FlexibleContexts, ScopedTypeVariables, CPP
   other-modules:        WildBind.X11Spec,
                         WildBind.X11.Internal.KeySpec,
-                        WildBind.X11.Internal.NotificationDebouncerSpec
+                        WildBind.X11.Internal.NotificationDebouncerSpec,
+                        WildBind.X11.TestUtil
   build-depends:        base, wild-bind-x11,
                         wild-bind, X11,
                         hspec >=0 && <999.99,

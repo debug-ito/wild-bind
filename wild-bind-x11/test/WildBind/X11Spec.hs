@@ -14,6 +14,8 @@ import WildBind
 import qualified WildBind.Input.NumPad as NumPad
 import WildBind.X11 (withFrontEnd, ActiveWindow)
 
+import WildBind.X11.TestUtil (checkIfX11Available)
+
 main :: IO ()
 main = hspec spec
 
@@ -56,7 +58,7 @@ stopWatchMsec act = do
   return (ret, floor ((diffUTCTime end start) * 1000))
 
 spec :: Spec
-spec = do
+spec = checkIfX11Available $ do
   describe "X11Front" $ do
     it "should first emit FEChange event when initialized" $ withFrontEnd $ \f -> do
       p "try to get the first event..."

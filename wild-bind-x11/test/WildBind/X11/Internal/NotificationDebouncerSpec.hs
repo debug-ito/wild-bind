@@ -6,10 +6,12 @@ import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
 import qualified WildBind.X11.Internal.NotificationDebouncer as Deb
 
+import WildBind.X11.TestUtil (checkIfX11Available)
+
 spec :: Spec
-spec = do
+spec = checkIfX11Available $ do
   describe "notify" $ do
-    it "should create an X event that passes isDeboucedEvent" $ do
+    it "should create an X event that passes isDebouncedEvent" $ do
       disp <- Xlib.openDisplay ""
       Xlib.selectInput disp (Xlib.defaultRootWindow disp) Deb.xEventMask
       deb_disp <- Xlib.openDisplay ""
