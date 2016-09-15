@@ -23,7 +23,7 @@ library
                         WildBind.X11.Internal.Window,
                         WildBind.X11.Internal.NotificationDebouncer
 --  other-modules:        
-  build-depends:        base >=0 && <999.99,
+  build-depends:        base >=4.6 && <999.99,
                         wild-bind >=0 && <999.99,
                         text >=0 && <999.99,
                         X11 >=0 && <999.99,
