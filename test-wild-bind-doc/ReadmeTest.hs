@@ -8,18 +8,21 @@ import Data.Bool (bool)
 import Data.Foldable (foldl')
 import Data.List (isPrefixOf, reverse)
 import System.Directory (doesFileExist, removeFile)
+import System.Environment (lookupEnv)
 import System.Exit (ExitCode(ExitSuccess))
-import System.IO (withFile, IOMode(ReadMode), hGetContents, FilePath, writeFile)
+import System.IO (withFile, IOMode(ReadMode), hGetContents, FilePath, writeFile, hPutStrLn, stderr)
 import System.Process (waitForProcess, spawnCommand)
 import Test.Hspec
 import Text.RawString.QQ (r)
 
 main :: IO ()
-main = withREADME $ \readme_doc -> hspec $ sequence_ $ map specFor $ makeTestCases $ extractExamples readme_doc
+main = do
+  stack_opts <- getStackOpts
+  withREADME $ \readme_doc -> hspec $ sequence_ $ map (specFor stack_opts) $ makeTestCases $ extractExamples readme_doc
 
-specFor :: TestCase -> Spec
-specFor tc = describe label $ do
-  it "should compile OK" $ checkCompile tc
+specFor :: String -> TestCase -> Spec
+specFor stack_opts tc = describe label $ do
+  it "should compile OK" $ checkCompile stack_opts tc
   where
     label = "==== example " ++ (show $ tcIndex tc)
 
@@ -115,13 +118,19 @@ makeTestCases = map f . zip [0 ..] where
                          tcBody = cb
                        }
 
+getStackOpts :: IO String
+getStackOpts = maybe notify_and_default return =<< lookupEnv env_name where
+  env_name = "WILDBIND_README_TEST_STACK_OPTS"
+  notify_and_default = do
+    hPutStrLn stderr ("Environment variable " ++ env_name ++ " is not specified. If you encounter an error, set it to the same options as those you used when you built this program.")
+    return ""
 
-checkCompile :: TestCase -> Expectation
-checkCompile tc = withTempSourceFile tempSourceBase sourceContent doCheck where
+checkCompile :: String -> TestCase -> Expectation
+checkCompile stack_opts tc = withTempSourceFile tempSourceBase sourceContent doCheck where
   tempSourceBase = "temp_readme_test"
   sourceContent = tcPrefix tc ++ tcBody tc
   doCheck = (waitForProcess =<< spawnCommand cmdline) `shouldReturn` ExitSuccess
-  cmdline = "stack ghc " ++ tempSourceBase ++ ".hs"
+  cmdline = "stack ghc " ++ stack_opts ++ " " ++ tempSourceBase ++ ".hs"
   
 
 withTempSourceFile :: FilePath -> String -> IO a -> IO a
