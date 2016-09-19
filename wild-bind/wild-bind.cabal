@@ -26,7 +26,7 @@ library
                         WildBind.Exec,
                         WildBind.Input.NumPad
   -- other-modules:        
-  build-depends:        base >=0 && <999.99,
+  build-depends:        base >=4.6 && <999.99,
                         text >=0 && <999.99,
                         containers >=0 && <999.99,
                         transformers >=0 && <999.99
