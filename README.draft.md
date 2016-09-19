@@ -28,17 +28,26 @@ Features:
 
 ## Getting Started
 
-We recommend `stack` to build and install WildBind. First, follow the instruction in https://docs.haskellstack.org/ to install `stack` command.
+We recommend `stack` to build and install WildBind.
 
-Second, install development packages for libx11 and libgtk. In Ubuntu, you can install them by
+1. Follow the instruction in https://docs.haskellstack.org/ to install `stack` command.
+2. Install development packages for libx11 and GTK+. In Ubuntu, you can install them by
 
-    $ sudo apt-get install libx11-dev libgtk2.0-dev
+        $ sudo apt-get install libx11-dev libglib2.0-dev libcairo2-dev libpango1.0-dev libgtk2.0-dev libgtk2.0-dev
 
-After that, clone this repository and install WildBind.
+3. Clone this repository and enter it.
 
-    $ git clone https://github.com/debug-ito/wild-bind.git
-    $ cd wild-bind
-    $ stack --install-ghc build
+        $ git clone https://github.com/debug-ito/wild-bind.git
+        $ cd wild-bind
+
+4. Install `gtk2hs-buildtools` and set the path to it (See https://wiki.haskell.org/Gtk2Hs/Installation for detail). This may take some time.
+
+        $ stack --install-ghc install gtk2hs-buildtools
+        $ export PATH="$HOME/.local/bin:$PATH"
+
+5. Build this repository.
+
+        $ stack build
 
 The last command triggers a lot of downloading and building. Be patient.
 
