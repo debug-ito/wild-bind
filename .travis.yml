@@ -144,7 +144,7 @@ install:
   set -ex
   case "$BUILD" in
     stack)
-      stack --no-terminal --install-ghc install gtk2hs-buildtools
+      stack --no-terminal --install-ghc $ARGS install gtk2hs-buildtools
       stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies wild-bind
       ;;
     cabal)
