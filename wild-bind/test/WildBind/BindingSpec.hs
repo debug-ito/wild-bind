@@ -30,7 +30,7 @@ rSB = Lens.lens _rSB (\bsb sb -> bsb { _rSB = sb })
 
 -- 'view' is since microlens-0.3.5.0
 view :: Lens.Lens' s a -> s -> a
-view = flip (Lens.^.)
+view l s = s Lens.^. l
 
 newStrRef :: MonadIO m => m (IORef String)
 newStrRef = liftIO $ newIORef []
