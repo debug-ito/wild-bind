@@ -131,6 +131,7 @@ before_install:
 ## - PACKAGES=$(stack --install-ghc query locals | grep '^ *path' | sed 's@^ *path:@@')
 
 - PACKAGES=$(pwd)/wild-bind/
+- export WILDBIND_README_TEST_STACK_OPTS="$ARGS"
 
 install:
 - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
