@@ -26,10 +26,10 @@ library
                         WildBind.Exec,
                         WildBind.Input.NumPad
   -- other-modules:        
-  build-depends:        base >=4.6 && <999.99,
-                        text >=0 && <999.99,
-                        containers >=0 && <999.99,
-                        transformers >=0 && <999.99
+  build-depends:        base >=4.6 && <5.0,
+                        text >=1.2.0 && <1.3,
+                        containers >=0.5.0 && <0.6,
+                        transformers >=0.3.0 && <0.6
 
 -- executable wild-bind
 --   default-language:     Haskell2010
@@ -52,10 +52,10 @@ test-suite spec
                         WildBind.BindingSpec
                         WildBind.ForTest
   build-depends:        base, wild-bind, transformers,
-                        hspec >=0 && <999.99,
-                        QuickCheck >=0 && <999.99,
-                        stm >=0 && <999.99,
-                        microlens >=0 && <999.99
+                        hspec >=2.1.7 && <2.3,
+                        QuickCheck >=2.6 && <3.0,
+                        stm >=2.4.2 && <2.5,
+                        microlens >=0.2.0 && <0.5
 
 source-repository head
   type:                 git
