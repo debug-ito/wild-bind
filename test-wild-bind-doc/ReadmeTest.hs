@@ -27,7 +27,7 @@ specFor stack_opts tc = describe label $ do
     label = "==== example " ++ (show $ tcIndex tc)
 
 withREADME :: (String -> IO a) -> IO a
-withREADME cont = withFile "../README.draft.md" ReadMode $ \h -> cont =<< hGetContents h
+withREADME cont = withFile "../README.md" ReadMode $ \h -> cont =<< hGetContents h
 
 type CodeBlock = String
 
