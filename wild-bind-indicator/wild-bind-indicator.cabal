@@ -1,11 +1,11 @@
 name:                   wild-bind-indicator
-version:                0.1.0.0
+version:                0.1.0.1
 author:                 Toshio Ito <debug.ito@gmail.com>
 maintainer:             Toshio Ito <debug.ito@gmail.com>
 license:                BSD3
 license-file:           LICENSE
 synopsis:               Graphical indicator for WildBind
-description:            Graphical indicator for WildBind. See https://github.com/debug-ito/wild-bind
+description:            Graphical indicator for WildBind. See <https://github.com/debug-ito/wild-bind>
 category:               UserInterface
 cabal-version:          >= 1.10
 build-type:             Simple

@@ -1,11 +1,11 @@
 name:                   wild-bind-x11
-version:                0.1.0.0
+version:                0.1.0.1
 author:                 Toshio Ito <debug.ito@gmail.com>
 maintainer:             Toshio Ito <debug.ito@gmail.com>
 license:                BSD3
 license-file:           LICENSE
 synopsis:               X11-specific implementation for WildBind
-description:            X11-specific implementation for WildBind. See https://github.com/debug-ito/wild-bind
+description:            X11-specific implementation for WildBind. See <https://github.com/debug-ito/wild-bind>
 category:               UserInterface
 cabal-version:          >= 1.10
 build-type:             Simple
