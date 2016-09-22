@@ -221,11 +221,11 @@ myBinding :: Binding ActiveWindow NumPadUnlocked
 
 The above type means that `myBinding` binds actions to the input key type of `NumPadUnlocked`, and that it changes binding based on `ActiveWindow`.
 
-`Binding` type is defined in WildBind.Binding module. This module also defines a lot of functions to build `Binding`, such as `binds`, `on`, `run`, `as` and `whenFront`.
+`Binding` type is defined in [WildBind.Binding](https://hackage.haskell.org/package/wild-bind/docs/WildBind-Binding.html) module. This module also defines a lot of functions to build `Binding`, such as `binds`, `on`, `run`, `as` and `whenFront`.
 
-`NumPadUnlocked` is the type for keys on a num pad when NumLock is disabled. It is defined in WildBind.Input.NumPad module. `NumCenter` and `NumLeft` are its data constructors. If you want to use WildBind with NumLock enabled, use `NumPadLocked`.
+`NumPadUnlocked` is the type for keys on a num pad when NumLock is disabled. It is defined in [WildBind.Input.NumPad](https://hackage.haskell.org/package/wild-bind/docs/WildBind-Input-NumPad.html) module. `NumCenter` and `NumLeft` are its data constructors. If you want to use WildBind with NumLock enabled, use `NumPadLocked`.
 
-`ActiveWindow` is the type for an active window. It is defined in WildBind.X11. You can inspect the window by accessor functions such as `winClass`.
+`ActiveWindow` is the type for an active window. It is defined in [WildBind.X11](https://hackage.haskell.org/package/wild-bind-x11/docs/WildBind-X11.html). You can inspect the window by accessor functions such as `winClass`.
 
 
 ## Stateful Binding
@@ -272,7 +272,7 @@ myBinding = startFrom 0 myBinding'  --------------------------------- (4)
 
 Here, we have `myBinding'` of type `Binding'` **(1)**. The first type argument for `Binding'` (in this case, `Int`) is the type of this binding's state. To create a `Binding'` we use `binds'` function **(2)** instead of `binds`.
 
-When you use `binds'` to create a stateful binding, you have to specify stateful actions. In this case, the actions are of the type `StateT Int IO ()` **(3)**. Functions for `StateT`, such as `modify`, `get` and `put`, are re-exported by WildBind.Task.X11, so you can use them to write stateful actions.
+When you use `binds'` to create a stateful binding, you have to specify stateful actions. In this case, the actions are of the type `StateT Int IO ()` **(3)**. Functions for `StateT`, such as `modify`, `get` and `put`, are re-exported by [WildBind.Task.X11](https://hackage.haskell.org/package/wild-bind-task-x11/docs/WildBind-Task-X11.html), so you can use them to write stateful actions.
 
 Finally, you have to convert `Binding'` into `Binding` with `startFrom` function **(4)**. This function gives a `Binding'` its initial state. In the above script, the state starts from zero.
 
