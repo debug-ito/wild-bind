@@ -60,7 +60,7 @@ test-suite spec
                         WildBind.X11.TestUtil
   build-depends:        base, wild-bind-x11,
                         wild-bind, X11,
-                        hspec >=2.1.7 && <2.3,
+                        hspec >=2.1.7 && <2.4,
                         QuickCheck >=2.6 && <3.0,
                         time >=1.5.0 && <1.7
 
