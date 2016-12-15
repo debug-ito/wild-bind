@@ -1,5 +1,10 @@
 # Revision history for wild-bind-x11
 
+## 0.1.0.4  -- 2016-12-15
+
+* Confirmed build with `X11-1.7`.
+
+
 ## 0.1.0.3  -- 2016-11-27
 
 * Confirmed test with `time-1.7`.
