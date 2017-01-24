@@ -1,5 +1,10 @@
 # Revision history for wild-bind-x11
 
+## 0.1.0.5  -- 2017-01-24
+
+* Confirmed build with `hspec-2.4.0`.
+
+
 ## 0.1.0.4  -- 2016-12-15
 
 * Confirmed build with `X11-1.7`.
