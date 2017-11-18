@@ -24,6 +24,20 @@ import qualified Graphics.X11.Xlib.Extras as XlibE
 
 import qualified WildBind.Input.NumPad as NumPad
 
+-- | Class of data types that can be handled by X11. The data type can
+-- tell X11 to grab key with optional modifiers, and it can be
+-- extracted from a X11 Event object.
+class XKeyInput k where
+  toKeySym :: k -> Xlib.KeySym
+  -- ^ Get the X11 keysym for this input.
+  toModifierMasks :: k -> [Xlib.KeyMask] -- TODO: modifier mapが必要
+  -- ^ Get modifers masks to grab the keysym. If the result is empty,
+  -- X11 grabs the keysym without any modifers.
+  fromKeyEvent :: Xlib.KeySym -> Xlib.Modifier -> Maybe k -- TODO: modifier mapが必要
+  -- ^ Create the input object from a keysym and a modifier (got from
+  -- XEvent.)
+
+
 -- | Convertible to/from Xlib's 'KeySym'
 --
 -- prop> fromKeySym . toKeySym == Just
