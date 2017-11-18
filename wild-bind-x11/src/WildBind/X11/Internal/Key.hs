@@ -51,7 +51,7 @@ class XKeyInput k where
   toModifierMasks :: KeyMaskMap -> k -> [Xlib.KeyMask]
   -- ^ Get modifers masks to grab the keysym. If the result is empty,
   -- X11 grabs the keysym without any modifers.
-  fromKeyEvent :: KeyMaskMap -> Xlib.KeySym -> Xlib.Modifier -> Maybe k -- TODO: modifier mapが必要
+  fromKeyEvent :: KeyMaskMap -> Xlib.KeySym -> Xlib.KeyMask -> Maybe k -- TODO: modifier mapが必要
   -- ^ Create the input object from a keysym and a modifier (got from
   -- XEvent.)
 
