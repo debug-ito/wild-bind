@@ -2,10 +2,10 @@ module Main (main) where
 
 import WildBind (FrontEnd(frontSetGrab, frontNextEvent), FrontEvent)
 import WildBind.Input.NumPad (NumPadUnlocked(NumCenter))
-import WildBind.X11 (withX11Front, ActiveWindow)
+import WildBind.X11 (withFrontEnd, ActiveWindow)
 
 main :: IO ()
-main = withX11Front $ \x11 -> do
+main = withFrontEnd $ \x11 -> do
   frontSetGrab x11 NumCenter
   loop x11
     where
