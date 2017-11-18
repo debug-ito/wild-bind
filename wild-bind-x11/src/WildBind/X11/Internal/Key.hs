@@ -8,6 +8,9 @@ module WildBind.X11.Internal.Key
        ( -- * Conversion between key types
          KeySymLike(..), 
          xEventToKeySymLike,
+         -- * Modifiers
+         KeyMaskMap(..),
+         getKeyMaskMap,
          -- * Key grabs
          ModifierLike,
          xGrabKey, xUngrabKey
@@ -24,16 +27,31 @@ import qualified Graphics.X11.Xlib.Extras as XlibE
 
 import qualified WildBind.Input.NumPad as NumPad
 
+-- | 'Xlib.KeyMask' values assigned to each modifier keys/states. If
+-- the modifier doesn't exist, the mask is 0.
+data KeyMaskMap =
+  KeyMaskMap
+  { maskShift :: Xlib.KeyMask,
+    maskControl :: Xlib.KeyMask,
+    maskAlt :: Xlib.KeyMask,
+    maskSuper :: Xlib.KeyMask,
+    maskNumLock :: Xlib.KeyMask,
+    maskCapsLock :: Xlib.KeyMask,
+    maskShiftLock :: Xlib.KeyMask,
+    maskScrollLock :: Xlib.KeyMask
+  }
+  deriving (Show,Eq,Ord)
+
 -- | Class of data types that can be handled by X11. The data type can
 -- tell X11 to grab key with optional modifiers, and it can be
 -- extracted from a X11 Event object.
 class XKeyInput k where
-  toKeySym :: k -> Xlib.KeySym
+  toKeySym' :: k -> Xlib.KeySym  -- TODO: KeySymLikeをなくしてこっちをtoKeySym関数にする。
   -- ^ Get the X11 keysym for this input.
-  toModifierMasks :: k -> [Xlib.KeyMask] -- TODO: modifier mapが必要
+  toModifierMasks :: KeyMaskMap -> k -> [Xlib.KeyMask]
   -- ^ Get modifers masks to grab the keysym. If the result is empty,
   -- X11 grabs the keysym without any modifers.
-  fromKeyEvent :: Xlib.KeySym -> Xlib.Modifier -> Maybe k -- TODO: modifier mapが必要
+  fromKeyEvent :: KeyMaskMap -> Xlib.KeySym -> Xlib.Modifier -> Maybe k -- TODO: modifier mapが必要
   -- ^ Create the input object from a keysym and a modifier (got from
   -- XEvent.)
 
@@ -135,32 +153,51 @@ createMask disp (modkey:rest) = do
 
 type XModifierMap = [(Xlib.Modifier, [Xlib.KeyCode])]
 
+-- | Get current 'KeyMaskMap'.
+getKeyMaskMap :: Xlib.Display -> IO KeyMaskMap
+getKeyMaskMap disp = do
+  xmodmap <- getXModifierMap
+  let modifierFor = lookupXModifier disp xmodmap
+  numlock_mask <- modifierFor Xlib.xK_Num_Lock
+  capslock_mask <- modifierFor Xlib.xK_Caps_Lock
+  shiftlock_mask <- modifierFor Xlib.xK_Shift_Lock
+  scrolllock_mask <- modifierFor Xlib.xK_Scroll_Lock
+  alt_mask <- modifierFor Xlib.xK_Alt_L
+  super_mask <- modifierFor Xlib.xK_Super_L
+  return KeyMaskMap { maskShift = Xlib.shiftMask,
+                      maskControl = Xlib.controlMask,
+                      maskAlt = alt_mask,
+                      maskSuper = super_mask,
+                      maskNumLock = numlock_mask,
+                      maskCapsLock = capslock_mask,
+                      maskShiftLock = shiftlock_mask,
+                      maskScrollLock = scrolllock_mask
+                    }
+
 getXModifierMap :: Xlib.Display -> IO XModifierMap
 getXModifierMap = XlibE.getModifierMapping
 
--- | Look up modifier for the given 'ModifierKey'. This is necessary
--- especially for NumLock modifier, because it is highly dynamic in
--- KeyCode realm. If no modifier is associated with the 'ModifierKey',
--- it returns 0.
+-- | Look up a modifier keymask associated to the given keysym. This
+-- is necessary especially for NumLock modifier, because it is highly
+-- dynamic in KeyCode realm. If no modifier is associated with the
+-- 'ModifierKey', it returns 0.
 --
 -- c.f:
 --
 -- * grab_key.c of xbindkey package
 -- * http://tronche.com/gui/x/xlib/input/keyboard-grabbing.html
 -- * http://tronche.com/gui/x/xlib/input/keyboard-encoding.html
-lookupXModifier :: Xlib.Display -> XModifierMap -> ModifierKey -> IO Xlib.Modifier
-lookupXModifier disp xmmap ModNumLock = do
-  numlock_code <- Xlib.keysymToKeycode disp Xlib.xK_Num_Lock
-  return $ maybe 0 id $ listToMaybe $ mapMaybe (lookupXMod' numlock_code) xmmap
+lookupModifierKeyMask :: Xlib.Display -> XModifierMap -> Xlib.KeySym -> IO Xlib.KeyMask
+lookupModifierKeyMask disp xmmap keysym = do
+  keycode <- Xlib.keysymToKeycode keysym disp
+  return $ maybe 0 modifierToKeyMask $ listToMaybe $ mapMaybe (lookupXMod' keycode) xmmap
   where
     lookupXMod' key_code (xmod, codes) = if key_code `elem` codes
                                          then Just xmod
                                          else Nothing
 
-getXModifier :: Xlib.Display -> ModifierKey -> IO Xlib.Modifier
-getXModifier disp key = do
-  xmmap <- getXModifierMap disp
-  lookupXModifier disp xmmap key
+modifierToKeyMask :: Xlib.Modifier -> Xlib.KeyMask
+modifierToKeyMask = Bits.shift 1 . fromIntegral
 
 -----
 
