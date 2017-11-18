@@ -24,6 +24,7 @@ import Control.Monad.Trans.Maybe (MaybeT(MaybeT),runMaybeT)
 import Data.Maybe (listToMaybe)
 import Data.Text (Text)
 import qualified Data.Text as Text
+import qualified Foreign
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
 
@@ -89,7 +90,6 @@ xGetActiveWindow disp = do
       [] -> empty
       (val:_) -> return $ fromIntegral val
 
-
 xGetClassHint :: Xlib.Display -> Xlib.Window -> IO (Text, Text)
 xGetClassHint disp win = do
   hint <- XlibE.getClassHint disp win
@@ -98,7 +98,12 @@ xGetClassHint disp win = do
 xGetTextProperty :: Xlib.Display -> Xlib.Window -> String -> MaybeT IO Text
 xGetTextProperty disp win prop_name = do
   req <- liftIO $ Xlib.internAtom disp prop_name False
-  Text.pack <$> MaybeT (listToMaybe <$> (XlibE.wcTextPropertyToTextList disp =<< XlibE.getTextProperty disp win req))
+  text_prop <- MaybeT $ Foreign.alloca $ \ptr_prop -> do
+    status <- XlibE.xGetTextProperty disp win ptr_prop req
+    if status == 0
+      then return Nothing
+      else fmap Just $ Foreign.peek ptr_prop
+  Text.pack <$> MaybeT (listToMaybe <$> (XlibE.wcTextPropertyToTextList disp text_prop))
 
 -- | Get the window name for the X11 window. The window name refers to
 -- @_NET_WM_NAME@ or @WM_NAME@.
