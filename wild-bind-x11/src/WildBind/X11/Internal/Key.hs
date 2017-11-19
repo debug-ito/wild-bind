@@ -14,10 +14,6 @@ module WildBind.X11.Internal.Key
          -- * Grabs
          xGrabKey,
          xUngrabKey,
-         -- * Old
-         KeySymLike(..), 
-         xEventToKeySymLike,
-         ModifierLike
        ) where
 
 import Control.Applicative ((<$>), (<*>))
@@ -63,24 +59,12 @@ class XKeyInput k where
   -- ^ Create the input object from a keysym and a modifier (got from
   -- XEvent.)
 
-
--- | Convertible to/from Xlib's 'KeySym'
---
--- prop> fromKeySym . toKeySym == Just
-class KeySymLike k where
-  fromKeySym :: Xlib.KeySym -> Maybe k
-  toKeySym' :: k -> Xlib.KeySym
-
-instance KeySymLike Xlib.KeySym where
-  fromKeySym = Just
-  toKeySym' = id
-
+-- | Partial inverse of 'toKeySym'.
 fromKeySymDef :: (Bounded k, Enum k) => (k -> Xlib.KeySym) -> Xlib.KeySym -> Maybe k
 fromKeySymDef to_conv ks = M.lookup ks $ M.fromList $ map (\n -> (to_conv n, n)) $ enumFromTo minBound maxBound 
 
-instance KeySymLike NumPad.NumPadUnlocked where
-  fromKeySym = fromKeySymDef toKeySym'
-  toKeySym' n = case n of
+instance XKeyInput NumPad.NumPadUnlocked where
+  toKeySym n = case n of
     NumPad.NumUp -> Xlib.xK_KP_Up
     NumPad.NumDown -> Xlib.xK_KP_Down
     NumPad.NumLeft -> Xlib.xK_KP_Left
@@ -97,18 +81,11 @@ instance KeySymLike NumPad.NumPadUnlocked where
     NumPad.NumMulti -> Xlib.xK_KP_Multiply
     NumPad.NumMinus -> Xlib.xK_KP_Subtract
     NumPad.NumPlus -> Xlib.xK_KP_Add
+  toModifierMasks _ _ = []
+  fromKeyEvent _ keysym _ = fromKeySymDef toKeySym keysym
 
-instance KeySymLike NumPad.NumPadLocked where
-  -- Xlib handles the [(.) (Delete)] key in a weird way. In the input
-  -- event, it brings XK_KP_Decimal when NumLock enabled, XK_KP_Delete
-  -- when NumLock disabled. However, XKeysymToKeycode() function won't
-  -- return the correct keycode for XK_KP_Decimal. (I'm not sure how
-  -- much this behavior depends on user's environment...) As a
-  -- workaround in this instance, we map NumLPeriod -> XK_KP_Delete,
-  -- but in the reverse map, we also respond to XK_KP_Decimal.
-  fromKeySym ks | ks == Xlib.xK_KP_Decimal = Just NumPad.NumLPeriod
-                | otherwise                = (fromKeySymDef toKeySym') ks
-  toKeySym' n = case n of
+instance XKeyInput NumPad.NumPadLocked where
+  toKeySym n = case n of
     NumPad.NumL0 -> Xlib.xK_KP_0
     NumPad.NumL1 -> Xlib.xK_KP_1
     NumPad.NumL2 -> Xlib.xK_KP_2
@@ -126,15 +103,19 @@ instance KeySymLike NumPad.NumPadLocked where
     NumPad.NumLEnter -> Xlib.xK_KP_Enter
     NumPad.NumLPeriod -> Xlib.xK_KP_Delete
     -- XKeysymToKeycode() didn't return the correct keycode for XK_KP_Decimal in numpaar code...
+    
+  toModifierMasks kmmap _ = [maskNumLock kmmap]
 
+  -- Xlib handles the [(.) (Delete)] key in a weird way. In the input
+  -- event, it brings XK_KP_Decimal when NumLock enabled, XK_KP_Delete
+  -- when NumLock disabled. However, XKeysymToKeycode() function won't
+  -- return the correct keycode for XK_KP_Decimal. (I'm not sure how
+  -- much this behavior depends on user's environment...) As a
+  -- workaround in this instance, we map NumLPeriod -> XK_KP_Delete,
+  -- but in the reverse map, we also respond to XK_KP_Decimal.
+  fromKeyEvent _ keysym _ | keysym == Xlib.xK_KP_Decimal = Just NumPad.NumLPeriod
+                          | otherwise = fromKeySymDef toKeySym keysym
 
--- | Extract the KeySym associated with the XEvent.
-xEventToKeySym :: Xlib.XEventPtr -> MaybeT IO Xlib.KeySym
-xEventToKeySym xev = MaybeT (fst <$> (Xlib.lookupString $ Xlib.asKeyEvent xev))
-
--- | Extract the 'KeySymLike' associated with the XEvent.
-xEventToKeySymLike :: KeySymLike k => Xlib.XEventPtr -> MaybeT IO k
-xEventToKeySymLike xev = (MaybeT . return . fromKeySym) =<< xEventToKeySym xev
 
 -- | Extract the 'XKeyInput' from the XKeyEvent.
 xKeyEventToXKeyInput :: XKeyInput k => KeyMaskMap -> Xlib.XKeyEventPtr -> MaybeT IO k
@@ -142,19 +123,6 @@ xKeyEventToXKeyInput kmmap kev = do
   keysym <- MaybeT (fst <$> Xlib.lookupString kev)
   (_, _, _, _, _, _, _, status, _, _) <- liftIO $ Xlib.get_KeyEvent $ Foreign.castPtr kev
   MaybeT $ return $ fromKeyEvent kmmap keysym status
-
--- | Internal abstract of key modifiers
-data ModifierKey = ModNumLock deriving (Eq,Ord,Show,Bounded,Enum)
-
--- | Convertible into a set of Modifiers.
-class ModifierLike k where
-  toModifiers :: k -> [ModifierKey]
-
-instance ModifierLike NumPad.NumPadUnlocked where
-  toModifiers _ = []
-
-instance ModifierLike NumPad.NumPadLocked where
-  toModifiers _ = [ModNumLock]
 
 -- | Convert a 'XKeyInput' into a KeyCode and KeyMasks for grabbing.
 xKeyCode :: XKeyInput k => KeyMaskMap -> Xlib.Display -> k -> IO (Xlib.KeyCode, [Xlib.KeyMask])
@@ -164,7 +132,6 @@ xKeyCode kmmap disp key = (,) <$> keysym <*> masks
     masks = pure $ defaultMask $ toModifierMasks kmmap key
     defaultMask [] = [0]
     defaultMask ms = ms
-
 
 type XModifierMap = [(Xlib.Modifier, [Xlib.KeyCode])]
 
