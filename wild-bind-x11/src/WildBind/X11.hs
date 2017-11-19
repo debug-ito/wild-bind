@@ -36,9 +36,9 @@ import WildBind
 import qualified WildBind.Description as WBD
 
 import WildBind.X11.Internal.Key
-  ( xEventToXKeyInput,
+  ( xKeyEventToXKeyInput,
     xGrabKey, xUngrabKey,
-    XInputKey, KeyMaskMap, getKeyMaskMap
+    XKeyInput, KeyMaskMap, getKeyMaskMap
   )
 import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winInstance, winClass, winName, emptyWindow)
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
@@ -80,7 +80,7 @@ openMyDisplay = Xlib.openDisplay ""
 -- way, you can deliver events to the window that originally has the
 -- keyboard focus.
 --
-withFrontEnd :: (XInputKey i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
+withFrontEnd :: (XKeyInput i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
 withFrontEnd = if rtsSupportsBoundThreads then impl else error_impl where
   impl = runContT $ do
     disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
@@ -98,8 +98,8 @@ withFrontEnd = if rtsSupportsBoundThreads then impl else error_impl where
 tellElem :: Monad m => a -> WriterT [a] m ()
 tellElem a = tell [a]
 
-convertEvent :: (XKeyInput k) => Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> ListT IO (FrontEvent ActiveWindow k)
-convertEvent disp deb xev = ListT $ execWriterT $ convertEventWriter where
+convertEvent :: (XKeyInput k) => KeyMaskMap -> Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> ListT IO (FrontEvent ActiveWindow k)
+convertEvent kmmap disp deb xev = ListT $ execWriterT $ convertEventWriter where
   convertEventWriter :: XKeyInput k => WriterT [FrontEvent ActiveWindow k] IO ()
   convertEventWriter = do
     xtype <- liftIO $ Xlib.get_EventType xev
@@ -109,8 +109,9 @@ convertEvent disp deb xev = ListT $ execWriterT $ convertEventWriter where
     is_deb_event <- liftIO $ Ndeb.isDebouncedEvent deb xev
     if is_key_event
       then do
+        let key_ev = Xlib.asKeyEvent xev
         tellChangeEvent
-        (maybe (return ()) tellElem) =<< (liftIO $ runMaybeT (FEInput <$> xEventToXKeyInput xev))
+        (maybe (return ()) tellElem) =<< (liftIO $ runMaybeT (FEInput <$> xKeyEventToXKeyInput kmmap key_ev))
     else if is_deb_event
       then tellChangeEvent
     else if is_awin_event
@@ -130,10 +131,10 @@ updateState front fev = case fev of
   (FEInput _) -> return ()
   (FEChange s) -> writeIORef (x11PrevActiveWindow front) (Just s)
 
-grabDef :: (XInputKey k) => (KeyMaskMap -> Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front k -> k -> IO ()
+grabDef :: (KeyMaskMap -> Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front k -> k -> IO ()
 grabDef func front key = func (x11KeyMaskMap front) (x11Display front) (x11RootWindow front) key
 
-nextEvent :: (XInputKey k) => X11Front k -> IO (FrontEvent ActiveWindow k)
+nextEvent :: (XKeyInput k) => X11Front k -> IO (FrontEvent ActiveWindow k)
 nextEvent handle = loop where
   loop = do
     mpending <- x11PopPendingEvent handle
@@ -154,7 +155,7 @@ nextEvent handle = loop where
     liftIO $ updateState handle fevent
     return fevent
 
-makeFrontEnd :: (XInputKey k, WBD.Describable k) => X11Front k -> FrontEnd ActiveWindow k
+makeFrontEnd :: (XKeyInput k, WBD.Describable k) => X11Front k -> FrontEnd ActiveWindow k
 makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
                             frontSetGrab = grabDef xGrabKey f,
                             frontUnsetGrab = grabDef xUngrabKey f,
