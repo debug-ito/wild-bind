@@ -7,7 +7,7 @@
 module WildBind.X11.Internal.Key
        ( -- * Key
          XKeyInput(..),
-         xEventToXKeyInput,
+         xKeyEventToXKeyInput,
          -- * Modifiers
          KeyMaskMap(..),
          getKeyMaskMap,
@@ -136,12 +136,11 @@ xEventToKeySym xev = MaybeT (fst <$> (Xlib.lookupString $ Xlib.asKeyEvent xev))
 xEventToKeySymLike :: KeySymLike k => Xlib.XEventPtr -> MaybeT IO k
 xEventToKeySymLike xev = (MaybeT . return . fromKeySym) =<< xEventToKeySym xev
 
--- | Extract the 'XKeyInput' from the XEvent.
-xEventToXKeyInput :: XKeyInput k => KeyMaskMap -> Xlib.XEventPtr -> MaybeT IO k
-xEventToXKeyInput kmmap xev = do
-  let keyevent = Xlib.asKeyEvent xev
-  keysym <- MaybeT (fst <$> Xlib.lookupString keyevent)
-  (_, _, _, _, _, _, _, status, _, _) <- liftIO $ Foreign.peek keyevent  -- cannot deduce Storable. どうやってstatusをぶっこ抜けばいい？
+-- | Extract the 'XKeyInput' from the XKeyEvent.
+xKeyEventToXKeyInput :: XKeyInput k => KeyMaskMap -> Xlib.XKeyEventPtr -> MaybeT IO k
+xKeyEventToXKeyInput kmmap kev = do
+  keysym <- MaybeT (fst <$> Xlib.lookupString kev)
+  (_, _, _, _, _, _, _, status, _, _) <- liftIO $ Xlib.get_KeyEvent $ Foreign.castPtr kev
   MaybeT $ return $ fromKeyEvent kmmap keysym status
 
 -- | Internal abstract of key modifiers
