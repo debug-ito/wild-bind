@@ -35,7 +35,11 @@ import WildBind
   )
 import qualified WildBind.Description as WBD
 
-import WildBind.X11.Internal.Key (KeySymLike, ModifierLike, xEventToKeySymLike, xGrabKey, xUngrabKey)
+import WildBind.X11.Internal.Key
+  ( xEventToXKeyInput,
+    xGrabKey, xUngrabKey,
+    XInputKey, KeyMaskMap, getKeyMaskMap
+  )
 import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winInstance, winClass, winName, emptyWindow)
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
 
@@ -44,7 +48,8 @@ data X11Front k =
   X11Front { x11Display :: Xlib.Display,
              x11Debouncer :: Ndeb.Debouncer,
              x11PrevActiveWindow :: IORef (Maybe ActiveWindow),
-             x11PendingEvents :: TChan (FrontEvent ActiveWindow k)
+             x11PendingEvents :: TChan (FrontEvent ActiveWindow k),
+             x11KeyMaskMap :: KeyMaskMap
            }
 
 x11RootWindow :: X11Front k -> Xlib.Window
@@ -75,10 +80,11 @@ openMyDisplay = Xlib.openDisplay ""
 -- way, you can deliver events to the window that originally has the
 -- keyboard focus.
 --
-withFrontEnd :: (KeySymLike i, ModifierLike i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
+withFrontEnd :: (XInputKey i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
 withFrontEnd = if rtsSupportsBoundThreads then impl else error_impl where
   impl = runContT $ do
     disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
+    keymask_map <- liftIO $ getKeyMaskMap disp
     notif_disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
     debouncer <- ContT $ Ndeb.withDebouncer notif_disp
     liftIO $ Xlib.selectInput disp (Xlib.defaultRootWindow disp)
@@ -86,15 +92,15 @@ withFrontEnd = if rtsSupportsBoundThreads then impl else error_impl where
     awin_ref <- liftIO $ newIORef Nothing
     pending_events <- liftIO $ newTChanIO
     liftIO $ Ndeb.notify debouncer
-    return $ makeFrontEnd $ X11Front disp debouncer awin_ref pending_events
+    return $ makeFrontEnd $ X11Front disp debouncer awin_ref pending_events keymask_map
   error_impl _ = throwIO $ userError "You need to build with -threaded option when you use WildBind.X11.withFrontEnd function."
 
 tellElem :: Monad m => a -> WriterT [a] m ()
 tellElem a = tell [a]
 
-convertEvent :: (KeySymLike k) => Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> ListT IO (FrontEvent ActiveWindow k)
+convertEvent :: (XKeyInput k) => Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> ListT IO (FrontEvent ActiveWindow k)
 convertEvent disp deb xev = ListT $ execWriterT $ convertEventWriter where
-  convertEventWriter :: KeySymLike k => WriterT [FrontEvent ActiveWindow k] IO ()
+  convertEventWriter :: XKeyInput k => WriterT [FrontEvent ActiveWindow k] IO ()
   convertEventWriter = do
     xtype <- liftIO $ Xlib.get_EventType xev
     let is_key_event = xtype == Xlib.keyRelease
@@ -104,7 +110,7 @@ convertEvent disp deb xev = ListT $ execWriterT $ convertEventWriter where
     if is_key_event
       then do
         tellChangeEvent
-        (maybe (return ()) tellElem) =<< (liftIO $ runMaybeT (FEInput <$> xEventToKeySymLike xev))
+        (maybe (return ()) tellElem) =<< (liftIO $ runMaybeT (FEInput <$> xEventToXKeyInput xev))
     else if is_deb_event
       then tellChangeEvent
     else if is_awin_event
@@ -124,10 +130,10 @@ updateState front fev = case fev of
   (FEInput _) -> return ()
   (FEChange s) -> writeIORef (x11PrevActiveWindow front) (Just s)
 
-grabDef :: (KeySymLike k, ModifierLike k) => (Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front k -> k -> IO ()
-grabDef func front key = func (x11Display front) (x11RootWindow front) key
+grabDef :: (XInputKey k) => (KeyMaskMap -> Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front k -> k -> IO ()
+grabDef func front key = func (x11KeyMaskMap front) (x11Display front) (x11RootWindow front) key
 
-nextEvent :: (KeySymLike k) => X11Front k -> IO (FrontEvent ActiveWindow k)
+nextEvent :: (XInputKey k) => X11Front k -> IO (FrontEvent ActiveWindow k)
 nextEvent handle = loop where
   loop = do
     mpending <- x11PopPendingEvent handle
@@ -143,12 +149,12 @@ nextEvent handle = loop where
         x11UnshiftPendingEvents handle rest
         return eve
   processEvents xev = runListT $ do
-    fevent <- convertEvent (x11Display handle) (x11Debouncer handle) xev
+    fevent <- convertEvent (x11KeyMaskMap handle) (x11Display handle) (x11Debouncer handle) xev
     filterUnchangedEvent handle fevent
     liftIO $ updateState handle fevent
     return fevent
 
-makeFrontEnd :: (KeySymLike k, ModifierLike k, WBD.Describable k) => X11Front k -> FrontEnd ActiveWindow k
+makeFrontEnd :: (XInputKey k, WBD.Describable k) => X11Front k -> FrontEnd ActiveWindow k
 makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
                             frontSetGrab = grabDef xGrabKey f,
                             frontUnsetGrab = grabDef xUngrabKey f,

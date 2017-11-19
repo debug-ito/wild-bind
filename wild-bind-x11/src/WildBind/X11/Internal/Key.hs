@@ -5,26 +5,30 @@
 --
 -- __This is an internal module. Package users should not rely on this.__
 module WildBind.X11.Internal.Key
-       ( -- * Conversion between key types
-         KeySymLike(..), 
-         xEventToKeySymLike,
+       ( -- * Key
+         XKeyInput(..),
+         xEventToXKeyInput,
          -- * Modifiers
          KeyMaskMap(..),
          getKeyMaskMap,
-         -- * Key grabs
-         XKeyInput(..),
-         ModifierLike,
+         -- * Grabs
          xGrabKey,
-         xUngrabKey
+         xUngrabKey,
+         -- * Old
+         KeySymLike(..), 
+         xEventToKeySymLike,
+         ModifierLike
        ) where
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (forM_)
+import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT))
 import Data.Bits ((.|.))
 import qualified Data.Bits as Bits
 import qualified Data.Map as M
 import Data.Maybe (mapMaybe, listToMaybe)
+import qualified Foreign
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
 
@@ -69,14 +73,14 @@ class KeySymLike k where
 
 instance KeySymLike Xlib.KeySym where
   fromKeySym = Just
-  toKeySym = id
+  toKeySym' = id
 
 fromKeySymDef :: (Bounded k, Enum k) => (k -> Xlib.KeySym) -> Xlib.KeySym -> Maybe k
 fromKeySymDef to_conv ks = M.lookup ks $ M.fromList $ map (\n -> (to_conv n, n)) $ enumFromTo minBound maxBound 
 
 instance KeySymLike NumPad.NumPadUnlocked where
-  fromKeySym = fromKeySymDef toKeySym
-  toKeySym n = case n of
+  fromKeySym = fromKeySymDef toKeySym'
+  toKeySym' n = case n of
     NumPad.NumUp -> Xlib.xK_KP_Up
     NumPad.NumDown -> Xlib.xK_KP_Down
     NumPad.NumLeft -> Xlib.xK_KP_Left
@@ -103,8 +107,8 @@ instance KeySymLike NumPad.NumPadLocked where
   -- workaround in this instance, we map NumLPeriod -> XK_KP_Delete,
   -- but in the reverse map, we also respond to XK_KP_Decimal.
   fromKeySym ks | ks == Xlib.xK_KP_Decimal = Just NumPad.NumLPeriod
-                | otherwise                = (fromKeySymDef toKeySym) ks
-  toKeySym n = case n of
+                | otherwise                = (fromKeySymDef toKeySym') ks
+  toKeySym' n = case n of
     NumPad.NumL0 -> Xlib.xK_KP_0
     NumPad.NumL1 -> Xlib.xK_KP_1
     NumPad.NumL2 -> Xlib.xK_KP_2
@@ -131,6 +135,14 @@ xEventToKeySym xev = MaybeT (fst <$> (Xlib.lookupString $ Xlib.asKeyEvent xev))
 -- | Extract the 'KeySymLike' associated with the XEvent.
 xEventToKeySymLike :: KeySymLike k => Xlib.XEventPtr -> MaybeT IO k
 xEventToKeySymLike xev = (MaybeT . return . fromKeySym) =<< xEventToKeySym xev
+
+-- | Extract the 'XKeyInput' from the XEvent.
+xEventToXKeyInput :: XKeyInput k => KeyMaskMap -> Xlib.XEventPtr -> MaybeT IO k
+xEventToXKeyInput kmmap xev = do
+  let keyevent = Xlib.asKeyEvent xev
+  keysym <- MaybeT (fst <$> Xlib.lookupString keyevent)
+  (_, _, _, _, _, _, _, status, _, _) <- liftIO $ Foreign.peek keyevent  -- cannot deduce Storable. どうやってstatusをぶっこ抜けばいい？
+  MaybeT $ return $ fromKeyEvent kmmap keysym status
 
 -- | Internal abstract of key modifiers
 data ModifierKey = ModNumLock deriving (Eq,Ord,Show,Bounded,Enum)
@@ -160,14 +172,14 @@ type XModifierMap = [(Xlib.Modifier, [Xlib.KeyCode])]
 -- | Get current 'KeyMaskMap'.
 getKeyMaskMap :: Xlib.Display -> IO KeyMaskMap
 getKeyMaskMap disp = do
-  xmodmap <- getXModifierMap
-  let modifierFor = lookupXModifier disp xmodmap
-  numlock_mask <- modifierFor Xlib.xK_Num_Lock
-  capslock_mask <- modifierFor Xlib.xK_Caps_Lock
-  shiftlock_mask <- modifierFor Xlib.xK_Shift_Lock
-  scrolllock_mask <- modifierFor Xlib.xK_Scroll_Lock
-  alt_mask <- modifierFor Xlib.xK_Alt_L
-  super_mask <- modifierFor Xlib.xK_Super_L
+  xmodmap <- getXModifierMap disp
+  let maskFor = lookupModifierKeyMask disp xmodmap
+  numlock_mask <- maskFor Xlib.xK_Num_Lock
+  capslock_mask <- maskFor Xlib.xK_Caps_Lock
+  shiftlock_mask <- maskFor Xlib.xK_Shift_Lock
+  scrolllock_mask <- maskFor Xlib.xK_Scroll_Lock
+  alt_mask <- maskFor Xlib.xK_Alt_L
+  super_mask <- maskFor Xlib.xK_Super_L
   return KeyMaskMap { maskShift = Xlib.shiftMask,
                       maskControl = Xlib.controlMask,
                       maskAlt = alt_mask,
@@ -193,7 +205,7 @@ getXModifierMap = XlibE.getModifierMapping
 -- * http://tronche.com/gui/x/xlib/input/keyboard-encoding.html
 lookupModifierKeyMask :: Xlib.Display -> XModifierMap -> Xlib.KeySym -> IO Xlib.KeyMask
 lookupModifierKeyMask disp xmmap keysym = do
-  keycode <- Xlib.keysymToKeycode keysym disp
+  keycode <- Xlib.keysymToKeycode disp keysym
   return $ maybe 0 modifierToKeyMask $ listToMaybe $ mapMaybe (lookupXMod' keycode) xmmap
   where
     lookupXMod' key_code (xmod, codes) = if key_code `elem` codes
@@ -215,7 +227,7 @@ xGrabKey kmmap disp win key = do
 -- exception.
 
 -- | Release the grab on the specified key.
-xUngrabKey :: XInput k => KeyMaskMap -> Xlib.Display -> Xlib.Window -> k -> IO ()
+xUngrabKey :: XKeyInput k => KeyMaskMap -> Xlib.Display -> Xlib.Window -> k -> IO ()
 xUngrabKey kmmap disp win key = do
   (code, masks) <- xKeyCode kmmap disp key
   forM_ masks $ \mask -> Xlib.ungrabKey disp code mask win
