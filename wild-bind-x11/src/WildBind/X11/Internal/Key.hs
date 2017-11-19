@@ -12,11 +12,14 @@ module WildBind.X11.Internal.Key
          KeyMaskMap(..),
          getKeyMaskMap,
          -- * Key grabs
+         XKeyInput(..),
          ModifierLike,
-         xGrabKey, xUngrabKey
+         xGrabKey,
+         xUngrabKey
        ) where
 
 import Control.Applicative ((<$>), (<*>))
+import Control.Monad (forM_)
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT))
 import Data.Bits ((.|.))
 import qualified Data.Bits as Bits
@@ -46,12 +49,13 @@ data KeyMaskMap =
 -- tell X11 to grab key with optional modifiers, and it can be
 -- extracted from a X11 Event object.
 class XKeyInput k where
-  toKeySym' :: k -> Xlib.KeySym  -- TODO: KeySymLikeをなくしてこっちをtoKeySym関数にする。
+  toKeySym :: k -> Xlib.KeySym
   -- ^ Get the X11 keysym for this input.
   toModifierMasks :: KeyMaskMap -> k -> [Xlib.KeyMask]
-  -- ^ Get modifers masks to grab the keysym. If the result is empty,
-  -- X11 grabs the keysym without any modifers.
-  fromKeyEvent :: KeyMaskMap -> Xlib.KeySym -> Xlib.KeyMask -> Maybe k -- TODO: modifier mapが必要
+  -- ^ Get modifers masks to grab the keysym. The grab action is
+  -- repeated for all modifier masks. If the result is empty, X11
+  -- grabs the keysym without any modifers.
+  fromKeyEvent :: KeyMaskMap -> Xlib.KeySym -> Xlib.KeyMask -> Maybe k
   -- ^ Create the input object from a keysym and a modifier (got from
   -- XEvent.)
 
@@ -61,7 +65,7 @@ class XKeyInput k where
 -- prop> fromKeySym . toKeySym == Just
 class KeySymLike k where
   fromKeySym :: Xlib.KeySym -> Maybe k
-  toKeySym :: k -> Xlib.KeySym
+  toKeySym' :: k -> Xlib.KeySym
 
 instance KeySymLike Xlib.KeySym where
   fromKeySym = Just
@@ -141,15 +145,15 @@ instance ModifierLike NumPad.NumPadUnlocked where
 instance ModifierLike NumPad.NumPadLocked where
   toModifiers _ = [ModNumLock]
 
--- | Convert a 'KeySymLike' into a KeyCode and ButtonMask for grabbing.
-xKeyCode :: (KeySymLike k, ModifierLike k) => Xlib.Display -> k -> IO (Xlib.KeyCode, Xlib.ButtonMask)
-xKeyCode disp key = (,) <$> Xlib.keysymToKeycode disp (toKeySym key) <*> createMask disp (toModifiers key)
+-- | Convert a 'XKeyInput' into a KeyCode and KeyMasks for grabbing.
+xKeyCode :: XKeyInput k => KeyMaskMap -> Xlib.Display -> k -> IO (Xlib.KeyCode, [Xlib.KeyMask])
+xKeyCode kmmap disp key = (,) <$> keysym <*> masks
+  where
+    keysym = Xlib.keysymToKeycode disp $ toKeySym key
+    masks = pure $ defaultMask $ toModifierMasks kmmap key
+    defaultMask [] = [0]
+    defaultMask ms = ms
 
-createMask :: Xlib.Display -> [ModifierKey] -> IO Xlib.ButtonMask
-createMask _ [] = return 0
-createMask disp (modkey:rest) = do
-  modifier_index <- fromIntegral <$> getXModifier disp modkey
-  (Bits.shift 1 modifier_index .|.) <$> createMask disp rest
 
 type XModifierMap = [(Xlib.Modifier, [Xlib.KeyCode])]
 
@@ -199,21 +203,19 @@ lookupModifierKeyMask disp xmmap keysym = do
 modifierToKeyMask :: Xlib.Modifier -> Xlib.KeyMask
 modifierToKeyMask = Bits.shift 1 . fromIntegral
 
------
-
 -- | Grab the specified key on the specified window. The key is
 -- captured from now on, so the window won't get that.
-xGrabKey :: (KeySymLike k, ModifierLike k) => Xlib.Display -> Xlib.Window -> k -> IO ()
-xGrabKey disp win key = do
-  (code, mask) <- xKeyCode disp key
-  Xlib.grabKey disp code mask win False Xlib.grabModeAsync Xlib.grabModeAsync
+xGrabKey :: XKeyInput k => KeyMaskMap -> Xlib.Display -> Xlib.Window -> k -> IO ()
+xGrabKey kmmap disp win key = do
+  (code, masks) <- xKeyCode kmmap disp key
+  forM_ masks $ \mask -> Xlib.grabKey disp code mask win False Xlib.grabModeAsync Xlib.grabModeAsync
 
 -- grabKey throws an exception if that key for the window is already
 -- grabbed by another X client. For now, we don't handle that
 -- exception.
 
 -- | Release the grab on the specified key.
-xUngrabKey :: (KeySymLike k, ModifierLike k) => Xlib.Display -> Xlib.Window -> k -> IO ()
-xUngrabKey disp win key = do
-  (code, mask) <- xKeyCode disp key
-  Xlib.ungrabKey disp code mask win
+xUngrabKey :: XInput k => KeyMaskMap -> Xlib.Display -> Xlib.Window -> k -> IO ()
+xUngrabKey kmmap disp win key = do
+  (code, masks) <- xKeyCode kmmap disp key
+  forM_ masks $ \mask -> Xlib.ungrabKey disp code mask win
