@@ -23,7 +23,7 @@ maybeRun :: Expectation -> Expectation
 #ifdef TEST_NUMPAD_INTERACTIVE
 maybeRun = id
 #else
-maybeRun _ = pendingWith ("You need to set test_numpad_interactive flag to run the test.")
+maybeRun _ = pendingWith ("You need to set test-numpad-interactive flag to run the test.")
 #endif
 
 
