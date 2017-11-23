@@ -13,7 +13,13 @@ module WildBind.X11
          -- ** Accessor functions for Window
          winInstance,
          winClass,
-         winName
+         winName,
+         -- * Keys in X11
+         XModKey(..),
+         XMod(..),
+         ToXModKey(..),
+         (.+),
+         XKeyInput(..)
        ) where
 
 import Control.Applicative ((<$>), empty)
@@ -38,7 +44,11 @@ import qualified WildBind.Description as WBD
 import WildBind.X11.Internal.Key
   ( xKeyEventToXKeyInput,
     xGrabKey, xUngrabKey,
-    XKeyInput, KeyMaskMap, getKeyMaskMap
+    XKeyInput(..), KeyMaskMap, getKeyMaskMap,
+    XModKey(..),
+    XMod(..),
+    ToXModKey(..),
+    (.+)
   )
 import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winInstance, winClass, winName, emptyWindow)
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
