@@ -41,7 +41,7 @@ outChanOnS out_chan input out_elem next_state = (,) input $ WBB.Action "" $ do
   liftIO $ atomically $ writeTChan out_chan out_elem
   State.put next_state
 
-withWildBind' :: Ord i => (WBF.FrontEnd s i -> IO ()) -> (EventChan s i -> GrabChan i -> IO ()) -> IO ()
+withWildBind' :: (WBF.FrontEnd s i -> IO ()) -> (EventChan s i -> GrabChan i -> IO ()) -> IO ()
 withWildBind' exec action = do
   echan <- EventChan <$> newTChanIO
   gchan <- GrabChan <$> newTChanIO
