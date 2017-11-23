@@ -213,7 +213,7 @@ data XMod = Shift
           | Ctrl
           | Alt
           | Super
-          deriving (Show,Eq,Ord)
+          deriving (Show,Eq,Ord,Enum,Bounded)
 
 -- | X11 keysym with a set of modifiers.
 data XModKey = XModKey (S.Set XMod) Xlib.KeySym
