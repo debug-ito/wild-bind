@@ -41,7 +41,7 @@ import WildBind.Indicator
     updateDescription, getPresence, setPresence, togglePresence, quit,
     withNumPadIndicator, wildBindWithIndicator
   )
-import WildBind.X11.Internal.Key (KeySymLike, ModifierLike)
+import WildBind.X11.Internal.Key (XKeyInput)
 
 -- | A convenient function to create an executable action with X11
 -- 'FrontEnd' and 'Indicator' for a number pad.
@@ -58,7 +58,7 @@ import WildBind.X11.Internal.Key (KeySymLike, ModifierLike)
 --
 -- For the input type @i@, you can use 'NumPadUnlocked' or
 -- 'NumPadLocked'.
-wildNumPad :: (NumPadPosition i, KeySymLike i, ModifierLike i, Describable i, Ord i, Enum i, Bounded i)
+wildNumPad :: (NumPadPosition i, XKeyInput i, Describable i, Ord i, Enum i, Bounded i)
               => Binding ActiveWindow i -> IO ()
 wildNumPad orig_binding = wildNumPad' $ \ind -> orig_binding <> help_binds ind where
   help_binds ind = binding $ map (\input -> (input, Action "Toggle description" $ togglePresence ind)) help_likes
@@ -66,6 +66,6 @@ wildNumPad orig_binding = wildNumPad' $ \ind -> orig_binding <> help_binds ind w
 
 -- | A more flexible version of 'wildNumPad'. It passes you an
 -- 'Indicator', and uses the 'Binding' you return as-is.
-wildNumPad' :: (NumPadPosition i, KeySymLike i, ModifierLike i, Describable i, Ord i, Enum i, Bounded i)
+wildNumPad' :: (NumPadPosition i, XKeyInput i, Describable i, Ord i, Enum i, Bounded i)
                => (Indicator ActiveWindow i -> Binding ActiveWindow i) -> IO ()
 wildNumPad' create_binding = withNumPadIndicator $ \ind -> withFrontEnd $ wildBindWithIndicator ind (create_binding ind)
