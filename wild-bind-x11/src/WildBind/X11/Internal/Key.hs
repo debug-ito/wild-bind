@@ -27,15 +27,17 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT))
 import Data.Bits ((.|.), (.&.))
 import qualified Data.Bits as Bits
-import Data.Foldable (foldr)
+import Data.Foldable (foldr, fold)
 import Data.List (nub)
 import qualified Data.Map as M
 import Data.Maybe (mapMaybe, listToMaybe)
 import qualified Data.Set as S
+import qualified Data.Text as T
 import qualified Foreign
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
 
+import WildBind.Description (Describable(..))
 import qualified WildBind.Input.NumPad as NumPad
 
 -- | 'Xlib.KeyMask' values assigned to each modifier keys/states. If
@@ -232,6 +234,11 @@ instance ToXModKey XModKey where
 -- | KeySym with empty 'XMod' set.
 instance ToXModKey Xlib.KeySym where
   toXModKey keysym = XModKey mempty keysym
+
+instance Describable XModKey where
+  describe (XModKey mods keysym) = T.pack (mods_str ++ Xlib.keysymToString keysym)
+    where
+      mods_str = fold $ S.map (\m -> show m ++ "+") mods
 
 xModToKeyMask :: KeyMaskMap -> XMod -> Xlib.KeyMask
 xModToKeyMask kmmap modi = case modi of
