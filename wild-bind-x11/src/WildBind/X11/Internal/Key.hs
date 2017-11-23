@@ -14,16 +14,24 @@ module WildBind.X11.Internal.Key
          -- * Grabs
          xGrabKey,
          xUngrabKey,
+         -- * High-level input symbols
+         XModKey(..),
+         XMod(..),
+         ToXModKey(..),
+         (.+)
        ) where
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (forM_)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT))
-import Data.Bits ((.|.))
+import Data.Bits ((.|.), (.&.))
 import qualified Data.Bits as Bits
+import Data.Foldable (foldr)
+import Data.List (nub)
 import qualified Data.Map as M
 import Data.Maybe (mapMaybe, listToMaybe)
+import qualified Data.Set as S
 import qualified Foreign
 import qualified Graphics.X11.Xlib as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
@@ -197,3 +205,68 @@ xUngrabKey :: XKeyInput k => KeyMaskMap -> Xlib.Display -> Xlib.Window -> k -> I
 xUngrabKey kmmap disp win key = do
   (code, masks) <- xKeyCode kmmap disp key
   forM_ masks $ \mask -> Xlib.ungrabKey disp code mask win
+
+-- | X11 key modifiers.
+data XMod = Shift
+          | Ctrl
+          | Alt
+          | Super
+          deriving (Show,Eq,Ord)
+
+-- | X11 keysym with a set of modifiers.
+data XModKey = XModKey (S.Set XMod) Xlib.KeySym
+             deriving (Show,Eq,Ord)
+
+instance XKeyInput XModKey where
+  toKeySym (XModKey _ ks) = ks
+  toModifierMasks kmmap (XModKey mods _) =
+    map (.|. xModsToKeyMask kmmap mods) $ lockVariations kmmap
+  fromKeyEvent kmmap keysym mask = Just $ XModKey (keyMaskToXMods kmmap mask) keysym
+
+class ToXModKey k where
+  toXModKey :: k -> XModKey
+
+instance ToXModKey XModKey where
+  toXModKey = id
+
+-- | KeySym with empty 'XMod' set.
+instance ToXModKey Xlib.KeySym where
+  toXModKey keysym = XModKey mempty keysym
+
+xModToKeyMask :: KeyMaskMap -> XMod -> Xlib.KeyMask
+xModToKeyMask kmmap modi = case modi of
+  Shift -> maskShift kmmap
+  Ctrl -> maskControl kmmap
+  Alt -> maskAlt kmmap
+  Super -> maskSuper kmmap
+
+xModsToKeyMask :: KeyMaskMap -> S.Set XMod -> Xlib.KeyMask
+xModsToKeyMask kmmap = foldr f 0
+  where
+    f modi mask = xModToKeyMask kmmap modi .|. mask
+
+lockVariations :: KeyMaskMap -> [Xlib.KeyMask]
+lockVariations kmmap = nub $ do
+  numl <- [0, maskNumLock kmmap]
+  capsl <- [0, maskCapsLock kmmap]
+  shiftl <- [0, maskShiftLock kmmap]
+  scl <- [0, maskScrollLock kmmap]
+  return (numl .|. capsl .|. shiftl .|. scl)
+
+keyMaskToXMods :: KeyMaskMap -> Xlib.KeyMask -> S.Set XMod
+keyMaskToXMods kmmap mask = S.fromList$ toXMod =<< [ (maskShift, Shift),
+                                                      (maskControl, Ctrl),
+                                                      (maskAlt, Alt),
+                                                      (maskSuper, Super)
+                                                    ]
+  where
+    toXMod (acc, mod_symbol) = if (mask .&. acc kmmap) == 0
+                               then []
+                               else [mod_symbol]
+
+-- | Add a 'XMod' to 'XModKey' or 'Xlib.KeySym'.
+(.+) :: ToXModKey k => XMod -> k -> XModKey
+modi .+ mkey = case toXModKey mkey of
+  XModKey mods ks -> XModKey (S.insert modi mods) ks
+
+infixr 6 .+
