@@ -224,8 +224,13 @@ data XMod = Shift
           deriving (Show,Eq,Ord,Enum,Bounded)
 
 -- | High-level X11 key event.
-data XKeyEvent = XKeyEvent KeyEventType (S.Set XMod) Xlib.KeySym
-             deriving (Show,Eq,Ord)
+data XKeyEvent =
+  XKeyEvent
+  { xKeyEventType :: KeyEventType,
+    xKeyEventMods :: S.Set XMod,
+    xKeyEventKeySym :: Xlib.KeySym
+  }
+  deriving (Show,Eq,Ord)
 
 instance XKeyInput XKeyEvent where
   toKeySym (XKeyEvent _ _ ks) = ks
