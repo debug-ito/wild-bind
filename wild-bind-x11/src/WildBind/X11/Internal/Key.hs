@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- |
 -- Module: WildBind.X11.Internal.Key
 -- Description: types and functions related to key symbols and their conversion
@@ -19,10 +20,12 @@ module WildBind.X11.Internal.Key
          XKeyEvent(..),
          XMod(..),
          ToXKeyEvent(..),
-         (.+)
+         (.+),
+         Press(..),
+         Release(..)
        ) where
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative ((<$>), (<*>), (<|>))
 import Control.Monad (forM_)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT))
@@ -140,6 +143,13 @@ instance XKeyInput NumPad.NumPadLocked where
   fromKeyEvent _ KeyRelease keysym _ | keysym == Xlib.xK_KP_Decimal = Just NumPad.NumLPeriod
                                      | otherwise = fromKeySymDef toKeySym keysym
 
+-- | 'fromKeyEvent' first tries to create 'Left' (type @a@). If it
+-- fails, then it tries to create 'Right' (type @b@).
+instance (XKeyInput a, XKeyInput b) => XKeyInput (Either a b) where
+  toKeySym = either toKeySym toKeySym
+  toModifierMasks kmmap = either (toModifierMasks kmmap) (toModifierMasks kmmap)
+  fromKeyEvent kmmap ev_type keysym mask =
+    (fmap Left $ fromKeyEvent kmmap ev_type keysym mask) <|> (fmap Right $ fromKeyEvent kmmap ev_type keysym mask)
 
 -- | Extract the 'XKeyInput' from the XKeyEvent.
 xKeyEventToXKeyInput :: XKeyInput k => KeyMaskMap -> KeyEventType -> Xlib.XKeyEventPtr -> MaybeT IO k
@@ -254,6 +264,9 @@ instance ToXKeyEvent XKeyEvent where
 instance ToXKeyEvent Xlib.KeySym where
   toXKeyEvent keysym = XKeyEvent KeyPress mempty keysym
 
+instance (ToXKeyEvent a, ToXKeyEvent b) => ToXKeyEvent (Either a b) where
+  toXKeyEvent = either toXKeyEvent toXKeyEvent
+
 instance Describable XKeyEvent where
   describe (XKeyEvent ev_type mods keysym) = T.pack (ev_type_str ++ " " ++ mods_str ++ Xlib.keysymToString keysym)
     where
@@ -299,3 +312,44 @@ modi .+ mkey = case toXKeyEvent mkey of
   XKeyEvent ev_type mods ks -> XKeyEvent ev_type (S.insert modi mods) ks
 
 infixr 6 .+
+
+-- | 'KeyPress' event wrapper for 'XKeyInput' and 'ToXKeyEvent' classes.
+--
+-- This newtype makes the wrapped input type responds to 'KeyPress'
+-- event only. To do that, its 'fromKeyEvent' function always returns
+-- 'Nothing' for 'KeyRelease' event. For 'KeyPress' event, both
+-- 'KeyPress' and 'KeyRelease' events are provided to the wrapped
+-- 'fromKeyEvent' in this order, and returns the first one that's
+-- 'Just'.
+--
+-- 'toXKeyEvent' always sets 'xKeyEventType' to 'KeyPress'.
+newtype Press k = Press { unPress :: k }
+                deriving (Show,Eq,Ord,Enum,Bounded)
+
+instance XKeyInput k => XKeyInput (Press k) where
+  toKeySym (Press k) = toKeySym k
+  toModifierMasks kmmap (Press k) = toModifierMasks kmmap k
+  fromKeyEvent _ KeyRelease _ _ = Nothing
+  fromKeyEvent kmmap KeyPress keysym mask = from' KeyPress <|> from' KeyRelease
+    where
+      from' ev_type = fmap Press $ fromKeyEvent kmmap ev_type keysym mask
+
+instance ToXKeyEvent k => ToXKeyEvent (Press k) where
+  toXKeyEvent (Press k) = (toXKeyEvent k) { xKeyEventType = KeyPress }
+
+
+-- | 'KeyRelease' event wrapper for 'XKeyInput' and 'ToXKeyEvent'
+-- classes. See 'Press'.
+newtype Release k = Release { unRelease :: k }
+                  deriving (Show,Eq,Ord,Enum,Bounded)
+
+instance XKeyInput k => XKeyInput (Release k) where
+  toKeySym (Release k) = toKeySym k
+  toModifierMasks kmmap (Release k) = toModifierMasks kmmap k
+  fromKeyEvent _ KeyPress _ _ = Nothing
+  fromKeyEvent kmmap KeyRelease keysym mask = from' KeyRelease <|> from' KeyPress
+    where
+      from' ev_type = fmap Release $ fromKeyEvent kmmap ev_type keysym mask
+
+instance ToXKeyEvent k => ToXKeyEvent (Release k) where
+  toXKeyEvent (Release k) = (toXKeyEvent k) { xKeyEventType = KeyRelease }
