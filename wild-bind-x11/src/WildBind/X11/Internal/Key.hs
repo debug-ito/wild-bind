@@ -270,12 +270,9 @@ instance (ToXKeyEvent a, ToXKeyEvent b) => ToXKeyEvent (Either a b) where
   toXKeyEvent = either toXKeyEvent toXKeyEvent
 
 instance Describable XKeyEvent where
-  describe (XKeyEvent ev_type mods keysym) = T.pack (ev_type_str ++ " " ++ mods_str ++ Xlib.keysymToString keysym)
+  describe (XKeyEvent _ mods keysym) = T.pack (mods_str ++ Xlib.keysymToString keysym)
     where
       mods_str = fold $ S.map (\m -> show m ++ "+") mods
-      ev_type_str = case ev_type of
-        KeyPress -> "press"
-        KeyRelease -> "release"
 
 xModToKeyMask :: KeyMaskMap -> XMod -> Xlib.KeyMask
 xModToKeyMask kmmap modi = case modi of
@@ -334,7 +331,7 @@ release k = (toXKeyEvent k) { xKeyEventType = KeyRelease }
 --
 -- 'toXKeyEvent' always sets 'xKeyEventType' to 'KeyPress'.
 newtype Press k = Press { unPress :: k }
-                deriving (Show,Eq,Ord,Enum,Bounded)
+                deriving (Show,Eq,Ord,Enum,Bounded,Describable)
 
 instance XKeyInput k => XKeyInput (Press k) where
   toKeySym (Press k) = toKeySym k
@@ -351,7 +348,7 @@ instance ToXKeyEvent k => ToXKeyEvent (Press k) where
 -- | 'KeyRelease' event wrapper for 'XKeyInput' and 'ToXKeyEvent'
 -- classes. See 'Press'.
 newtype Release k = Release { unRelease :: k }
-                  deriving (Show,Eq,Ord,Enum,Bounded)
+                  deriving (Show,Eq,Ord,Enum,Bounded,Describable)
 
 instance XKeyInput k => XKeyInput (Release k) where
   toKeySym (Release k) = toKeySym k
