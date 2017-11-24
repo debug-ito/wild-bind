@@ -97,7 +97,7 @@ spec = checkIfX11Available $ do
       let inputs = [ Ctrl .+ Xlib.xK_i,
                      Ctrl .+ Alt .+ Xlib.xK_i,
                      Super .+ Xlib.xK_i,
-                     Shift .+ Super .+ Xlib.xK_i
+                     Shift .+ Super .+ Xlib.xK_I
                    ]
           grabAll = mapM_ (frontSetGrab f) inputs
           ungrabAll = mapM_ (frontUnsetGrab f) inputs
