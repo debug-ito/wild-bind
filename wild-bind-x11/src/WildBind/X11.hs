@@ -81,16 +81,10 @@ openMyDisplay = Xlib.openDisplay ""
 --
 -- The X11 'FrontEnd' watches and provides 'ActiveWindow' as the
 -- front-end state. 'ActiveWindow' keeps information about the window
--- currently active. As for the input type @i@,
--- 'WildBind.Input.NumPad.NumPadUnlocked' and
--- 'WildBind.Input.NumPad.NumPadLocked' are currently supported.
+-- currently active. 
 -- 
--- Code using this function must be compiled __with @-threaded@ option enabled__
--- in @ghc@. Otherwise, it aborts.
---
--- Note that bound actions are executed when the key is released. That
--- way, you can deliver events to the window that originally has the
--- keyboard focus.
+-- Code using this function must be compiled
+-- __with @-threaded@ option enabled__ in @ghc@. Otherwise, it aborts.
 --
 withFrontEnd :: (XKeyInput i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
 withFrontEnd = if rtsSupportsBoundThreads then impl else error_impl where

@@ -79,6 +79,9 @@ class XKeyInput k where
 fromKeySymDef :: (Bounded k, Enum k) => (k -> Xlib.KeySym) -> Xlib.KeySym -> Maybe k
 fromKeySymDef to_conv ks = M.lookup ks $ M.fromList $ map (\n -> (to_conv n, n)) $ enumFromTo minBound maxBound 
 
+-- | This input event captures the 'KeyRelease' event only. That way,
+-- you can deliver events to the window that originally has the
+-- keyboard focus.
 instance XKeyInput NumPad.NumPadUnlocked where
   toKeySym n = case n of
     NumPad.NumUp -> Xlib.xK_KP_Up
@@ -101,6 +104,9 @@ instance XKeyInput NumPad.NumPadUnlocked where
   fromKeyEvent _ KeyPress _ _ = Nothing
   fromKeyEvent _ KeyRelease keysym _ = fromKeySymDef toKeySym keysym
 
+-- | This input event captures the 'KeyRelease' event only. That way,
+-- you can deliver events to the window that originally has the
+-- keyboard focus.
 instance XKeyInput NumPad.NumPadLocked where
   toKeySym n = case n of
     NumPad.NumL0 -> Xlib.xK_KP_0
