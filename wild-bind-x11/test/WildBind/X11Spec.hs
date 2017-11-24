@@ -9,10 +9,10 @@ import Test.Hspec
 
 import WildBind
   ( FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent),
-    FrontEvent(FEChange,FEInput)
+    FrontEvent(FEChange,FEInput), Describable
   )
 import qualified WildBind.Input.NumPad as NumPad
-import WildBind.X11 (withFrontEnd, ActiveWindow)
+import WildBind.X11 (withFrontEnd, ActiveWindow, XKeyInput)
 
 import WildBind.X11.TestUtil (checkIfX11Available)
 
@@ -30,6 +30,11 @@ maybeRun _ = pendingWith ("You need to set test-interactive flag to run the test
 p :: String -> IO ()
 p = hPutStrLn stderr . ("--- " ++)
 
+withFrontEndForTest :: (XKeyInput i, Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
+withFrontEndForTest action = withFrontEnd $ \front -> do
+  _ <- frontNextEvent front -- discard the first FEChange event.
+  action front
+
 grabExp :: (Bounded i, Enum i, Show i, Eq i)
         => FrontEnd ActiveWindow i -> i -> Expectation
 grabExp front grab_input = grabExpMain `finally` releaseAll where
@@ -45,9 +50,7 @@ grabExp front grab_input = grabExpMain `finally` releaseAll where
   releaseAll = mapM_ (frontUnsetGrab front) (enumFromTo minBound maxBound)
 
 grabCase :: (Bounded i, Enum i, Show i, Eq i) => FrontEnd ActiveWindow i -> Expectation
-grabCase front = do
-  _ <- frontNextEvent front -- discard the first FEChange event.
-  mapM_ (grabExp front) (enumFromTo minBound maxBound)
+grabCase front = mapM_ (grabExp front) (enumFromTo minBound maxBound)
 
 stopWatchMsec :: IO a -> IO (a, Int)
 stopWatchMsec act = do
@@ -71,12 +74,12 @@ spec = checkIfX11Available $ do
         frontSetGrab f1 NumPad.NumLeft `shouldReturn` ()
         frontSetGrab f2 NumPad.NumLeft `shouldReturn` ()
   describe "X11Front - NumPadUnlocked" $ do
-    it "should grab/ungrab keys" $ maybeRun $ withFrontEnd $ \f -> do
+    it "should grab/ungrab keys" $ maybeRun $ withFrontEndForTest $ \f -> do
       let grabCase' :: FrontEnd ActiveWindow NumPad.NumPadUnlocked -> Expectation
           grabCase' = grabCase
       grabCase' f
   describe "X11Front - NumPadLocked" $ do
-    it "should grab/ungrab keys" $ maybeRun $ withFrontEnd $ \f -> do
+    it "should grab/ungrab keys" $ maybeRun $ withFrontEndForTest $ \f -> do
       let grabCase' :: FrontEnd ActiveWindow NumPad.NumPadLocked -> Expectation
           grabCase' = grabCase
       grabCase' f
