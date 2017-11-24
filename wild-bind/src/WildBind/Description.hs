@@ -17,3 +17,6 @@ type ActionDescription = Text
 -- | Class for something describable.
 class Describable d where
   describe :: d -> ActionDescription
+
+instance (Describable a, Describable b) => Describable (Either a b) where
+  describe = either describe describe
