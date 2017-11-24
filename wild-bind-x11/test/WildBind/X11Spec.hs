@@ -92,10 +92,10 @@ spec = checkIfX11Available $ do
       grabCase' f
   describe "X11Front - normal modified keys (pressed)" $ do
     it "should distinguish modifiers" $ maybeRun $ withFrontEndForTest $ \f -> do
-      let inputs = [ Ctrl .+ Xlib.xK_I,
-                     Ctrl .+ Alt .+ Xlib.xK_I,
-                     Super .+ Xlib.xK_I,
-                     Shift .+ Super .+ Xlib.xK_I
+      let inputs = [ Ctrl .+ Xlib.xK_i,
+                     Ctrl .+ Alt .+ Xlib.xK_i,
+                     Super .+ Xlib.xK_i,
+                     Shift .+ Super .+ Xlib.xK_i
                    ]
           grabAll = mapM_ (frontSetGrab f) inputs
           ungrabAll = mapM_ (frontUnsetGrab f) inputs
