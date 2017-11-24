@@ -20,10 +20,10 @@ main :: IO ()
 main = hspec spec
 
 maybeRun :: Expectation -> Expectation
-#ifdef TEST_NUMPAD_INTERACTIVE
+#ifdef TEST_INTERACTIVE
 maybeRun = id
 #else
-maybeRun _ = pendingWith ("You need to set test-numpad-interactive flag to run the test.")
+maybeRun _ = pendingWith ("You need to set test-interactive flag to run the test.")
 #endif
 
 
