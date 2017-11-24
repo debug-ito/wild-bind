@@ -2,8 +2,11 @@
 module WildBind.X11Spec (main, spec) where
 
 import Control.Applicative ((<$>))
-import Control.Exception (finally)
+import Control.Exception (finally, bracket)
+import Control.Monad (forM_)
+import Data.Text (unpack)
 import Data.Time.Clock (getCurrentTime, diffUTCTime)
+import qualified Graphics.X11.Xlib as Xlib
 import System.IO (hPutStrLn,stderr)
 import Test.Hspec
 
@@ -11,8 +14,12 @@ import WildBind
   ( FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent),
     FrontEvent(FEChange,FEInput), Describable
   )
+import qualified WildBind.Description as WBD
 import qualified WildBind.Input.NumPad as NumPad
-import WildBind.X11 (withFrontEnd, ActiveWindow, XKeyInput)
+import WildBind.X11
+  ( withFrontEnd, ActiveWindow, XKeyInput,
+    XMod(..), (.+)
+  )
 
 import WildBind.X11.TestUtil (checkIfX11Available)
 
@@ -83,3 +90,22 @@ spec = checkIfX11Available $ do
       let grabCase' :: FrontEnd ActiveWindow NumPad.NumPadLocked -> Expectation
           grabCase' = grabCase
       grabCase' f
+  describe "X11Front - normal modified keys (pressed)" $ do
+    it "should distinguish modifiers" $ maybeRun $ withFrontEndForTest $ \f -> do
+      let inputs = [ Ctrl .+ Xlib.xK_I,
+                     Ctrl .+ Alt .+ Xlib.xK_I,
+                     Super .+ Xlib.xK_I,
+                     Shift .+ Super .+ Xlib.xK_I
+                   ]
+          grabAll = mapM_ (frontSetGrab f) inputs
+          ungrabAll = mapM_ (frontUnsetGrab f) inputs
+      bracket grabAll (const ungrabAll) $ const $ do
+        p ("Grabbed " ++ show inputs)
+        forM_ inputs $ \input -> do
+          p ("Do " ++ (unpack $ WBD.describe input))
+          ev <- frontNextEvent f
+          p ("Got event: " ++ show ev)
+          case ev of
+           FEChange _ -> expectationFailure "FEChange is caught. not expected"
+           FEInput got -> do
+             got `shouldBe` input

@@ -188,5 +188,3 @@ makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
                             frontNextEvent = nextEvent f
                           }
 
-
---- TODO: XKeyEventなどをexportする。それのグラブ & パーステスト。あ、Describableが必要か。
