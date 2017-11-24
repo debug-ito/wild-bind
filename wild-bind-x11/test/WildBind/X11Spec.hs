@@ -4,6 +4,7 @@ module WildBind.X11Spec (main, spec) where
 import Control.Applicative ((<$>))
 import Control.Exception (finally, bracket)
 import Control.Monad (forM_)
+import Data.List (intercalate)
 import Data.Text (unpack)
 import Data.Time.Clock (getCurrentTime, diffUTCTime)
 import qualified Graphics.X11.Xlib as Xlib
@@ -18,7 +19,7 @@ import qualified WildBind.Description as WBD
 import qualified WildBind.Input.NumPad as NumPad
 import WildBind.X11
   ( withFrontEnd, ActiveWindow, XKeyInput,
-    XMod(..), (.+)
+    XMod(..), (.+), XKeyEvent(..), KeyEventType(..)
   )
 
 import WildBind.X11.TestUtil (checkIfX11Available)
@@ -33,6 +34,10 @@ maybeRun = id
 maybeRun _ = pendingWith ("You need to set test-interactive flag to run the test.")
 #endif
 
+shouldBeInput :: (Show s, Show i, Eq i) => FrontEvent s i -> i -> Expectation
+shouldBeInput ev expected = case ev of
+  FEChange _ -> expectationFailure ("FEChange is caught. not expected: " ++ show ev)
+  FEInput got -> got `shouldBe` expected
 
 p :: String -> IO ()
 p = hPutStrLn stderr . ("--- " ++)
@@ -50,10 +55,7 @@ grabExp front grab_input = grabExpMain `finally` releaseAll where
     p ("Press some numpad keys (grab="++ show grab_input ++")..")
     ev <- frontNextEvent front
     p ("Got event: " ++ show ev)
-    case ev of
-      FEChange _ -> expectationFailure "FEChange is caught. not expected"
-      FEInput got -> do
-        got `shouldBe` grab_input
+    ev `shouldBeInput` grab_input
   releaseAll = mapM_ (frontUnsetGrab front) (enumFromTo minBound maxBound)
 
 grabCase :: (Bounded i, Enum i, Show i, Eq i) => FrontEnd ActiveWindow i -> Expectation
@@ -100,12 +102,12 @@ spec = checkIfX11Available $ do
           grabAll = mapM_ (frontSetGrab f) inputs
           ungrabAll = mapM_ (frontUnsetGrab f) inputs
       bracket grabAll (const ungrabAll) $ const $ do
-        p ("Grabbed " ++ show inputs)
+        p ("Grabbed " ++ (intercalate ", " $ map (unpack . WBD.describe) inputs))
         forM_ inputs $ \input -> do
           p ("Do " ++ (unpack $ WBD.describe input))
-          ev <- frontNextEvent f
-          p ("Got event: " ++ show ev)
-          case ev of
-           FEChange _ -> expectationFailure "FEChange is caught. not expected"
-           FEInput got -> do
-             got `shouldBe` input
+          press_ev <- frontNextEvent f
+          p ("Got event: " ++ show press_ev)
+          press_ev `shouldBeInput` input
+          release_ev <- frontNextEvent f
+          p ("Got event: " ++ show release_ev)
+          release_ev `shouldBeInput` input { xKeyEventType = KeyRelease }
