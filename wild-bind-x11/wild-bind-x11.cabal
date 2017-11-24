@@ -53,7 +53,7 @@ test-suite spec
   if flag(test-interactive)
     cpp-options:        -DTEST_INTERACTIVE
   main-is:              Spec.hs
-  other-extensions:     FlexibleContexts, ScopedTypeVariables, CPP
+  other-extensions:     FlexibleContexts, CPP
   other-modules:        WildBind.X11Spec,
                         WildBind.X11.Internal.NotificationDebouncerSpec,
                         WildBind.X11.TestUtil
