@@ -8,6 +8,7 @@ module WildBind.X11.Internal.Key
        ( -- * Key
          XKeyInput(..),
          xKeyEventToXKeyInput,
+         KeyEventType(..),
          -- * Modifiers
          KeyMaskMap(..),
          getKeyMaskMap,
@@ -15,9 +16,9 @@ module WildBind.X11.Internal.Key
          xGrabKey,
          xUngrabKey,
          -- * High-level input symbols
-         XModKey(..),
+         XKeyEvent(..),
          XMod(..),
-         ToXModKey(..),
+         ToXKeyEvent(..),
          (.+)
        ) where
 
@@ -39,6 +40,11 @@ import qualified Graphics.X11.Xlib.Extras as XlibE
 
 import WildBind.Description (Describable(..))
 import qualified WildBind.Input.NumPad as NumPad
+
+-- | Whether the key is pressed or released.
+data KeyEventType = KeyPress
+                  | KeyRelease
+                  deriving (Show,Eq,Ord,Bounded,Enum)
 
 -- | 'Xlib.KeyMask' values assigned to each modifier keys/states. If
 -- the modifier doesn't exist, the mask is 0.
@@ -65,9 +71,9 @@ class XKeyInput k where
   -- ^ Get modifers masks to grab the keysym. The grab action is
   -- repeated for all modifier masks. If the result is empty, X11
   -- grabs the keysym without any modifers.
-  fromKeyEvent :: KeyMaskMap -> Xlib.KeySym -> Xlib.KeyMask -> Maybe k
-  -- ^ Create the input object from a keysym and a modifier (got from
-  -- XEvent.)
+  fromKeyEvent :: KeyMaskMap -> KeyEventType -> Xlib.KeySym -> Xlib.KeyMask -> Maybe k
+  -- ^ Create the input object from a key event type, a keysym and a
+  -- modifier (got from XEvent.)
 
 -- | Partial inverse of 'toKeySym'.
 fromKeySymDef :: (Bounded k, Enum k) => (k -> Xlib.KeySym) -> Xlib.KeySym -> Maybe k
@@ -92,7 +98,8 @@ instance XKeyInput NumPad.NumPadUnlocked where
     NumPad.NumMinus -> Xlib.xK_KP_Subtract
     NumPad.NumPlus -> Xlib.xK_KP_Add
   toModifierMasks _ _ = []
-  fromKeyEvent _ keysym _ = fromKeySymDef toKeySym keysym
+  fromKeyEvent _ KeyPress _ _ = Nothing
+  fromKeyEvent _ KeyRelease keysym _ = fromKeySymDef toKeySym keysym
 
 instance XKeyInput NumPad.NumPadLocked where
   toKeySym n = case n of
@@ -123,16 +130,17 @@ instance XKeyInput NumPad.NumPadLocked where
   -- much this behavior depends on user's environment...) As a
   -- workaround in this instance, we map NumLPeriod -> XK_KP_Delete,
   -- but in the reverse map, we also respond to XK_KP_Decimal.
-  fromKeyEvent _ keysym _ | keysym == Xlib.xK_KP_Decimal = Just NumPad.NumLPeriod
-                          | otherwise = fromKeySymDef toKeySym keysym
+  fromKeyEvent _ KeyPress _ _ = Nothing
+  fromKeyEvent _ KeyRelease keysym _ | keysym == Xlib.xK_KP_Decimal = Just NumPad.NumLPeriod
+                                     | otherwise = fromKeySymDef toKeySym keysym
 
 
 -- | Extract the 'XKeyInput' from the XKeyEvent.
-xKeyEventToXKeyInput :: XKeyInput k => KeyMaskMap -> Xlib.XKeyEventPtr -> MaybeT IO k
-xKeyEventToXKeyInput kmmap kev = do
+xKeyEventToXKeyInput :: XKeyInput k => KeyMaskMap -> KeyEventType -> Xlib.XKeyEventPtr -> MaybeT IO k
+xKeyEventToXKeyInput kmmap ev_type kev = do
   keysym <- MaybeT (fst <$> Xlib.lookupString kev)
   (_, _, _, _, _, _, _, status, _, _) <- liftIO $ Xlib.get_KeyEvent $ Foreign.castPtr kev
-  MaybeT $ return $ fromKeyEvent kmmap keysym status
+  MaybeT $ return $ fromKeyEvent kmmap ev_type keysym status
 
 -- | Convert a 'XKeyInput' into a KeyCode and KeyMasks for grabbing.
 xKeyCode :: XKeyInput k => KeyMaskMap -> Xlib.Display -> k -> IO (Xlib.KeyCode, [Xlib.KeyMask])
@@ -215,30 +223,33 @@ data XMod = Shift
           | Super
           deriving (Show,Eq,Ord,Enum,Bounded)
 
--- | X11 keysym with a set of modifiers.
-data XModKey = XModKey (S.Set XMod) Xlib.KeySym
+-- | High-level X11 key event.
+data XKeyEvent = XKeyEvent KeyEventType (S.Set XMod) Xlib.KeySym
              deriving (Show,Eq,Ord)
 
-instance XKeyInput XModKey where
-  toKeySym (XModKey _ ks) = ks
-  toModifierMasks kmmap (XModKey mods _) =
+instance XKeyInput XKeyEvent where
+  toKeySym (XKeyEvent _ _ ks) = ks
+  toModifierMasks kmmap (XKeyEvent _ mods _) =
     map (.|. xModsToKeyMask kmmap mods) $ lockVariations kmmap
-  fromKeyEvent kmmap keysym mask = Just $ XModKey (keyMaskToXMods kmmap mask) keysym
+  fromKeyEvent kmmap ev_type keysym mask = Just $ XKeyEvent ev_type (keyMaskToXMods kmmap mask) keysym
 
-class ToXModKey k where
-  toXModKey :: k -> XModKey
+class ToXKeyEvent k where
+  toXKeyEvent :: k -> XKeyEvent
 
-instance ToXModKey XModKey where
-  toXModKey = id
+instance ToXKeyEvent XKeyEvent where
+  toXKeyEvent = id
 
--- | KeySym with empty 'XMod' set.
-instance ToXModKey Xlib.KeySym where
-  toXModKey keysym = XModKey mempty keysym
+-- | 'KeyPress' event of KeySym with empty 'XMod' set.
+instance ToXKeyEvent Xlib.KeySym where
+  toXKeyEvent keysym = XKeyEvent KeyPress mempty keysym
 
-instance Describable XModKey where
-  describe (XModKey mods keysym) = T.pack (mods_str ++ Xlib.keysymToString keysym)
+instance Describable XKeyEvent where
+  describe (XKeyEvent ev_type mods keysym) = T.pack (ev_type_str ++ " " ++ mods_str ++ Xlib.keysymToString keysym)
     where
       mods_str = fold $ S.map (\m -> show m ++ "+") mods
+      ev_type_str = case ev_type of
+        KeyPress -> "press"
+        KeyRelease -> "release"
 
 xModToKeyMask :: KeyMaskMap -> XMod -> Xlib.KeyMask
 xModToKeyMask kmmap modi = case modi of
@@ -271,9 +282,9 @@ keyMaskToXMods kmmap mask = S.fromList$ toXMod =<< [ (maskShift, Shift),
                                then []
                                else [mod_symbol]
 
--- | Add a 'XMod' to 'XModKey' or 'Xlib.KeySym'.
-(.+) :: ToXModKey k => XMod -> k -> XModKey
-modi .+ mkey = case toXModKey mkey of
-  XModKey mods ks -> XModKey (S.insert modi mods) ks
+-- | Add a 'XMod' to 'XKeyEvent' or 'Xlib.KeySym'.
+(.+) :: ToXKeyEvent k => XMod -> k -> XKeyEvent
+modi .+ mkey = case toXKeyEvent mkey of
+  XKeyEvent ev_type mods ks -> XKeyEvent ev_type (S.insert modi mods) ks
 
 infixr 6 .+

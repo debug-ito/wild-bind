@@ -15,9 +15,10 @@ module WildBind.X11
          winClass,
          winName,
          -- * Keys in X11
-         XModKey(..),
+         XKeyEvent(..),
          XMod(..),
-         ToXModKey(..),
+         KeyEventType(..),
+         ToXKeyEvent(..),
          (.+),
          XKeyInput(..)
        ) where
@@ -45,10 +46,11 @@ import WildBind.X11.Internal.Key
   ( xKeyEventToXKeyInput,
     xGrabKey, xUngrabKey,
     XKeyInput(..), KeyMaskMap, getKeyMaskMap,
-    XModKey(..),
+    XKeyEvent(..),
     XMod(..),
-    ToXModKey(..),
-    (.+)
+    ToXKeyEvent(..),
+    (.+),
+    KeyEventType(..)
   )
 import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winInstance, winClass, winName, emptyWindow)
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
@@ -108,25 +110,39 @@ withFrontEnd = if rtsSupportsBoundThreads then impl else error_impl where
 tellElem :: Monad m => a -> WriterT [a] m ()
 tellElem a = tell [a]
 
+data InternalEvent = IEKey KeyEventType
+                   | IEDebounced
+                   | IEActiveWindow
+                   | IEUnknown
+
+identifyEvent :: Ndeb.Debouncer -> Xlib.XEventPtr -> IO InternalEvent
+identifyEvent deb xev = do
+  xtype <- Xlib.get_EventType xev
+  identify xtype
+  where
+    identify xtype | xtype == Xlib.keyPress = return $ IEKey KeyPress
+                   | xtype == Xlib.keyRelease = return $ IEKey KeyRelease
+                   | xtype == Xlib.configureNotify || xtype == Xlib.destroyNotify = return $ IEActiveWindow
+                   | otherwise = do
+                       is_deb_event <- Ndeb.isDebouncedEvent deb xev
+                       if is_deb_event
+                         then return IEDebounced
+                         else return IEUnknown
+
 convertEvent :: (XKeyInput k) => KeyMaskMap -> Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> ListT IO (FrontEvent ActiveWindow k)
 convertEvent kmmap disp deb xev = ListT $ execWriterT $ convertEventWriter where
+  tellChangeEvent = (tellElem . FEChange) =<< (liftIO $ getActiveWindow disp)
   convertEventWriter :: XKeyInput k => WriterT [FrontEvent ActiveWindow k] IO ()
   convertEventWriter = do
-    xtype <- liftIO $ Xlib.get_EventType xev
-    let is_key_event = xtype == Xlib.keyRelease
-        is_awin_event = xtype == Xlib.configureNotify || xtype == Xlib.destroyNotify
-        tellChangeEvent = (tellElem . FEChange) =<< (liftIO $ getActiveWindow disp)
-    is_deb_event <- liftIO $ Ndeb.isDebouncedEvent deb xev
-    if is_key_event
-      then do
-        let key_ev = Xlib.asKeyEvent xev
-        tellChangeEvent
-        (maybe (return ()) tellElem) =<< (liftIO $ runMaybeT (FEInput <$> xKeyEventToXKeyInput kmmap key_ev))
-    else if is_deb_event
-      then tellChangeEvent
-    else if is_awin_event
-      then liftIO (Ndeb.notify deb) >> return ()
-    else return ()
+    in_event <- liftIO $ identifyEvent deb xev
+    case in_event of
+     IEKey ev_type -> do
+       let key_ev = Xlib.asKeyEvent xev
+       tellChangeEvent
+       (maybe (return ()) tellElem) =<< (liftIO $ runMaybeT (FEInput <$> xKeyEventToXKeyInput kmmap ev_type key_ev))
+     IEDebounced -> tellChangeEvent
+     IEActiveWindow -> liftIO (Ndeb.notify deb) >> return ()
+     IEUnknown -> return ()
 
 filterUnchangedEvent :: X11Front k -> FrontEvent ActiveWindow k -> ListT IO ()
 filterUnchangedEvent front (FEChange new_state) = do
@@ -171,3 +187,6 @@ makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
                             frontUnsetGrab = grabDef xUngrabKey f,
                             frontNextEvent = nextEvent f
                           }
+
+
+--- TODO: XKeyEventなどをexportする。それのグラブ & パーステスト。あ、Describableが必要か。
