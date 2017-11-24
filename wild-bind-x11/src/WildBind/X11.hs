@@ -20,6 +20,8 @@ module WildBind.X11
          KeyEventType(..),
          ToXKeyEvent(..),
          (.+),
+         press,
+         release,
          XKeyInput(..),
          Press(..),
          Release(..)
@@ -53,6 +55,7 @@ import WildBind.X11.Internal.Key
     ToXKeyEvent(..),
     (.+),
     KeyEventType(..),
+    press, release,
     Press(..), Release(..)
   )
 import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winInstance, winClass, winName, emptyWindow)

@@ -21,6 +21,8 @@ module WildBind.X11.Internal.Key
          XMod(..),
          ToXKeyEvent(..),
          (.+),
+         press,
+         release,
          Press(..),
          Release(..)
        ) where
@@ -313,6 +315,14 @@ modi .+ mkey = case toXKeyEvent mkey of
 
 infixr 6 .+
 
+-- | Set 'KeyPress' to 'xKeyEventType'.
+press :: ToXKeyEvent k => k -> XKeyEvent
+press k = (toXKeyEvent k) { xKeyEventType = KeyPress }
+
+-- | Set 'KeyRelease' to 'xKeyEventType'.
+release :: ToXKeyEvent k => k -> XKeyEvent
+release k = (toXKeyEvent k) { xKeyEventType = KeyRelease }
+
 -- | 'KeyPress' event wrapper for 'XKeyInput' and 'ToXKeyEvent' classes.
 --
 -- This newtype makes the wrapped input type responds to 'KeyPress'
@@ -353,3 +363,4 @@ instance XKeyInput k => XKeyInput (Release k) where
 
 instance ToXKeyEvent k => ToXKeyEvent (Release k) where
   toXKeyEvent (Release k) = (toXKeyEvent k) { xKeyEventType = KeyRelease }
+
