@@ -66,6 +66,11 @@ data KeyMaskMap =
   }
   deriving (Show,Eq,Ord)
 
+isMasked :: KeyMaskMap -> (KeyMaskMap -> Xlib.KeyMask) -> Xlib.KeyMask -> Bool
+isMasked kmmap accessor target = if (target .&. accessor kmmap) == 0
+                                 then False
+                                 else True
+
 -- | Class of data types that can be handled by X11. The data type can
 -- tell X11 to grab key with optional modifiers, and it can be
 -- extracted from a X11 Event object.
@@ -107,7 +112,11 @@ instance XKeyInput NumPad.NumPadUnlocked where
     NumPad.NumPlus -> Xlib.xK_KP_Add
   toModifierMasks _ _ = []
   fromKeyEvent _ KeyPress _ _ = Nothing
-  fromKeyEvent _ KeyRelease keysym _ = fromKeySymDef toKeySym keysym
+  fromKeyEvent kmmask KeyRelease keysym mask = if is_numlocked
+                                               then Nothing
+                                               else fromKeySymDef toKeySym keysym
+    where
+      is_numlocked = isMasked kmmask maskNumLock mask
 
 -- | This input event captures the 'KeyRelease' event only. That way,
 -- you can deliver events to the window that originally has the
@@ -142,8 +151,14 @@ instance XKeyInput NumPad.NumPadLocked where
   -- workaround in this instance, we map NumLPeriod -> XK_KP_Delete,
   -- but in the reverse map, we also respond to XK_KP_Decimal.
   fromKeyEvent _ KeyPress _ _ = Nothing
-  fromKeyEvent _ KeyRelease keysym _ | keysym == Xlib.xK_KP_Decimal = Just NumPad.NumLPeriod
-                                     | otherwise = fromKeySymDef toKeySym keysym
+  fromKeyEvent kmmap KeyRelease keysym mask =
+    if not $ is_num_locked
+    then Nothing
+    else if keysym == Xlib.xK_KP_Decimal
+         then Just NumPad.NumLPeriod
+         else fromKeySymDef toKeySym keysym
+    where
+      is_num_locked = isMasked kmmap maskNumLock mask
 
 -- | 'fromKeyEvent' first tries to create 'Left' (type @a@). If it
 -- fails, then it tries to create 'Right' (type @b@).
@@ -296,14 +311,14 @@ lockVariations kmmap = nub $ do
 
 keyMaskToXMods :: KeyMaskMap -> Xlib.KeyMask -> S.Set XMod
 keyMaskToXMods kmmap mask = S.fromList$ toXMod =<< [ (maskShift, Shift),
-                                                      (maskControl, Ctrl),
-                                                      (maskAlt, Alt),
-                                                      (maskSuper, Super)
-                                                    ]
+                                                     (maskControl, Ctrl),
+                                                     (maskAlt, Alt),
+                                                     (maskSuper, Super)
+                                                   ]
   where
-    toXMod (acc, mod_symbol) = if (mask .&. acc kmmap) == 0
-                               then []
-                               else [mod_symbol]
+    toXMod (acc, mod_symbol) = if isMasked kmmap acc mask
+                               then [mod_symbol]
+                               else []
 
 -- | Add a 'XMod' to 'XKeyEvent' or 'Xlib.KeySym'.
 (.+) :: ToXKeyEvent k => XMod -> k -> XKeyEvent
@@ -361,3 +376,5 @@ instance XKeyInput k => XKeyInput (Release k) where
 instance ToXKeyEvent k => ToXKeyEvent (Release k) where
   toXKeyEvent (Release k) = (toXKeyEvent k) { xKeyEventType = KeyRelease }
 
+
+-- TODO: Either, Press, Releaseのテストをやる。
