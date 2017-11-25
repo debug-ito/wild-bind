@@ -19,8 +19,7 @@ import qualified WildBind.Description as WBD
 import qualified WildBind.Input.NumPad as NumPad
 import WildBind.X11
   ( withFrontEnd, ActiveWindow, XKeyInput,
-    XMod(..), (.+), XKeyEvent(..), KeyEventType(..),
-    Press(..), Release(..)
+    XMod(..), (.+), XKeyEvent(..), KeyEventType(..)
   )
 
 import WildBind.X11.TestUtil (checkIfX11Available)
@@ -127,21 +126,3 @@ spec = checkIfX11Available $ do
           p ("Push " ++ show input)
           ev <- frontNextEvent f
           ev `shouldBeInput` input
-  describe "X11Front - Press" $ do
-    it "should respond only to Press" $ maybeRun $ withFrontEndForTest $ \f -> do
-      let inputs = map (\k -> Press $ Super .+ Alt .+ k) [Xlib.xK_e, Xlib.xK_d, Xlib.xK_c]
-      withGrabs f inputs $ do
-        forM_ inputs $ \input -> do
-          p ("Push " ++ describeStr input)
-          ev <- frontNextEvent f
-          ev `shouldBeInput` input
-  describe "X11Front - Release" $ do
-    it "should respond only to Release" $ maybeRun $ withFrontEndForTest $ \f -> do
-      let inputs = map (\k -> Release $ Super .+ Alt .+ k) [Xlib.xK_e, Xlib.xK_d, Xlib.xK_c]
-      withGrabs f inputs $ do
-        forM_ inputs $ \input -> do
-          p ("Push " ++ describeStr input)
-          ev <- frontNextEvent f
-          ev `shouldBeInput` input
-
-

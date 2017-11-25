@@ -22,9 +22,7 @@ module WildBind.X11
          (.+),
          press,
          release,
-         XKeyInput(..),
-         Press(..),
-         Release(..)
+         XKeyInput(..)
        ) where
 
 import Control.Applicative ((<$>), empty)
@@ -55,8 +53,7 @@ import WildBind.X11.Internal.Key
     ToXKeyEvent(..),
     (.+),
     KeyEventType(..),
-    press, release,
-    Press(..), Release(..)
+    press, release
   )
 import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winInstance, winClass, winName, emptyWindow)
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb

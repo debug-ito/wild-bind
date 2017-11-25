@@ -22,9 +22,7 @@ module WildBind.X11.Internal.Key
          ToXKeyEvent(..),
          (.+),
          press,
-         release,
-         Press(..),
-         Release(..)
+         release
        ) where
 
 import Control.Applicative ((<$>), (<*>), (<|>))
@@ -335,46 +333,3 @@ press k = (toXKeyEvent k) { xKeyEventType = KeyPress }
 release :: ToXKeyEvent k => k -> XKeyEvent
 release k = (toXKeyEvent k) { xKeyEventType = KeyRelease }
 
--- | 'KeyPress' event wrapper for 'XKeyInput' and 'ToXKeyEvent' classes.
---
--- This newtype makes the wrapped input type responds to 'KeyPress'
--- event only. To do that, its 'fromKeyEvent' function always returns
--- 'Nothing' for 'KeyRelease' event. For 'KeyPress' event, both
--- 'KeyPress' and 'KeyRelease' events are provided to the wrapped
--- 'fromKeyEvent' in this order, and returns the first one that's
--- 'Just'.
---
--- 'toXKeyEvent' always sets 'xKeyEventType' to 'KeyPress'.
-newtype Press k = Press { unPress :: k }
-                deriving (Show,Eq,Ord,Enum,Bounded,Describable)
-
-instance XKeyInput k => XKeyInput (Press k) where
-  toKeySym (Press k) = toKeySym k
-  toModifierMasks kmmap (Press k) = toModifierMasks kmmap k
-  fromKeyEvent _ KeyRelease _ _ = Nothing
-  fromKeyEvent kmmap KeyPress keysym mask = from' KeyPress <|> from' KeyRelease
-    where
-      from' ev_type = fmap Press $ fromKeyEvent kmmap ev_type keysym mask
-
-instance ToXKeyEvent k => ToXKeyEvent (Press k) where
-  toXKeyEvent (Press k) = (toXKeyEvent k) { xKeyEventType = KeyPress }
-
-
--- | 'KeyRelease' event wrapper for 'XKeyInput' and 'ToXKeyEvent'
--- classes. See 'Press'.
-newtype Release k = Release { unRelease :: k }
-                  deriving (Show,Eq,Ord,Enum,Bounded,Describable)
-
-instance XKeyInput k => XKeyInput (Release k) where
-  toKeySym (Release k) = toKeySym k
-  toModifierMasks kmmap (Release k) = toModifierMasks kmmap k
-  fromKeyEvent _ KeyPress _ _ = Nothing
-  fromKeyEvent kmmap KeyRelease keysym mask = from' KeyRelease <|> from' KeyPress
-    where
-      from' ev_type = fmap Release $ fromKeyEvent kmmap ev_type keysym mask
-
-instance ToXKeyEvent k => ToXKeyEvent (Release k) where
-  toXKeyEvent (Release k) = (toXKeyEvent k) { xKeyEventType = KeyRelease }
-
-
--- TODO: Either, Press, Releaseのテストをやる。
