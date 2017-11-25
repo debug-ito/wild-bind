@@ -22,7 +22,11 @@ module WildBind.X11
          (.+),
          press,
          release,
-         XKeyInput(..)
+         XKeyInput(..),
+         -- * X11Front
+         X11Front,
+         withX11Front,
+         makeFrontEnd
        ) where
 
 import Control.Applicative ((<$>), empty)
@@ -58,7 +62,14 @@ import WildBind.X11.Internal.Key
 import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winInstance, winClass, winName, emptyWindow)
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
 
--- | The X11 front-end
+-- | The X11 front-end. @k@ is the input key type.
+--
+-- This is the implementation of the 'FrontEnd' given by
+-- 'withFrontEnd' function. With this object, you can do more advanced
+-- actions.
+--
+-- 'X11Front' is relatively low-level interface, so it's more likely
+-- for this API to change than 'FrontEnd'.
 data X11Front k =
   X11Front { x11Display :: Xlib.Display,
              x11Debouncer :: Ndeb.Debouncer,
@@ -90,7 +101,15 @@ openMyDisplay = Xlib.openDisplay ""
 -- __with @-threaded@ option enabled__ in @ghc@. Otherwise, it aborts.
 --
 withFrontEnd :: (XKeyInput i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
-withFrontEnd = if rtsSupportsBoundThreads then impl else error_impl where
+withFrontEnd action = withX11Front' "WildBind.X11.withFrontEnd" $ \x11front -> action (makeFrontEnd x11front)
+
+-- | Same as 'withFrontEnd', but it creates 'X11Front'. To create
+-- 'FrontEnd', use 'makeFrontEnd'.
+withX11Front :: (X11Front k -> IO a) -> IO a
+withX11Front = withX11Front' "WildBind.X11.withX11Front"
+
+withX11Front' :: String -> (X11Front k -> IO a) -> IO a
+withX11Front' func_name = if rtsSupportsBoundThreads then impl else error_impl where
   impl = runContT $ do
     disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
     keymask_map <- liftIO $ getKeyMaskMap disp
@@ -101,8 +120,9 @@ withFrontEnd = if rtsSupportsBoundThreads then impl else error_impl where
     awin_ref <- liftIO $ newIORef Nothing
     pending_events <- liftIO $ newTChanIO
     liftIO $ Ndeb.notify debouncer
-    return $ makeFrontEnd $ X11Front disp debouncer awin_ref pending_events keymask_map
-  error_impl _ = throwIO $ userError "You need to build with -threaded option when you use WildBind.X11.withFrontEnd function."
+    return $ X11Front disp debouncer awin_ref pending_events keymask_map
+  error_impl _ = throwIO $ userError ("You need to build with -threaded option when you use " ++ func_name ++ " function.")
+
 
 tellElem :: Monad m => a -> WriterT [a] m ()
 tellElem a = tell [a]
@@ -178,6 +198,7 @@ nextEvent handle = loop where
     liftIO $ updateState handle fevent
     return fevent
 
+-- | Create 'FrontEnd' from 'X11Front' object.
 makeFrontEnd :: (XKeyInput k, WBD.Describable k) => X11Front k -> FrontEnd ActiveWindow k
 makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
                             frontSetGrab = grabDef xGrabKey f,
