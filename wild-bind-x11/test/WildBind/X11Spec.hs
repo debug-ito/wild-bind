@@ -19,7 +19,8 @@ import qualified WildBind.Description as WBD
 import qualified WildBind.Input.NumPad as NumPad
 import WildBind.X11
   ( withFrontEnd, ActiveWindow, XKeyInput,
-    XMod(..), (.+), XKeyEvent(..), KeyEventType(..)
+    XMod(..), (.+), XKeyEvent(..), KeyEventType(..),
+    Press(..), Release(..)
   )
 
 import WildBind.X11.TestUtil (checkIfX11Available)
@@ -73,7 +74,9 @@ withGrabs front inputs action = bracket grabAll (const ungrabAll) (const action)
   where
     grabAll = mapM_ (frontSetGrab front) inputs
     ungrabAll = mapM_ (frontUnsetGrab front) inputs
-    
+
+describeStr :: Describable a => a -> String
+describeStr = unpack . WBD.describe
 
 spec :: Spec
 spec = checkIfX11Available $ do
@@ -107,9 +110,9 @@ spec = checkIfX11Available $ do
                      Shift .+ Super .+ Xlib.xK_I
                    ]
       withGrabs f inputs $ do
-        p ("Grabbed " ++ (intercalate ", " $ map (unpack . WBD.describe) inputs))
+        p ("Grabbed " ++ (intercalate ", " $ map describeStr inputs))
         forM_ inputs $ \input -> do
-          p ("Push " ++ (unpack $ WBD.describe input))
+          p ("Push " ++ describeStr input)
           press_ev <- frontNextEvent f
           p ("Got event: " ++ show press_ev)
           press_ev `shouldBeInput` input
@@ -124,5 +127,21 @@ spec = checkIfX11Available $ do
           p ("Push " ++ show input)
           ev <- frontNextEvent f
           ev `shouldBeInput` input
-          
-      
+  describe "X11Front - Press" $ do
+    it "should respond only to Press" $ maybeRun $ withFrontEndForTest $ \f -> do
+      let inputs = map (\k -> Press $ Super .+ Alt .+ k) [Xlib.xK_e, Xlib.xK_d, Xlib.xK_c]
+      withGrabs f inputs $ do
+        forM_ inputs $ \input -> do
+          p ("Push " ++ describeStr input)
+          ev <- frontNextEvent f
+          ev `shouldBeInput` input
+  describe "X11Front - Release" $ do
+    it "should respond only to Release" $ maybeRun $ withFrontEndForTest $ \f -> do
+      let inputs = map (\k -> Release $ Super .+ Alt .+ k) [Xlib.xK_e, Xlib.xK_d, Xlib.xK_c]
+      withGrabs f inputs $ do
+        forM_ inputs $ \input -> do
+          p ("Push " ++ describeStr input)
+          ev <- frontNextEvent f
+          ev `shouldBeInput` input
+
+
