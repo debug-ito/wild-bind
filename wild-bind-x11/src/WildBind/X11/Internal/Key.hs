@@ -13,16 +13,18 @@ module WildBind.X11.Internal.Key
          -- * Modifiers
          KeyMaskMap(..),
          getKeyMaskMap,
-         -- * Grabs
-         xGrabKey,
-         xUngrabKey,
-         -- * High-level input symbols
+         -- * XKeyEvent
          XKeyEvent(..),
          XMod(..),
          ToXKeyEvent(..),
          (.+),
          press,
-         release
+         release,
+         -- * Grabs
+         xGrabKey,
+         xUngrabKey,
+         -- * Event generation
+         xSendKeyEvent
        ) where
 
 import Control.Applicative ((<$>), (<*>), (<|>))
@@ -332,4 +334,26 @@ press k = (toXKeyEvent k) { xKeyEventType = KeyPress }
 -- | Set 'KeyRelease' to 'xKeyEventType'.
 release :: ToXKeyEvent k => k -> XKeyEvent
 release k = (toXKeyEvent k) { xKeyEventType = KeyRelease }
+
+
+-- | Send a 'XKeyEvent' to the window.
+xSendKeyEvent :: KeyMaskMap -> Xlib.Display -> Xlib.Window -> XKeyEvent -> IO ()
+xSendKeyEvent kmmap disp target_win key_event = Xlib.allocaXEvent $ \xev -> do
+  setupXEvent xev
+  Xlib.sendEvent disp target_win propagate event_mask xev
+  where
+    propagate = True
+    event_type = xKeyEventType key_event
+    event_mask = case event_type of
+      KeyPress -> Xlib.keyPressMask
+      KeyRelease -> Xlib.keyReleaseMask
+    setupXEvent xev = do
+      key_code <- Xlib.keysymToKeycode disp $ xKeyEventKeySym key_event
+      XlibE.setKeyEvent xev target_win (Xlib.defaultRootWindow disp) subwindow key_mask key_code is_same_screen
+    subwindow = 0 -- I mean, 'None' in Xlib. Graphics.X11 does not define 'None' window ID, I think...
+    is_same_screen = True
+    key_mask = xModsToKeyMask kmmap $ xKeyEventMods key_event
+
+-- c.f. create_key_event function in xlib_wrapper.c from 'xremap'
+-- https://github.com/k0kubun/xremap
 
