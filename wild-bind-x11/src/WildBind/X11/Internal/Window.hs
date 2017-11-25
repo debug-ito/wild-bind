@@ -13,6 +13,8 @@ module WildBind.X11.Internal.Window
          winInstance,
          winClass,
          winName,
+         -- ** project-internal accessor
+         winID,
          -- * Functions
          getActiveWindow
        ) where
@@ -44,7 +46,8 @@ data Window =
   Window
   { winInstance :: Text,  -- ^ name of the application instance (part of @WM_CLASS@ property)
     winClass :: Text, -- ^ name of the application class (part of @WM_CLASS@ property)
-    winName :: Text  -- ^ what's shown in the title bar
+    winName :: Text,  -- ^ what's shown in the title bar
+    winID :: Xlib.Window -- ^ X11 window ID
   } deriving (Eq,Ord,Show)
 
 -- | Use this type especially when the 'Window' is active.
@@ -52,7 +55,7 @@ type ActiveWindow = Window
 
 -- | An empty Window instance used for fallback and/or default value.
 emptyWindow :: Window
-emptyWindow = Window "" "" ""
+emptyWindow = Window "" "" "" 0
 
 -- | Get currently active 'Window'.
 getActiveWindow :: Xlib.Display -> IO ActiveWindow
@@ -62,7 +65,7 @@ getActiveWindow disp = maybe emptyWindow id <$> runMaybeT getActiveWindowM where
     guard (awin /= 0) -- sometimes X11 returns 0 (NULL) as a window ID, which I think is always invalid
     name <- xGetWindowName disp awin
     class_hint <- liftIO $ xGetClassHint disp awin
-    return $ (uncurry Window) class_hint name
+    return $ (uncurry Window) class_hint name awin
 
 -- | Check whether specified feature is supported by the window
 -- manager(?) Port of libxdo's @_xdo_ewmh_is_supported()@ function.
