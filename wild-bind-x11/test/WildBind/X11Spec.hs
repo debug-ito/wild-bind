@@ -68,6 +68,13 @@ stopWatchMsec act = do
   end <- getCurrentTime
   return (ret, floor ((diffUTCTime end start) * 1000))
 
+withGrabs :: FrontEnd s i -> [i] -> IO a -> IO a
+withGrabs front inputs action = bracket grabAll (const ungrabAll) (const action)
+  where
+    grabAll = mapM_ (frontSetGrab front) inputs
+    ungrabAll = mapM_ (frontUnsetGrab front) inputs
+    
+
 spec :: Spec
 spec = checkIfX11Available $ do
   describe "X11Front" $ do
@@ -99,15 +106,23 @@ spec = checkIfX11Available $ do
                      Super .+ Xlib.xK_i,
                      Shift .+ Super .+ Xlib.xK_I
                    ]
-          grabAll = mapM_ (frontSetGrab f) inputs
-          ungrabAll = mapM_ (frontUnsetGrab f) inputs
-      bracket grabAll (const ungrabAll) $ const $ do
+      withGrabs f inputs $ do
         p ("Grabbed " ++ (intercalate ", " $ map (unpack . WBD.describe) inputs))
         forM_ inputs $ \input -> do
-          p ("Do " ++ (unpack $ WBD.describe input))
+          p ("Push " ++ (unpack $ WBD.describe input))
           press_ev <- frontNextEvent f
           p ("Got event: " ++ show press_ev)
           press_ev `shouldBeInput` input
           release_ev <- frontNextEvent f
           p ("Got event: " ++ show release_ev)
           release_ev `shouldBeInput` input { xKeyEventType = KeyRelease }
+  describe "X11Front - Either" $ do
+    it "should combine input types" $ maybeRun $ withFrontEndForTest $ \f -> do
+      let inputs = [Left NumPad.NumLPeriod, Right NumPad.NumDelete]
+      withGrabs f inputs $ do
+        forM_ inputs $ \input -> do
+          p ("Push " ++ show input)
+          ev <- frontNextEvent f
+          ev `shouldBeInput` input
+          
+      
