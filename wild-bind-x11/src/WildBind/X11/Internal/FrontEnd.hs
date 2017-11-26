@@ -45,7 +45,7 @@ import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
 --
 -- This is the implementation of the 'FrontEnd' given by
 -- 'withFrontEnd' function. With this object, you can do more advanced
--- actions.
+-- actions. See "WildBind.X11.Emulate".
 --
 -- 'X11Front' is relatively low-level interface, so it's more likely
 -- for this API to change than 'FrontEnd'.

@@ -20,6 +20,7 @@ library
   default-extensions:   TypeSynonymInstances, OverloadedStrings, MultiParamTypeClasses, FlexibleInstances
   other-extensions:     GeneralizedNewtypeDeriving
   exposed-modules:      WildBind.X11,
+                        WildBind.X11.Emulate,
                         WildBind.X11.Internal.Key,
                         WildBind.X11.Internal.Window,
                         WildBind.X11.Internal.NotificationDebouncer
