@@ -25,12 +25,14 @@ module WildBind.Binding
          binds,
          binds',
          bindsF,
+         bindsF',
          on,
          run,
          as,
          binding,
          binding',
          bindingF,
+         bindingF',
          
          -- * Condition
          
@@ -66,7 +68,7 @@ module WildBind.Binding
 
 import Control.Applicative (Applicative, (<*), (*>))
 import Control.Monad.Trans.Reader (ReaderT(..), withReaderT)
-import Control.Monad.Trans.State (StateT, runStateT)
+import Control.Monad.Trans.State (StateT, runStateT, mapStateT)
 import Control.Monad.Trans.Writer (Writer, tell, execWriter, mapWriter)
 import qualified Data.Map as M
 import Data.Monoid (Monoid(..), Endo(Endo, appEndo))
@@ -118,11 +120,14 @@ actionWithFrontState fs reader_action = reader_action { actDo = unwrapped_do }
   where
     unwrapped_do = flip runReaderT fs $ actDo reader_action
 
+mapActDo :: (m a -> n b) -> Action m a -> Action n b
+mapActDo f act = act { actDo = f $ actDo act }
+
 liftActionR :: Action m a -> Action (ReaderT fs m) a
-liftActionR act = act { actDo = ReaderT $ const $ actDo act }
+liftActionR = mapActDo (ReaderT . const)
 
 withActionR :: (fs -> fs') -> Action (ReaderT fs' m) a -> Action (ReaderT fs m) a
-withActionR f act = act { actDo = withReaderT f $ actDo act }
+withActionR f = mapActDo (withReaderT f)
 
 -- | WildBind back-end binding between inputs and actions. @s@ is the
 -- front-end state type, and @i@ is the input type.
@@ -208,6 +213,11 @@ bindsF = bindingF . flip runBinder []
 -- or front-end state.
 binds' :: Ord i => Binder i (Action (StateT bs IO) r) a -> Binding' bs fs i
 binds' = binding' . flip runBinder []
+
+-- | Like 'binds'', but this function allows actions to use the
+-- current front-end state via 'ReaderT'.
+bindsF' :: Ord i => Binder i (Action (StateT bs (ReaderT fs IO)) r) a -> Binding' bs fs i
+bindsF' = bindingF' . flip runBinder []
 
 -- | Create a 'Binder' that binds the action @v@ to the input @i@.
 on :: i -> v -> Binder i v ()
@@ -341,13 +351,21 @@ extend = convBack (const id) (const ())
 
 -- | Non-monadic version of 'binds''.
 binding' :: Ord i => [(i, Action (StateT bs IO) r)] -> Binding' bs fs i
-binding' blists = impl where
-  impl = Binding' $ \bs _ -> fmap (liftActionR . runStatefulAction impl bs) $ M.fromList $ blists
+binding' = statefulBinding . fmap addR . M.fromList where
+  addR = mapActDo $ mapStateT (ReaderT . const)
 
-runStatefulAction :: Binding' bs fs i -> bs -> Action (StateT bs IO) r -> Action IO (Binding' bs fs i, bs)
+-- | Non-monadic version of 'bindsF''.
+bindingF' :: Ord i => [(i, Action (StateT bs (ReaderT fs IO)) r)] -> Binding' bs fs i
+bindingF' = statefulBinding . M.fromList
+
+statefulBinding :: M.Map i (Action (StateT bs (ReaderT fs IO)) r) -> Binding' bs fs i
+statefulBinding bind_map = impl where
+  impl = Binding' $ \bs _ -> fmap (runStatefulAction impl bs) bind_map
+
+runStatefulAction :: Monad m => Binding' bs fs i -> bs -> Action (StateT bs m) r -> Action m (Binding' bs fs i, bs)
 runStatefulAction next_b' cur_bs state_action =
-  state_action { actDo = recursive_io }
+  state_action { actDo = recursive_act }
   where
-  recursive_io = do
+  recursive_act = do
     (_, next_bs) <- runStateT (actDo state_action) cur_bs
     return (next_b', next_bs)
