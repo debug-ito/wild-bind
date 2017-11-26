@@ -24,11 +24,13 @@ module WildBind.Binding
          Binder,
          binds,
          binds',
+         bindsF,
          on,
          run,
          as,
          binding,
          binding',
+         bindingF,
          
          -- * Condition
          
@@ -196,6 +198,11 @@ runBinder = appEndo . execWriter . unBinder
 binds :: Ord i => Binder i (Action IO r) a -> Binding' bs fs i
 binds = binding . flip runBinder []
 
+-- | Like 'binds', but this function allows actions to use the current
+-- front-end state via 'ReaderT'.
+bindsF :: Ord i => Binder i (Action (ReaderT fs IO) r) a -> Binding' bs fs i
+bindsF = bindingF . flip runBinder []
+
 -- | Build a 'Binding'' with an explicit state (but no implicit
 -- state). The bound actions are activated regardless of the back-end
 -- or front-end state.
@@ -229,11 +236,17 @@ advice f = Binder . mapWriter f_writer . unBinder where
   f_endo (Endo prepender) = Endo ((map f_pair $ prepender []) ++)
   f_pair (i, v) = (i, f v)
 
+statelessBinding :: M.Map i (Action (ReaderT fs IO) r) -> Binding' bs fs i
+statelessBinding bind_map = impl where
+  impl = Binding' $ \bs _ -> (fmap . fmap) (const (impl, bs)) $ bind_map
 
 -- | Non-monadic version of 'binds'.
 binding :: Ord i => [(i, Action IO r)] -> Binding' bs fs i
-binding blist = impl where
-  impl = Binding' $ \bs _ -> (fmap . fmap) (const (impl, bs)) $ fmap liftActionR $ M.fromList blist
+binding = statelessBinding . fmap liftActionR . M.fromList
+
+-- | Non-monadic version of 'bindsF'.
+bindingF :: Ord i => [(i, Action (ReaderT fs IO) r)] -> Binding' bs fs i
+bindingF = statelessBinding . M.fromList
 
 -- | Create a binding that behaves differently for different front-end
 -- states @fs@.
