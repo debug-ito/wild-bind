@@ -5,6 +5,7 @@ import Control.Applicative ((<$>), (<*>), pure)
 import Control.Monad (void, join)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
+import qualified Control.Monad.Trans.Reader as Reader
 import qualified Control.Monad.Trans.State as State
 import Data.Maybe (isNothing, fromJust)
 import Data.Monoid (mempty, (<>))
@@ -110,6 +111,7 @@ spec = do
   spec_extend
   spec_conditionBoth
   spec_monadic
+  spec_reader
 
 spec_stateless :: Spec
 spec_stateless = do
@@ -648,3 +650,36 @@ spec_monadic = describe "Monadic construction of Binding" $ do
       (WB.actDescription <$> WB.boundAction b (SS "") SIb) `shouldBe` Just "action for b"
       (WB.actDescription <$> WB.boundAction b (SS "") SIc) `shouldBe` Nothing
 
+spec_reader :: Spec
+spec_reader = describe "binding with ReaderT action" $ do
+  describe "bindsF" $ do
+    it "allows actions to access front-end state" $ withStrRef $ \out checkOut -> do
+      let b = WB.bindsF $ do
+            WB.on SIa `WB.run` do
+              fs <- Reader.ask
+              liftIO $ modifyIORef out (++ unSS fs)
+      actRun $ WB.boundAction b (SS "hoge") SIa
+      checkOut "hoge"
+      actRun $ WB.boundAction b (SS "_foobar") SIa
+      checkOut "hoge_foobar"
+  describe "bindsF'" $ do
+    it "allows stateful actions to access front-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let ba = WB.bindsF' $ do
+            WB.on SIa `WB.run` do
+              (SB bs) <- State.get
+              (SS fs) <- lift $ Reader.ask
+              if bs >= 0
+                then liftIO $ modifyIORef out (++ fs)
+                else liftIO $ modifyIORef out (++ reverse fs)
+          bb = WB.binds' $ do
+            WB.on SIb `WB.run` State.modify (\(SB bs) -> SB (bs + 1))
+          bc = WB.binds' $ do
+            WB.on SIc `WB.run` State.modify (\(SB bs) -> SB (bs - 1))
+          b = WB.startFrom (SB 0) (bb <> ba <> bc)
+      State.put b
+      execAll (SS "abc") [SIa, SIb, SIb]
+      checkOut "abc"
+      execAll (SS "123") [SIc, SIc, SIc, SIc, SIa]
+      checkOut "abc321"
+      execAll (SS "xyz") [SIa, SIb, SIb, SIa]
+      checkOut "abc321zyxxyz"
