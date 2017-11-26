@@ -63,6 +63,7 @@ module WildBind.Binding
        ) where
 
 import Control.Applicative (Applicative, (<*), (*>))
+import Control.Monad.Trans.Reader (ReaderT(..), withReaderT)
 import Control.Monad.Trans.State (StateT, runStateT)
 import Control.Monad.Trans.Writer (Writer, tell, execWriter, mapWriter)
 import qualified Data.Map as M
@@ -107,8 +108,19 @@ after hook act = act { actDo = actDo act <* hook }
 -- function.
 newtype Binding' bs fs i =
   Binding'
-  { unBinding' :: bs -> fs -> M.Map i (Action IO (Binding' bs fs i, bs))
+  { unBinding' :: bs -> fs -> M.Map i (Action (ReaderT fs IO) (Binding' bs fs i, bs))
   }
+
+actionWithFrontState :: fs -> Action (ReaderT fs m) a -> Action m a
+actionWithFrontState fs reader_action = reader_action { actDo = unwrapped_do }
+  where
+    unwrapped_do = flip runReaderT fs $ actDo reader_action
+
+liftActionR :: Action m a -> Action (ReaderT fs m) a
+liftActionR act = act { actDo = ReaderT $ const $ actDo act }
+
+withActionR :: (fs -> fs') -> Action (ReaderT fs' m) a -> Action (ReaderT fs m) a
+withActionR f act = act { actDo = withReaderT f $ actDo act }
 
 -- | WildBind back-end binding between inputs and actions. @s@ is the
 -- front-end state type, and @i@ is the input type.
@@ -139,7 +151,7 @@ boundAction b state input = (fmap . fmap) fst $ boundAction' b () state input
 -- | Get the 'Action' bound to the specified back-end state @bs@,
 -- front-end state @fs@ and input @i@
 boundAction' :: (Ord i) => Binding' bs fs i -> bs -> fs -> i -> Maybe (Action IO (Binding' bs fs i, bs))
-boundAction' b bs fs input = M.lookup input $ unBinding' b bs fs
+boundAction' b bs fs input = fmap (actionWithFrontState fs) $ M.lookup input $ unBinding' b bs fs
 
 -- | Get the list of all bound inputs @i@ and their corresponding
 -- actions for the specified front-end state @s@.
@@ -150,7 +162,9 @@ boundActions b state = fmap (\(i, act) -> (i, fmap fst act)) $ boundActions' b (
 -- actions for the specified back-end state @bs@ and front-end state
 -- @fs@.
 boundActions' :: Binding' bs fs i -> bs -> fs -> [(i, Action IO (Binding' bs fs i, bs))]
-boundActions' b bs fs = M.toList $ unBinding' b bs fs
+boundActions' b bs fs = map convertAction $ M.toList $ unBinding' b bs fs
+  where
+    convertAction (i, act) = (i, actionWithFrontState fs act)
 
 -- | Get the list of all bound inputs @i@ for the specified front-end
 -- state @s@.
@@ -219,7 +233,7 @@ advice f = Binder . mapWriter f_writer . unBinder where
 -- | Non-monadic version of 'binds'.
 binding :: Ord i => [(i, Action IO r)] -> Binding' bs fs i
 binding blist = impl where
-  impl = Binding' $ \bs _ -> (fmap . fmap) (const (impl, bs)) $ M.fromList blist
+  impl = Binding' $ \bs _ -> (fmap . fmap) (const (impl, bs)) $ fmap liftActionR $ M.fromList blist
 
 -- | Create a binding that behaves differently for different front-end
 -- states @fs@.
@@ -273,7 +287,7 @@ mapResult amapper bmapper = (fmap . fmap) (\(a, b) -> (amapper a, bmapper b))
 -- | Contramap the front-end state.
 convFront :: (fs -> fs') -> Binding' bs fs' i -> Binding' bs fs i
 convFront cmapper orig_bind = Binding' $ \bs fs ->
-  mapResult (convFront cmapper) id $ unBinding' orig_bind bs (cmapper fs)
+  mapResult (convFront cmapper) id $ fmap (withActionR cmapper) $ unBinding' orig_bind bs (cmapper fs)
 
 -- | Map the front-end input.
 convInput :: Ord i' => (i -> i') -> Binding' bs fs i -> Binding' bs fs i'
@@ -315,7 +329,7 @@ extend = convBack (const id) (const ())
 -- | Non-monadic version of 'binds''.
 binding' :: Ord i => [(i, Action (StateT bs IO) r)] -> Binding' bs fs i
 binding' blists = impl where
-  impl = Binding' $ \bs _ -> fmap (runStatefulAction impl bs) $ M.fromList $ blists
+  impl = Binding' $ \bs _ -> fmap (liftActionR . runStatefulAction impl bs) $ M.fromList $ blists
 
 runStatefulAction :: Binding' bs fs i -> bs -> Action (StateT bs IO) r -> Action IO (Binding' bs fs i, bs)
 runStatefulAction next_b' cur_bs state_action =
