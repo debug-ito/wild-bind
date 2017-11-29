@@ -34,11 +34,6 @@ maybeRun = id
 maybeRun _ = pendingWith ("You need to set test-interactive flag to run the test.")
 #endif
 
-shouldBeInput :: (Show s, Show i, Eq i) => FrontEvent s i -> i -> Expectation
-shouldBeInput ev expected = case ev of
-  FEChange _ -> expectationFailure ("FEChange is caught. not expected: " ++ show ev)
-  FEInput got -> got `shouldBe` expected
-
 p :: String -> IO ()
 p = hPutStrLn stderr . ("--- " ++)
 
@@ -55,7 +50,7 @@ grabExp front grab_input = grabExpMain `finally` releaseAll where
     p ("Press some numpad keys (grab="++ show grab_input ++")..")
     ev <- frontNextEvent front
     p ("Got event: " ++ show ev)
-    ev `shouldBeInput` grab_input
+    ev `shouldBe` FEInput grab_input
   releaseAll = mapM_ (frontUnsetGrab front) (enumFromTo minBound maxBound)
 
 grabCase :: (Bounded i, Enum i, Show i, Eq i) => FrontEnd ActiveWindow i -> Expectation
@@ -108,10 +103,10 @@ spec = checkIfX11Available $ do
           p ("Push " ++ describeStr input)
           press_ev <- frontNextEvent f
           p ("Got event: " ++ show press_ev)
-          press_ev `shouldBeInput` input
+          press_ev `shouldBe` FEInput input
           release_ev <- frontNextEvent f
           p ("Got event: " ++ show release_ev)
-          release_ev `shouldBeInput` input { xKeyEventType = KeyRelease }
+          release_ev `shouldBe` (FEInput $ input { xKeyEventType = KeyRelease })
   describe "X11Front - Either" $ do
     it "should combine input types" $ maybeRun $ withFrontEndForTest $ \f -> do
       let inputs = [Left NumPad.NumLPeriod, Right NumPad.NumDelete]
@@ -119,4 +114,4 @@ spec = checkIfX11Available $ do
         forM_ inputs $ \input -> do
           p ("Push " ++ show input)
           ev <- frontNextEvent f
-          ev `shouldBeInput` input
+          ev `shouldBe` FEInput input
