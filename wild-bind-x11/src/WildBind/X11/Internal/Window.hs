@@ -16,7 +16,8 @@ module WildBind.X11.Internal.Window
          -- ** project-internal accessor
          winID,
          -- * Functions
-         getActiveWindow
+         getActiveWindow,
+         defaultRootWindowForDisplay
        ) where
 
 import Control.Applicative ((<$>),(<|>),empty)
@@ -66,6 +67,10 @@ getActiveWindow disp = maybe emptyWindow id <$> runMaybeT getActiveWindowM where
     name <- xGetWindowName disp awin
     class_hint <- liftIO $ xGetClassHint disp awin
     return $ (uncurry Window) class_hint name awin
+
+-- | Get the default root window of the display.
+defaultRootWindowForDisplay :: Xlib.Display -> Window
+defaultRootWindowForDisplay disp = Window "" "" "" $ Xlib.defaultRootWindow disp
 
 -- | Check whether specified feature is supported by the window
 -- manager(?) Port of libxdo's @_xdo_ewmh_is_supported()@ function.

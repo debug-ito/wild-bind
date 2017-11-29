@@ -9,7 +9,8 @@ module WildBind.X11.Internal.FrontEnd
          X11Front(..),
          withFrontEnd,
          withX11Front,
-         makeFrontEnd
+         makeFrontEnd,
+         defaultRootWindow
        ) where
 
 
@@ -38,7 +39,11 @@ import WildBind.X11.Internal.Key
     XKeyInput(..), KeyMaskMap, getKeyMaskMap,
     KeyEventType(..)
   )
-import WildBind.X11.Internal.Window (ActiveWindow,getActiveWindow, Window, winInstance, winClass, winName, emptyWindow)
+import WildBind.X11.Internal.Window
+  ( ActiveWindow,getActiveWindow, Window,
+    winInstance, winClass, winName, emptyWindow,
+    defaultRootWindowForDisplay
+  )
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
 
 -- | The X11 front-end. @k@ is the input key type.
@@ -187,3 +192,6 @@ makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
                             frontNextEvent = nextEvent f
                           }
 
+-- | Get the default root window.
+defaultRootWindow :: X11Front k -> Window
+defaultRootWindow = defaultRootWindowForDisplay . x11Display

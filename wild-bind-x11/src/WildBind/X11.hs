@@ -26,7 +26,8 @@ module WildBind.X11
          -- * X11Front
          X11Front,
          withX11Front,
-         makeFrontEnd
+         makeFrontEnd,
+         defaultRootWindow
        ) where
 
 import WildBind (FrontEnd)
@@ -36,7 +37,8 @@ import WildBind.X11.Internal.FrontEnd
   ( X11Front,
     withFrontEnd,
     withX11Front,
-    makeFrontEnd
+    makeFrontEnd,
+    defaultRootWindow
   )
 import WildBind.X11.Internal.Key
   ( XKeyInput(..),
