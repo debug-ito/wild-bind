@@ -5,13 +5,17 @@
 --
 -- 
 module WildBind.X11.TestUtil
-       ( checkIfX11Available
+       ( checkIfX11Available,
+         withGrabs
        ) where
 
+import Control.Exception (bracket)
 import Control.Monad (when)
 import Control.Applicative ((<$>))
 import System.Environment (lookupEnv)
 import Test.Hspec
+
+import WildBind (FrontEnd(..))
 
 isDisplaySet :: IO Bool
 isDisplaySet = exists <$> lookupEnv "DISPLAY" where
@@ -22,3 +26,10 @@ checkIfX11Available :: Spec -> Spec
 checkIfX11Available = before $ do
   available <- isDisplaySet
   when (not available) $ pendingWith "DISPLAY env is not set. Skipped."
+
+withGrabs :: FrontEnd s i -> [i] -> IO a -> IO a
+withGrabs front inputs action = bracket grabAll (const ungrabAll) (const action)
+  where
+    grabAll = mapM_ (frontSetGrab front) inputs
+    ungrabAll = mapM_ (frontUnsetGrab front) inputs
+

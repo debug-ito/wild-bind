@@ -59,6 +59,7 @@ test-suite spec
   main-is:              Spec.hs
   other-extensions:     FlexibleContexts, CPP
   other-modules:        WildBind.X11Spec,
+                        WildBind.X11.EmulateSpec,
                         WildBind.X11.Internal.NotificationDebouncerSpec,
                         WildBind.X11.TestUtil
   build-depends:        base, wild-bind-x11,

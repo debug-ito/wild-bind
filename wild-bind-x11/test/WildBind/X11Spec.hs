@@ -2,7 +2,7 @@
 module WildBind.X11Spec (main, spec) where
 
 import Control.Applicative ((<$>))
-import Control.Exception (finally, bracket)
+import Control.Exception (finally)
 import Control.Monad (forM_)
 import Data.List (intercalate)
 import Data.Text (unpack)
@@ -22,7 +22,7 @@ import WildBind.X11
     XMod(..), (.+), XKeyEvent(..), KeyEventType(..)
   )
 
-import WildBind.X11.TestUtil (checkIfX11Available)
+import WildBind.X11.TestUtil (checkIfX11Available, withGrabs)
 
 main :: IO ()
 main = hspec spec
@@ -67,12 +67,6 @@ stopWatchMsec act = do
   ret <- act
   end <- getCurrentTime
   return (ret, floor ((diffUTCTime end start) * 1000))
-
-withGrabs :: FrontEnd s i -> [i] -> IO a -> IO a
-withGrabs front inputs action = bracket grabAll (const ungrabAll) (const action)
-  where
-    grabAll = mapM_ (frontSetGrab front) inputs
-    ungrabAll = mapM_ (frontUnsetGrab front) inputs
 
 describeStr :: Describable a => a -> String
 describeStr = unpack . WBD.describe
