@@ -347,8 +347,12 @@ xSendKeyEvent kmmap disp target_win key_event = Xlib.allocaXEvent $ \xev -> do
     event_mask = case event_type of
       KeyPress -> Xlib.keyPressMask
       KeyRelease -> Xlib.keyReleaseMask
+    xevent_type = case event_type of
+      KeyPress -> Xlib.keyPress
+      KeyRelease -> Xlib.keyRelease
     setupXEvent xev = do
       key_code <- Xlib.keysymToKeycode disp $ xKeyEventKeySym key_event
+      XlibE.setEventType xev xevent_type
       XlibE.setKeyEvent xev target_win (Xlib.defaultRootWindow disp) subwindow key_mask key_code is_same_screen
     subwindow = 0 -- I mean, 'None' in Xlib. Graphics.X11 does not define 'None' window ID, I think...
     is_same_screen = True
