@@ -63,7 +63,7 @@ test-suite spec
                         WildBind.X11.Internal.NotificationDebouncerSpec,
                         WildBind.X11.TestUtil
   build-depends:        base, wild-bind-x11,
-                        wild-bind, X11, text,
+                        wild-bind, X11, text, transformers,
                         hspec >=2.1.7,
                         time >=1.5.0 && <1.9
 
