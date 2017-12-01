@@ -21,6 +21,7 @@ library
   other-extensions:     GeneralizedNewtypeDeriving, FlexibleContexts
   exposed-modules:      WildBind.X11,
                         WildBind.X11.Emulate,
+                        WildBind.X11.KeySym,
                         WildBind.X11.Internal.Key,
                         WildBind.X11.Internal.Window,
                         WildBind.X11.Internal.NotificationDebouncer
