@@ -9,6 +9,7 @@ module WildBind.X11.Internal.Window
          Window,
          ActiveWindow,
          emptyWindow,
+         fromWinID,
          -- * Accessor functions for 'Window'
          winInstance,
          winClass,
@@ -57,6 +58,10 @@ type ActiveWindow = Window
 -- | An empty Window instance used for fallback and/or default value.
 emptyWindow :: Window
 emptyWindow = Window "" "" "" 0
+
+-- | Create 'Window' from X11's 'Xlib.Window'. Only for testing.
+fromWinID :: Xlib.Window -> Window
+fromWinID wid = emptyWindow { winID = wid }
 
 -- | Get currently active 'Window'.
 getActiveWindow :: Xlib.Display -> IO ActiveWindow
