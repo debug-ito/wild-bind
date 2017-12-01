@@ -29,7 +29,18 @@ spec = checkIfX11Available $ describe "sendKeyEventTo" $ do
     let inputs = [ Alt .+ Super .+ Xlib.xK_r,
                    release Xlib.xK_w,
                    press Xlib.xK_Right,
-                   release $ Ctrl .+ Shift .+ Xlib.xK_F14
+                   release $ Ctrl .+ Shift .+ Xlib.xK_F12,
+                   Ctrl .+ Alt .+ Xlib.xK_3
+                   
+                   -- Ctrl .+ Shift .+ Xlib.xK_bracketleft
+
+                   ---- "Shift" modifier is tricky, because it affects
+                   ---- the keysym depending on the keyboard and key
+                   ---- map setting. E.g., with a typical Japanese
+                   ---- keyboard, bracketleft "[" and braceleft "{"
+                   ---- share the same key, and we use Shift to input
+                   ---- the braceleft "{". So, if you use Shift
+                   ---- modifier, you have to use xK_braceleft keysym.
                  ]
     bracket (Xlib.openDisplay "") Xlib.closeDisplay $ \disp -> do
       kmmap <- getKeyMaskMap disp
