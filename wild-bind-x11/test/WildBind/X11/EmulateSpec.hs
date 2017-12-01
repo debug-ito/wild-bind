@@ -10,7 +10,7 @@ import Test.Hspec
 import WildBind (frontNextEvent, FrontEvent(..))
 import WildBind.X11
   ( withX11Front, makeFrontEnd,
-    XMod(..), (.+), release,
+    XMod(..), (.+), release, press,
     defaultRootWindow,
     XKeyEvent(..), KeyEventType(..)
   )
@@ -27,16 +27,19 @@ spec :: Spec
 spec = checkIfX11Available $ describe "sendKeyEventTo" $ do
   it "should send key event" $ withX11Front $ \x11 -> do
     let inputs = [ Alt .+ Super .+ Xlib.xK_r,
-                   release Xlib.xK_w
+                   release Xlib.xK_w,
+                   press Xlib.xK_Right,
+                   release $ Ctrl .+ Shift .+ Xlib.xK_F14
                  ]
     bracket (Xlib.openDisplay "") Xlib.closeDisplay $ \disp -> do
       kmmap <- getKeyMaskMap disp
       win <- makeWindow disp
-      print ("Window created: " ++ show win)
+      putStrLn ("Window created: " ++ show win)
       forM_ inputs $ \input -> do
-        print ("Do send input: " ++ show input)
+        Xlib.sync disp False
+        putStrLn ("Do send input: " ++ show input)
         sendKeyEventTo x11 (fromWinID win) input
-        print ("Receiving..")
+        putStrLn ("Receiving..")
         (nextKey kmmap disp) `shouldReturn` input
 
 -- We have to create a dedicated window to receive events sent by
@@ -51,7 +54,8 @@ spec = checkIfX11Available $ describe "sendKeyEventTo" $ do
 makeWindow :: Xlib.Display -> IO Xlib.Window
 makeWindow disp = do
   win <- Xlib.createSimpleWindow disp root x y w h border_width border_pixel bg_pixel
-  Xlib.mapWindow disp win
+  -- Xlib.storeName disp win "test window"
+  -- Xlib.mapWindow disp win
   Xlib.selectInput disp win select_mask
   Xlib.flush disp
   return win
@@ -70,9 +74,14 @@ nextKey :: KeyMaskMap -> Xlib.Display -> IO XKeyEvent
 nextKey kmmap disp = Xlib.allocaXEvent $ \xev -> do
   Xlib.nextEvent disp xev
   xtype <- Xlib.get_EventType xev
+  putStrLn ("Got event type: " ++ show xtype)
   case toKeyType xtype of
    Nothing -> error ("Unknown event type: " ++ show xtype)
-   Just key_type -> fmap unwrapMaybe $ runMaybeT $ xKeyEventToXKeyInput kmmap key_type $ Xlib.asKeyEvent xev
+   Just key_type -> do
+     putStrLn ("KeyEventType = " ++ show key_type)
+     ret <- fmap unwrapMaybe $ runMaybeT $ xKeyEventToXKeyInput kmmap key_type $ Xlib.asKeyEvent xev
+     putStrLn ("Converted: " ++ show ret)
+     return ret
   where
     toKeyType xtype | xtype == Xlib.keyPress = Just KeyPress
                     | xtype == Xlib.keyRelease = Just KeyRelease
