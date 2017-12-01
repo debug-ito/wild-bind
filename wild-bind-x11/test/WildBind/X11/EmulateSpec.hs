@@ -4,10 +4,12 @@ import Control.Exception (bracket)
 import Control.Monad (forM_)
 import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Bits ((.|.))
+import Data.Text (unpack)
 import qualified Graphics.X11.Xlib as Xlib
 import Test.Hspec
 
 import WildBind (frontNextEvent, FrontEvent(..))
+import qualified WildBind.Description as WBD
 import WildBind.X11
   ( withX11Front, makeFrontEnd,
     XMod(..), (.+), release, press,
@@ -25,33 +27,32 @@ main = hspec spec
 
 spec :: Spec
 spec = checkIfX11Available $ describe "sendKeyEventTo" $ do
-  it "should send key event" $ withX11Front $ \x11 -> do
-    let inputs = [ Alt .+ Super .+ Xlib.xK_r,
-                   release Xlib.xK_w,
-                   press Xlib.xK_Right,
-                   release $ Ctrl .+ Shift .+ Xlib.xK_F12,
-                   Ctrl .+ Alt .+ Xlib.xK_3
+  let inputs = [ Alt .+ Super .+ Xlib.xK_r,
+                 release Xlib.xK_w,
+                 press Xlib.xK_Right,
+                 release $ Ctrl .+ Shift .+ Xlib.xK_F12,
+                 Ctrl .+ Alt .+ Xlib.xK_3
                    
-                   -- Ctrl .+ Shift .+ Xlib.xK_bracketleft
+                 -- Ctrl .+ Shift .+ Xlib.xK_bracketleft
 
-                   ---- "Shift" modifier is tricky, because it affects
-                   ---- the keysym depending on the keyboard and key
-                   ---- map setting. E.g., with a typical Japanese
-                   ---- keyboard, bracketleft "[" and braceleft "{"
-                   ---- share the same key, and we use Shift to input
-                   ---- the braceleft "{". So, if you use Shift
-                   ---- modifier, you have to use xK_braceleft keysym.
-                 ]
+                 ---- "Shift" modifier is tricky, because it affects
+                 ---- the keysym depending on the keyboard and key map
+                 ---- setting. E.g., with a typical Japanese keyboard,
+                 ---- bracketleft "[" and braceleft "{" share the same
+                 ---- key, and we use Shift to input the braceleft
+                 ---- "{". So, if you use Shift modifier, you have to
+                 ---- use xK_braceleft keysym.
+               ]
+  forM_ inputs $ \input -> specify (unpack $ WBD.describe input) $ withX11Front $ \x11 -> do
     bracket (Xlib.openDisplay "") Xlib.closeDisplay $ \disp -> do
       kmmap <- getKeyMaskMap disp
       win <- makeWindow disp
-      putStrLn ("Window created: " ++ show win)
-      forM_ inputs $ \input -> do
-        Xlib.sync disp False
-        putStrLn ("Do send input: " ++ show input)
-        sendKeyEventTo x11 (fromWinID win) input
-        putStrLn ("Receiving..")
-        (nextKey kmmap disp) `shouldReturn` input
+      -- putStrLn ("Window created: " ++ show win)
+      Xlib.sync disp False
+      -- putStrLn ("Do send input: " ++ show input)
+      sendKeyEventTo x11 (fromWinID win) input
+      -- putStrLn ("Receiving..")
+      (nextKey kmmap disp) `shouldReturn` input
 
 -- We have to create a dedicated window to receive events sent by
 -- 'sendKeyEventTo', because XSendEvent ignores key grabs (so X11Front
@@ -85,13 +86,13 @@ nextKey :: KeyMaskMap -> Xlib.Display -> IO XKeyEvent
 nextKey kmmap disp = Xlib.allocaXEvent $ \xev -> do
   Xlib.nextEvent disp xev
   xtype <- Xlib.get_EventType xev
-  putStrLn ("Got event type: " ++ show xtype)
+  -- putStrLn ("Got event type: " ++ show xtype)
   case toKeyType xtype of
    Nothing -> error ("Unknown event type: " ++ show xtype)
    Just key_type -> do
-     putStrLn ("KeyEventType = " ++ show key_type)
+     -- putStrLn ("KeyEventType = " ++ show key_type)
      ret <- fmap unwrapMaybe $ runMaybeT $ xKeyEventToXKeyInput kmmap key_type $ Xlib.asKeyEvent xev
-     putStrLn ("Converted: " ++ show ret)
+     -- putStrLn ("Converted: " ++ show ret)
      return ret
   where
     toKeyType xtype | xtype == Xlib.keyPress = Just KeyPress
