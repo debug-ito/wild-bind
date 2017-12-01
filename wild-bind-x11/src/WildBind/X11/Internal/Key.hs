@@ -341,6 +341,7 @@ xSendKeyEvent :: KeyMaskMap -> Xlib.Display -> Xlib.Window -> XKeyEvent -> IO ()
 xSendKeyEvent kmmap disp target_win key_event = Xlib.allocaXEvent $ \xev -> do
   setupXEvent xev
   Xlib.sendEvent disp target_win propagate event_mask xev
+  Xlib.sync disp False
   where
     propagate = True
     event_type = xKeyEventType key_event
