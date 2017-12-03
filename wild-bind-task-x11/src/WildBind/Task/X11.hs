@@ -39,7 +39,7 @@ import WildBind.X11
 import WildBind.Indicator
   ( Indicator, NumPadPosition(..),
     updateDescription, getPresence, setPresence, togglePresence, quit,
-    withNumPadIndicator, wildBindWithIndicator
+    withNumPadIndicator, wildBindWithIndicator, toggleBinding
   )
 import WildBind.X11.Internal.Key (XKeyInput)
 
@@ -60,9 +60,7 @@ import WildBind.X11.Internal.Key (XKeyInput)
 -- 'NumPadLocked'.
 wildNumPad :: (NumPadPosition i, XKeyInput i, Describable i, Ord i, Enum i, Bounded i)
               => Binding ActiveWindow i -> IO ()
-wildNumPad orig_binding = wildNumPad' $ \ind -> orig_binding <> help_binds ind where
-  help_binds ind = binding $ map (\input -> (input, Action "Toggle description" $ togglePresence ind)) help_likes
-  help_likes = filter ((== NumLDivide) . toNumPad) $ enumFromTo minBound maxBound
+wildNumPad orig_binding = wildNumPad' $ \ind -> orig_binding <> toggleBinding ind NumLDivide
 
 -- | A more flexible version of 'wildNumPad'. It passes you an
 -- 'Indicator', and uses the 'Binding' you return as-is.

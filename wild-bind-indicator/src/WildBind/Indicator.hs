@@ -21,8 +21,10 @@ module WildBind.Indicator
          setPresence,
          togglePresence,
          quit,
-         -- * Conversion
+         -- ** Conversion
          adaptIndicator,
+         -- ** Binding
+         toggleBinding,
          -- * Generalization of number pad types
          NumPadPosition(..)
        ) where
@@ -58,7 +60,8 @@ import qualified Graphics.UI.Gtk as G (get, set, on)
 import System.IO (stderr, hPutStrLn)
 
 import WildBind ( ActionDescription, Option(optBindingHook),
-                  FrontEnd(frontDefaultDescription), Binding,
+                  FrontEnd(frontDefaultDescription), Binding, Binding',
+                  binding, Action(Action),
                   wildBind', defOption
                 )
 import WildBind.Input.NumPad (NumPadUnlocked(..), NumPadLocked(..))
@@ -197,7 +200,7 @@ withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_imp
 -- | Run 'WildBind.wildBind' with the given 'Indicator'. 'ActionDescription's
 -- are shown by the 'Indicator'.
 wildBindWithIndicator :: (Ord i, Enum i, Bounded i) => Indicator s i -> Binding s i -> FrontEnd s i -> IO ()
-wildBindWithIndicator ind binding front = wildBind' (defOption { optBindingHook = bindingHook ind front }) binding front
+wildBindWithIndicator ind b front = wildBind' (defOption { optBindingHook = bindingHook ind front }) b front
 
 -- | Create an action appropriate for 'optBindingHook' in 'Option'
 -- from 'Indicator' and 'FrontEnd'.
@@ -307,3 +310,12 @@ adaptIndicator f ind = ind { updateDescription = newDesc }
     newDesc input = case f input of
       Nothing -> const $ return ()
       Just orig_input -> updateDescription ind orig_input
+
+-- | A binding that toggles presence of the 'Indicator'.
+toggleBinding :: (NumPadPosition i, Ord i, Enum i, Bounded i)
+              => Indicator s i
+              -> NumPadLocked -- ^ the button to bind the 'togglePresence' action
+              -> Binding' bs fs i
+toggleBinding ind button = binding $ map (\input -> (input, Action "Toggle description" $ togglePresence ind)) help_likes
+  where
+    help_likes = filter ((== button) . toNumPad) $ enumFromTo minBound maxBound
