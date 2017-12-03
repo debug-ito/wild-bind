@@ -84,9 +84,13 @@ data Indicator s i =
     setPresence :: Bool -> IO (),
     -- ^ Set the presence of the indicator.
 
-    quit :: IO ()
+    quit :: IO (),
     -- ^ Destroy the indicator. This usually means quitting the entire
     -- application.
+
+    allButtons :: [i]
+    -- ^ list of all buttons on which the indicator displays
+    -- descriptions.
   }
 
 -- | Toggle the presence of the indicator.
@@ -96,11 +100,11 @@ togglePresence ind = (setPresence ind . not) =<< getPresence ind
 -- | Convert actions in the input 'Indicator' so that those actions
 -- can be executed from a non-GTK-main thread.
 transportIndicator :: Indicator s i -> Indicator s i
-transportIndicator ind = Indicator { updateDescription = \i d -> postGUIAsync $ updateDescription ind i d,
-                                     getPresence = postGUISync $ getPresence ind,
-                                     setPresence = \visible -> postGUIAsync $ setPresence ind visible,
-                                     quit = postGUISync $ quit ind
-                                   }
+transportIndicator ind = ind { updateDescription = \i d -> postGUIAsync $ updateDescription ind i d,
+                               getPresence = postGUISync $ getPresence ind,
+                               setPresence = \visible -> postGUIAsync $ setPresence ind visible,
+                               quit = postGUISync $ quit ind
+                             }
 
 
 -- | Something that can be mapped to number pad's key positions.
@@ -158,7 +162,7 @@ type NumPadContext = ReaderT NumPadConfig IO
 -- 
 -- The executable must be compiled by ghc with __@-threaded@ option enabled.__
 -- Otherwise, it aborts.
-withNumPadIndicator :: NumPadPosition i => (Indicator s i -> IO ()) -> IO ()
+withNumPadIndicator :: (NumPadPosition i, Enum i, Bounded i) => (Indicator s i -> IO ()) -> IO ()
 withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_impl where
   error_impl = throwIO $ userError "You need to build with -threaded option when you use WildBind.Indicator.withNumPadIndicator function."
   impl = do
@@ -177,7 +181,8 @@ withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_imp
           { updateDescription = \i d -> updater i d,
             getPresence = G.get win widgetVisible,
             setPresence = \visible -> if visible then widgetShowAll win else widgetHide win,
-            quit = mainQuit
+            quit = mainQuit,
+            allButtons = enumFromTo minBound maxBound
           }
     liftIO $ void $ G.on win deleteEvent $ do
       liftIO $ widgetHide win
@@ -199,13 +204,13 @@ withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_imp
 
 -- | Run 'WildBind.wildBind' with the given 'Indicator'. 'ActionDescription's
 -- are shown by the 'Indicator'.
-wildBindWithIndicator :: (Ord i, Enum i, Bounded i) => Indicator s i -> Binding s i -> FrontEnd s i -> IO ()
+wildBindWithIndicator :: Ord i => Indicator s i -> Binding s i -> FrontEnd s i -> IO ()
 wildBindWithIndicator ind b front = wildBind' (defOption { optBindingHook = bindingHook ind front }) b front
 
 -- | Create an action appropriate for 'optBindingHook' in 'Option'
 -- from 'Indicator' and 'FrontEnd'.
-bindingHook :: (Ord i, Enum i, Bounded i) => Indicator s1 i -> FrontEnd s2 i -> [(i, ActionDescription)] -> IO ()
-bindingHook ind front bind_list = forM_ (enumFromTo minBound maxBound) $ \input -> do
+bindingHook :: Ord i => Indicator s1 i -> FrontEnd s2 i -> [(i, ActionDescription)] -> IO ()
+bindingHook ind front bind_list = forM_ (allButtons ind) $ \input -> do
   let desc = M.findWithDefault (frontDefaultDescription front input) input (M.fromList bind_list)
   updateDescription ind input desc
                        
@@ -297,17 +302,21 @@ makeStatusMenu ind = impl where
     void $ G.on toggler checkMenuItemToggled (togglePresence ind)
     return toggler
 
--- | Partial contramap of 'Indicator', so that it can adapt to the new
+-- | Map input type of 'Indicator', so that it can adapt to the new
 -- input type @i'@.
 --
--- If the mapper function returns 'Nothing', those input symbols are
--- ignored by the 'Indicator'.
-adaptIndicator :: (i' -> Maybe i) -- ^ mapper function
+-- If the contra-mapper function returns 'Nothing', those input
+-- symbols are ignored by the 'Indicator'.
+adaptIndicator :: (i -> i') -- ^ mapper function
+               -> (i' -> Maybe i) -- ^ contra-mapper function
                -> Indicator s i -- ^ original
                -> Indicator s i' -- ^ adapted indicator
-adaptIndicator f ind = ind { updateDescription = newDesc }
+adaptIndicator mapper cmapper ind =
+  ind { updateDescription = newDesc,
+        allButtons = map mapper $ allButtons ind
+      }
   where
-    newDesc input = case f input of
+    newDesc input = case cmapper input of
       Nothing -> const $ return ()
       Just orig_input -> updateDescription ind orig_input
 
