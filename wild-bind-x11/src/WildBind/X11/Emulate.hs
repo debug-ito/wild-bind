@@ -72,7 +72,7 @@ push front key = do
 -- window.
 remap :: (ToXKeyEvent from, ToXKeyEvent to) => X11Front i -> from -> to -> Binding' bs ActiveWindow XKeyEvent
 remap front from to = bindsF $ do
-  on (press from) `run` push' (press to)
-  on (release from) `run` push' (release to)
+  on (press from) `run` sendKey' (press to)
+  on (release from) `run` sendKey' (release to)
   where
-    push' = push front
+    sendKey' = sendKey front
