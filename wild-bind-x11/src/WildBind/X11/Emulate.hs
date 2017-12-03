@@ -6,8 +6,8 @@
 --
 -- 
 module WildBind.X11.Emulate
-       ( sendKeyEventTo,
-         sendKeyEvent,
+       ( sendKeyTo,
+         sendKey,
          pushTo,
          push,
          remap
@@ -29,24 +29,24 @@ import WildBind.X11.Internal.Window
   )
 
 -- | Send a X11 key event to a 'Window'.
-sendKeyEventTo :: (ToXKeyEvent k, MonadIO m)
-               => X11Front i
-               -> Window -- ^ target window
-               -> k -- ^ Key event to send
-               -> m ()
-sendKeyEventTo front win key = liftIO $ xSendKeyEvent kmmap disp win_id key_event
+sendKeyTo :: (ToXKeyEvent k, MonadIO m)
+          => X11Front i
+          -> Window -- ^ target window
+          -> k -- ^ Key event to send
+          -> m ()
+sendKeyTo front win key = liftIO $ xSendKeyEvent kmmap disp win_id key_event
   where
     kmmap = x11KeyMaskMap front
     disp = x11Display front
     win_id = winID win
     key_event = toXKeyEvent key
 
--- | Same as 'sendKeyEventTo', but the target window is obtained from
+-- | Same as 'sendKeyTo', but the target window is obtained from
 -- 'MonadReader'.
-sendKeyEvent :: (ToXKeyEvent k, MonadIO m, MonadReader Window m) => X11Front i -> k -> m ()
-sendKeyEvent front key = do
+sendKey :: (ToXKeyEvent k, MonadIO m, MonadReader Window m) => X11Front i -> k -> m ()
+sendKey front key = do
   win <- ask
-  sendKeyEventTo front win key
+  sendKeyTo front win key
 
 -- | Send a \"key push\" event to a 'Window', that is, send 'KeyPress'
 -- and 'KeyRelease' events.
@@ -55,7 +55,7 @@ pushTo front win key = do
   send $ press key
   send $ release key
   where
-    send = sendKeyEventTo front win
+    send = sendKeyTo front win
 
 -- | Same as 'pushTo', but the target window is obtained from
 -- 'MonadReader'.

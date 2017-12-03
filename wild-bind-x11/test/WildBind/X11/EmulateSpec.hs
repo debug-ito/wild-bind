@@ -16,7 +16,7 @@ import WildBind.X11
     defaultRootWindow,
     XKeyEvent(..), KeyEventType(..)
   )
-import WildBind.X11.Emulate (sendKeyEventTo)
+import WildBind.X11.Emulate (sendKeyTo)
 import WildBind.X11.Internal.Key (xKeyEventToXKeyInput, getKeyMaskMap, KeyMaskMap)
 import WildBind.X11.Internal.Window (fromWinID)
 
@@ -26,7 +26,7 @@ main :: IO ()
 main = hspec spec
 
 spec :: Spec
-spec = checkIfX11Available $ describe "sendKeyEventTo" $ do
+spec = checkIfX11Available $ describe "sendKeyTo" $ do
   let inputs = [ Alt .+ Super .+ Xlib.xK_r,
                  release Xlib.xK_w,
                  press Xlib.xK_Right,
@@ -50,12 +50,12 @@ spec = checkIfX11Available $ describe "sendKeyEventTo" $ do
       -- putStrLn ("Window created: " ++ show win)
       Xlib.sync disp False
       -- putStrLn ("Do send input: " ++ show input)
-      sendKeyEventTo x11 (fromWinID win) input
+      sendKeyTo x11 (fromWinID win) input
       -- putStrLn ("Receiving..")
       (nextKey kmmap disp) `shouldReturn` input
 
 -- We have to create a dedicated window to receive events sent by
--- 'sendKeyEventTo', because XSendEvent ignores key grabs (so X11Front
+-- 'sendKeyTo', because XSendEvent ignores key grabs (so X11Front
 -- cannot get the sent event.)
 --
 -- By the way, key events by XTEST extension emulate the real key
