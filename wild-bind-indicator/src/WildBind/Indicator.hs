@@ -21,6 +21,8 @@ module WildBind.Indicator
          setPresence,
          togglePresence,
          quit,
+         -- * Conversion
+         adaptIndicator,
          -- * Generalization of number pad types
          NumPadPosition(..)
        ) where
@@ -291,3 +293,17 @@ makeStatusMenu ind = impl where
     checkMenuItemSetActive toggler =<< getPresence ind
     void $ G.on toggler checkMenuItemToggled (togglePresence ind)
     return toggler
+
+-- | Partial contramap of 'Indicator', so that it can adapt to the new
+-- input type @i'@.
+--
+-- If the mapper function returns 'Nothing', those input symbols are
+-- ignored by the 'Indicator'.
+adaptIndicator :: (i' -> Maybe i) -- ^ mapper function
+               -> Indicator s i -- ^ original
+               -> Indicator s i' -- ^ adapted indicator
+adaptIndicator f ind = ind { updateDescription = newDesc }
+  where
+    newDesc input = case f input of
+      Nothing -> const $ return ()
+      Just orig_input -> updateDescription ind orig_input
