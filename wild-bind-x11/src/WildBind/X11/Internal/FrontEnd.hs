@@ -79,11 +79,17 @@ openMyDisplay = Xlib.openDisplay ""
 --
 -- The X11 'FrontEnd' watches and provides 'ActiveWindow' as the
 -- front-end state. 'ActiveWindow' keeps information about the window
--- currently active. 
+-- currently active. As for the input type @i@, this 'FrontEnd' gets
+-- keyboard events from the X server.
 -- 
 -- Code using this function must be compiled
 -- __with @-threaded@ option enabled__ in @ghc@. Otherwise, it aborts.
 --
+-- Because this 'FrontEnd' currently uses @XGrabKey(3)@ to get the
+-- input, every input event makes the active window lose focus
+-- temporarily. This may result in some annoying behavior
+-- (e.g. flickering cursor.) Unfortunately, I couldn't find reasonble
+-- solution to this problem. See also: https://stackoverflow.com/questions/15270420/
 withFrontEnd :: (XKeyInput i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
 withFrontEnd action = withX11Front' "WildBind.X11.withFrontEnd" $ \x11front -> action (makeFrontEnd x11front)
 

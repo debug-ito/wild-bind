@@ -7,7 +7,7 @@
 module WildBind.X11.KeySym
        ( -- * The type
          KeySym,
-         -- * Alphabets
+         -- * Alphabet
          xK_a,
          xK_b,
          xK_c,
@@ -262,7 +262,7 @@ module WildBind.X11.KeySym
          xK_Super_R,
          xK_Hyper_L,
          xK_Hyper_R,
-         -- * Alphabets with accent and ligatures
+         -- * Alphabet with accent and ligatures
          xK_Agrave,
          xK_Aacute,
          xK_Acircumflex,
