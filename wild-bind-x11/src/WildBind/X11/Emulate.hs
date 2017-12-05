@@ -10,7 +10,8 @@ module WildBind.X11.Emulate
          sendKey,
          pushTo,
          push,
-         remap
+         remap,
+         remapR
        ) where
 
 import Control.Monad.IO.Class (MonadIO(liftIO))
@@ -70,9 +71,24 @@ push front key = do
 -- This binding captures 'KeyPress' and 'KeyRelease' events of
 -- \"@from@\", and sends respective events of \"@to@\" to the active
 -- window.
+--
+-- Sometimes 'remap' doesn't work as you expect, because the
+-- 'KeyPress' event is sent to the window while it doesn't have
+-- keyboard focus. In that case, try using 'remapR'.
 remap :: (ToXKeyEvent from, ToXKeyEvent to) => X11Front i -> from -> to -> Binding' bs ActiveWindow XKeyEvent
 remap front from to = bindsF $ do
   on (press from) `run` sendKey' (press to)
   on (release from) `run` sendKey' (release to)
   where
     sendKey' = sendKey front
+
+-- | remap on Release. Like 'remap', but this binding captures only
+-- 'KeyRelease' event and sends a pair of 'KeyPress' and 'KeyRelease'
+-- events.
+--
+-- Because the original 'KeyRelease' event occurs after the focus
+-- returns to the window, the emulated events are sent to the window
+-- with focus.
+remapR :: (ToXKeyEvent from, ToXKeyEvent to) => X11Front i -> from -> to -> Binding' bs ActiveWindow XKeyEvent
+remapR front from to = bindsF $ do
+  on (release from) `run` push front to
