@@ -2,7 +2,7 @@
 module WildBind.BindingSpec (main, spec) where
 
 import Control.Applicative ((<$>), (<*>), pure)
-import Control.Monad (void, join)
+import Control.Monad (void)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.Reader as Reader
@@ -15,7 +15,10 @@ import Test.Hspec
 import Test.QuickCheck (Gen, Arbitrary(arbitrary), property, listOf, sample')
 
 import qualified WildBind.Binding as WB
-import WildBind.ForTest (SampleInput(..), SampleState(..), SampleBackState(..))
+import WildBind.ForTest
+  ( SampleInput(..), SampleState(..), SampleBackState(..),
+    inputAll, execAll, evalStateEmpty
+  )
 
 main :: IO ()
 main = hspec spec
@@ -61,18 +64,6 @@ genStatelessBinding out_list =
 generate :: Gen a -> IO a
 generate = fmap head . sample'
 
-inputAll :: Ord i => WB.Binding s i -> s -> [i] -> IO (WB.Binding s i)
-inputAll b _ [] = return b
-inputAll binding state (i:rest) = case WB.boundAction binding state i of
-  Nothing -> inputAll binding state rest
-  Just act -> join $ inputAll <$> WB.actDo act <*> return state <*> return rest
-
-execAll :: Ord i => s -> [i] -> State.StateT (WB.Binding s i) IO ()
-execAll state inputs = do
-  b <- State.get
-  next_b <- liftIO $ inputAll b state inputs
-  State.put next_b
-
 execAll' :: Ord i => [i] -> State.StateT (WB.Binding SampleState i) IO ()
 execAll' = execAll (SS "")
 
@@ -98,9 +89,6 @@ checkInputsS state exp_in = State.get >>= \b -> lift $ WB.boundInputs b state `s
 
 checkInputsS' :: (Show i, Eq i) => [i] -> State.StateT (WB.Binding SampleState i) IO ()
 checkInputsS' = checkInputsS (SS "")
-
-evalStateEmpty :: State.StateT (WB.Binding SampleState SampleInput) IO () -> IO ()
-evalStateEmpty s = State.evalStateT s mempty_stateless
 
 spec :: Spec
 spec = do

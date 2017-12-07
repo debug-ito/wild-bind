@@ -50,7 +50,8 @@ test-suite spec
   default-extensions:   OverloadedStrings FlexibleInstances MultiParamTypeClasses
   other-extensions:     RankNTypes
   other-modules:        WildBind.ExecSpec,
-                        WildBind.BindingSpec
+                        WildBind.BindingSpec,
+                        WildBind.SeqSpec,
                         WildBind.ForTest
   build-depends:        base, wild-bind, transformers,
                         hspec >=2.1.7 && <2.5,
