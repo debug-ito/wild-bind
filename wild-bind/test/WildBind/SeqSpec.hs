@@ -41,15 +41,23 @@ spec_prefix = describe "prefix" $ do
       ]
   specify "one prefix" $ evalStateEmpty $ do
     State.put $ prefix [SIc] base_b
-    curBoundInputs (SS "") >>= (\got -> liftIO $ got `shouldMatchList` [SIc])
+    liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
     execAll (SS "") [SIc]
-    curBoundDescs (SS "") >>= (\got -> liftIO $ got `shouldMatchList` [(SIa, "a"), (SIb, "b")])
+    liftIO . (`shouldMatchList` [(SIa, "a"), (SIb, "b")]) =<< curBoundDescs (SS "")
     execAll (SS "") [SIc]
-    curBoundDescs (SS "") >>= (\got -> liftIO $ got `shouldMatchList` [(SIa, "a"), (SIb, "b")])
+    liftIO . (`shouldMatchList` [(SIa, "a"), (SIb, "b")]) =<< curBoundDescs (SS "")
     execAll (SS "") [SIa]
-    curBoundInputs (SS "") >>= (\got -> liftIO $ got `shouldMatchList` [SIc])
-  specify "two prefixes" $ do
-    True `shouldBe` False -- TODO
+    liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
+  specify "two prefixes" $ evalStateEmpty $ do
+    State.put $ prefix [SIc, SIb] base_b
+    liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
+    execAll (SS "") [SIc]
+    liftIO . (`shouldMatchList` [SIb]) =<< curBoundInputs (SS "")
+    execAll (SS "") [SIb]
+    liftIO . (`shouldMatchList` [(SIa, "a"), (SIb, "b")]) =<< curBoundDescs (SS "")
+    execAll (SS "") [SIa]
+    liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
+    
 
 spec_prefix' :: Spec
 spec_prefix' = describe "prefix'" $ do
