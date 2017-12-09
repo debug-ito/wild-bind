@@ -8,7 +8,7 @@ import Control.Monad.Trans.Class (lift)
 import qualified Control.Monad.Trans.Reader as Reader
 import qualified Control.Monad.Trans.State as State
 import Data.Maybe (isNothing, fromJust)
-import Data.Monoid (mempty, (<>))
+import Data.Monoid (mempty, (<>), mconcat)
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
 import qualified Lens.Micro as Lens
 import Test.Hspec
@@ -17,7 +17,7 @@ import Test.QuickCheck (Gen, Arbitrary(arbitrary), property, listOf, sample')
 import qualified WildBind.Binding as WB
 import WildBind.ForTest
   ( SampleInput(..), SampleState(..), SampleBackState(..),
-    inputAll, execAll, evalStateEmpty
+    inputAll, execAll, evalStateEmpty, boundDescs
   )
 
 main :: IO ()
@@ -100,6 +100,7 @@ spec = do
   spec_conditionBoth
   spec_monadic
   spec_reader
+  spec_revise
 
 spec_stateless :: Spec
 spec_stateless = do
@@ -671,3 +672,37 @@ spec_reader = describe "binding with ReaderT action" $ do
       checkOut "abc321"
       execAll (SS "xyz") [SIa, SIb, SIb, SIa]
       checkOut "abc321zyxxyz"
+
+spec_revise :: Spec
+spec_revise = do
+  describe "revise" $ do
+    it "should allow unbinding" $ do
+      let b = WB.binds $ do
+            WB.on SIa `WB.as` "a" `WB.run` return ()
+            WB.on SIb `WB.as` "b" `WB.run` return ()
+          rev () _ i act = if i == SIa then Nothing else Just act
+          got = WB.revise rev b
+      boundDescs got (SS "")  `shouldMatchList` [(SIb, "b")]
+    it "should allow revising description" $ do
+      let b = WB.binds $ do
+            WB.on SIa `WB.as` "a" `WB.run` return ()
+            WB.on SIb `WB.as` "b" `WB.run` return ()
+          rev () _ _ act = Just $ act { WB.actDescription = mconcat $ replicate 3 $ WB.actDescription act }
+          got = WB.revise rev b
+      boundDescs got (SS "") `shouldMatchList` [(SIa, "aaa"), (SIb, "bbb")]
+    it "should revise conditionally on front-end state" $ do
+      let b = WB.binds $ do
+            WB.on SIa `WB.as` "a" `WB.run` return ()
+            WB.on SIb `WB.as` "b" `WB.run` return ()
+          rev () (SS fs) i act = if i == SIa && length fs >= 3
+                                 then Nothing else Just act
+          got = WB.revise rev b
+      boundDescs got (SS "")  `shouldMatchList` [(SIa, "a"), (SIb, "b")]
+      boundDescs got (SS "xx") `shouldMatchList` [(SIa, "a"), (SIb, "b")]
+      boundDescs got (SS "xxx") `shouldMatchList` [(SIb, "b")]
+      boundDescs got (SS "xxxx") `shouldMatchList` [(SIb, "b")]
+    it "should revise conditionally on back-end- state" $ do
+      True `shouldBe` False -- TODO
+    it "should allow modifying the action" $ do
+      True `shouldBe` False -- TODO
+      

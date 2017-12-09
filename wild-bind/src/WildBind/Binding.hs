@@ -49,14 +49,15 @@ module WildBind.Binding
          whenBack,
          whenBoth,
          -- * Conversion
-         advice,
-         before,
-         after,
          startFrom,
          extend,
          convFront,
          convInput,
          convBack,
+         advice,
+         before,
+         after,
+         revise,
          -- * Execution
          boundAction,
          boundAction',
@@ -369,3 +370,13 @@ runStatefulAction next_b' cur_bs state_action =
   recursive_act = do
     (_, next_bs) <- runStateT (actDo state_action) cur_bs
     return (next_b', next_bs)
+
+-- | Revise (modify) actions in the given 'Binding''.
+revise :: (bs -> fs -> i -> Action IO a -> Maybe (Action IO a))
+       -- ^ A function to revise the action. If it returns 'Nothing',
+       -- the action is unbound.
+       -> Binding' bs fs i
+       -- ^ original binding
+       -> Binding' bs fs i
+       -- ^ revised binding
+revise = undefined
