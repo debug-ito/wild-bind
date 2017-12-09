@@ -31,17 +31,18 @@ instance Ord i => Monoid (SeqBinding fs i) where
     SeqBinding $ \ps -> mappend (a ps) (b ps)
 
 withPrefix :: Ord i => [i] -> SeqBinding fs i -> SeqBinding fs i
-withPrefix [] sb = sb
-withPrefix (p : rest) sb =
+withPrefix ps sb = foldr withPrefixSingle sb ps
+
+withPrefixSingle :: Ord i => i -> SeqBinding fs i -> SeqBinding fs i
+withPrefixSingle p (SeqBinding fb) = 
   SeqBinding $ \cur_prefix -> prefixBinding cur_prefix <> nextBinding cur_prefix
   where
     prefixBinding cur_prefix = whenBack (== cur_prefix) $ binds' $ do
       on p `as` "prefix" `run` State.modify (++ [p])
-    nextBinding cur_prefix = case withPrefix rest sb of
-      SeqBinding fb -> fb (cur_prefix ++ [p])
+    nextBinding cur_prefix = fb (cur_prefix ++ [p])
 
 toSeq :: Eq i => Binding fs i -> SeqBinding fs i
-toSeq b = SeqBinding $ \ps -> whenBack (== ps) $ extend b
+toSeq b = SeqBinding $ \ps -> whenBack (== ps) $ extend b -- TODO: ここで既存のコマンドをreviseしてcancelをかけないといけない。beforeでcancelするか。
 
 fromSeq :: SeqBinding fs i -> Binding fs i
 fromSeq (SeqBinding fb) = startFrom [] $ fb []
@@ -57,20 +58,3 @@ withCancel cs sb = cancelBindings <> sb
 prefix :: Ord i => [i] -> [i] -> Binding fs i -> Binding fs i
 prefix rs ps = fromSeq . withCancel rs . withPrefix ps . toSeq
 
-
--- type SeqBinding fs i = State [i] (Binding' [i] fs i)
--- 
--- 
--- prefix :: Ord i => [i] -> SeqBinding fs i -> SeqBinding fs i
--- prefix [] sb = sb
--- prefix (p : rest) sb = do
---   cur_prefix <- State.get
---   let next_prefix = cur_prefix ++ [p]
---   State.put next_prefix
---   next_b <- prefix rest sb
---   return $ catchPrefix cur_prefix <> prefixedBinding next_prefix next_b
---   where
---     catchPrefix cur_prefix = whenBack (== cur_prefix) $ binds' $ do
---       on p `run` State.modify (++ [p])
---     prefixedBinding next_prefix next_b = whenBack (== next_prefix) next_b
-  
