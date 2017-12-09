@@ -20,10 +20,6 @@ module WildBind
          module WildBind.Description,
          -- | Defines 'ActionDescription'.
 
-         module WildBind.Seq,
-         -- | Defines functions for creating 'Binding' on sequence of
-         -- input symbols.
-         
          module WildBind.Input.NumPad
          -- | Defines input symbol types for number pad keys.
        ) where
@@ -33,5 +29,4 @@ import WildBind.Description
 import WildBind.Binding
 import WildBind.FrontEnd
 import WildBind.Exec
-import WildBind.Seq
 import WildBind.Input.NumPad
