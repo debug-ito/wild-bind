@@ -41,25 +41,46 @@ spec_prefix = describe "prefix" $ do
       ]
   specify "one prefix" $ evalStateEmpty $ do
     State.put $ prefix [] [SIc] base_b
-    liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
+    checkBoundInputs (SS "") [SIc]
+    execAll (SS "") [SIc] 
+    checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
     execAll (SS "") [SIc]
-    liftIO . (`shouldMatchList` [(SIa, "a"), (SIb, "b")]) =<< curBoundDescs (SS "")
-    execAll (SS "") [SIc]
-    liftIO . (`shouldMatchList` [(SIa, "a"), (SIb, "b")]) =<< curBoundDescs (SS "")
+    checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
     execAll (SS "") [SIa]
-    liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
+    checkBoundInputs (SS "") [SIc]
   specify "two prefixes" $ evalStateEmpty $ do
     State.put $ prefix [] [SIc, SIb] base_b
-    liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
+    checkBoundInputs (SS "") [SIc]
     execAll (SS "") [SIc]
-    liftIO . (`shouldMatchList` [SIb]) =<< curBoundInputs (SS "")
+    checkBoundInputs (SS "") [SIb]
     execAll (SS "") [SIb]
-    liftIO . (`shouldMatchList` [(SIa, "a"), (SIb, "b")]) =<< curBoundDescs (SS "")
+    checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
     execAll (SS "") [SIa]
-    liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
-  specify "reset binding" $ do
-    True `shouldBe` False
-    
+    checkBoundInputs (SS "") [SIc]
+  specify "cancel binding" $ evalStateEmpty $ do
+    State.put $ prefix [SIa] [SIc, SIb] base_b
+    checkBoundInputs (SS "") [SIa, SIc]
+    execAll (SS "") [SIa]
+    checkBoundInputs (SS "") [SIa, SIc]
+    execAll (SS "") [SIc]
+    checkBoundInputs (SS "") [SIa, SIb]
+    execAll (SS "") [SIa]
+    checkBoundInputs (SS "") [SIa, SIc]
+    execAll (SS "") [SIc, SIb]
+    checkBoundDescs (SS "") [(SIa, "cancel"), (SIb, "b")]
+    execAll (SS "") [SIb]
+    checkBoundInputs (SS "") [SIa, SIc]
+    execAll (SS "") [SIc, SIb]
+    checkBoundDescs (SS "") [(SIa, "cancel"), (SIb, "b")]
+    execAll (SS "") [SIa]
+    checkBoundInputs (SS "") [SIa, SIc]
+
+
+checkBoundInputs :: (Eq i, Show i) => s -> [i] -> State.StateT (Binding s i) IO ()
+checkBoundInputs fs expected = liftIO . (`shouldMatchList` expected) =<< curBoundInputs fs
+
+checkBoundDescs :: (Eq i, Show i) => s -> [(i, ActionDescription)] -> State.StateT (Binding s i) IO ()
+checkBoundDescs fs expected = liftIO . (`shouldMatchList` expected) =<< curBoundDescs fs
 
 spec_prefix' :: Spec
 spec_prefix' = describe "prefix'" $ do
