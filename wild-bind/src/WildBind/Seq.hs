@@ -16,7 +16,7 @@ module WildBind.Seq
 
 import Control.Monad.Trans.State (State)
 import qualified Control.Monad.Trans.State as State
-import Data.Monoid ((<>))
+import Data.Monoid (Monoid(..), (<>))
 
 import WildBind.Binding
   ( Binding, Binding', binds', whenBack, on, run
@@ -24,7 +24,10 @@ import WildBind.Binding
 
 newtype SeqBinding fs i = SeqBinding { unSeqBinding :: [i] -> Binding' [i] fs i }
 
--- TODO: instance Monoid
+instance Monoid (SeqBinding fs i) where
+  mempty = undefined -- TODO
+  mappend = undefined -- TODO
+
 
 withPrefix :: [i] -> SeqBinding fs i -> SeqBinding fs i
 withPrefix = undefined
