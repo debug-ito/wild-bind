@@ -7,7 +7,8 @@ module WildBind.ForTest
          evalStateEmpty,
          boundDescs,
          curBoundInputs,
-         curBoundDescs
+         curBoundDescs,
+         curBoundDesc
        ) where
 
 import Control.Applicative ((<$>), (<*>))
@@ -67,3 +68,6 @@ curBoundInputs s = State.gets WB.boundInputs <*> pure s
 
 curBoundDescs :: s -> State.StateT (WB.Binding s i) IO [(i, WBD.ActionDescription)]
 curBoundDescs s = State.gets boundDescs <*> pure s
+
+curBoundDesc :: Ord i => s -> i -> State.StateT (WB.Binding s i) IO (Maybe WBD.ActionDescription)
+curBoundDesc s i = (fmap . fmap) WB.actDescription $ State.gets WB.boundAction <*> pure s <*> pure i

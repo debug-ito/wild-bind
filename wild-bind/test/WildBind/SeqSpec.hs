@@ -3,6 +3,7 @@ module WildBind.SeqSpec (main,spec) where
 import Control.Applicative ((<*>))
 import Control.Monad.IO.Class (liftIO)
 import qualified Control.Monad.Trans.State as State
+import Data.Monoid ((<>))
 import Test.Hspec
 
 import WildBind.Binding
@@ -12,12 +13,15 @@ import WildBind.Binding
     Binding
   )
 import WildBind.Description (ActionDescription)
-import WildBind.Seq (prefix)
+import WildBind.Seq
+  ( prefix,
+    toSeq, fromSeq, withPrefix
+  )
 
 import WildBind.ForTest
   ( SampleInput(..), SampleState(..),
     evalStateEmpty, execAll,
-    boundDescs, curBoundInputs, curBoundDescs
+    boundDescs, curBoundInputs, curBoundDescs, curBoundDesc
   )
 
 main :: IO ()
@@ -26,7 +30,7 @@ main = hspec spec
 spec :: Spec
 spec = do
   spec_prefix
-  spec_prefix'
+  spec_SeqBinding
 
 spec_prefix :: Spec
 spec_prefix = describe "prefix" $ do
@@ -82,8 +86,45 @@ checkBoundInputs fs expected = liftIO . (`shouldMatchList` expected) =<< curBoun
 checkBoundDescs :: (Eq i, Show i) => s -> [(i, ActionDescription)] -> State.StateT (Binding s i) IO ()
 checkBoundDescs fs expected = liftIO . (`shouldMatchList` expected) =<< curBoundDescs fs
 
-spec_prefix' :: Spec
-spec_prefix' = describe "prefix'" $ do
-  it "should allow nested prefixes" $ do
-    True `shouldBe` False -- TODO
-    
+checkBoundDesc :: (Ord i) => s -> i -> ActionDescription -> State.StateT (Binding s i) IO ()
+checkBoundDesc fs input expected = liftIO . (`shouldBe` Just expected) =<< curBoundDesc fs input
+  
+
+spec_SeqBinding :: Spec
+spec_SeqBinding = describe "SeqBinding" $ do
+  let b_a = binds $ on SIa `as` "a" `run` return ()
+      b_b = binds $ on SIb `as` "b" `run` return ()
+  describe "withPrefix" $ do
+    it "should allow nesting" $ evalStateEmpty $ do
+      State.put $ fromSeq $ withPrefix [SIb] $ withPrefix [SIc] $ withPrefix [SIa] $ toSeq (b_a <> b_b)
+      checkBoundInputs (SS "") [SIb]
+      execAll (SS "") [SIb]
+      checkBoundInputs (SS "") [SIc]
+      execAll (SS "") [SIc]
+      checkBoundInputs (SS "") [SIa]
+      execAll (SS "") [SIa]
+      checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
+      execAll (SS "") [SIa]
+      checkBoundInputs (SS "") [SIb]
+  describe "mappend" $ do
+    it "should be able to combine SeqBindings with different prefixes." $ evalStateEmpty $ do
+      State.put $ fromSeq $ withPrefix [SIc] $ ( (withPrefix [SIa, SIc] $ toSeq $ b_a)
+                                                 <> (withPrefix [SIa] $ toSeq $ b_b)
+                                               )
+      checkBoundInputs (SS "") [SIc]
+      execAll (SS "") [SIc]
+      checkBoundInputs (SS "") [SIa]
+      execAll (SS "") [SIa]
+      checkBoundInputs (SS "") [SIc, SIb]
+      checkBoundDesc (SS "") SIb "b"
+      execAll (SS "") [SIb]
+      checkBoundInputs (SS "") [SIc]
+      execAll (SS "") [SIc, SIa]
+      checkBoundInputs (SS "") [SIc, SIb]
+      execAll (SS "") [SIc]
+      checkBoundDescs (SS "") [(SIa, "a")]
+      execAll (SS "") [SIa]
+      checkBoundInputs (SS "") [SIc]
+      
+      
+      
