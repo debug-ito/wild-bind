@@ -34,13 +34,13 @@ spec_prefix = describe "prefix" $ do
         on SIa `as` "a" `run` return ()
         on SIb `as` "b" `run` return ()
   specify "no prefix" $ do
-    let b = prefix [] base_b
+    let b = prefix [] [] base_b
     boundDescs b (SS "") `shouldMatchList`
       [ (SIa, "a"),
         (SIb, "b")
       ]
   specify "one prefix" $ evalStateEmpty $ do
-    State.put $ prefix [SIc] base_b
+    State.put $ prefix [] [SIc] base_b
     liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
     execAll (SS "") [SIc]
     liftIO . (`shouldMatchList` [(SIa, "a"), (SIb, "b")]) =<< curBoundDescs (SS "")
@@ -49,7 +49,7 @@ spec_prefix = describe "prefix" $ do
     execAll (SS "") [SIa]
     liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
   specify "two prefixes" $ evalStateEmpty $ do
-    State.put $ prefix [SIc, SIb] base_b
+    State.put $ prefix [] [SIc, SIb] base_b
     liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
     execAll (SS "") [SIc]
     liftIO . (`shouldMatchList` [SIb]) =<< curBoundInputs (SS "")
@@ -57,6 +57,8 @@ spec_prefix = describe "prefix" $ do
     liftIO . (`shouldMatchList` [(SIa, "a"), (SIb, "b")]) =<< curBoundDescs (SS "")
     execAll (SS "") [SIa]
     liftIO . (`shouldMatchList` [SIc]) =<< curBoundInputs (SS "")
+  specify "reset binding" $ do
+    True `shouldBe` False
     
 
 spec_prefix' :: Spec

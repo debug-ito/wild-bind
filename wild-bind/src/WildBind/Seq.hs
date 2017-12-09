@@ -7,7 +7,9 @@
 module WildBind.Seq
        ( prefix,
          SeqBinding,
-         prefix',
+         withPrefix,
+         resetOn,
+         withReset,
          toSeq,
          fromSeq
        ) where
@@ -24,8 +26,8 @@ newtype SeqBinding fs i = SeqBinding { unSeqBinding :: [i] -> Binding' [i] fs i 
 
 -- TODO: instance Monoid
 
-prefix' :: [i] -> SeqBinding fs i -> SeqBinding fs i
-prefix' = undefined
+withPrefix :: [i] -> SeqBinding fs i -> SeqBinding fs i
+withPrefix = undefined
 
 toSeq :: Binding fs i -> SeqBinding fs i
 toSeq = undefined
@@ -33,8 +35,14 @@ toSeq = undefined
 fromSeq :: SeqBinding fs i -> Binding fs i
 fromSeq = undefined
 
-prefix :: [i] -> Binding fs i -> Binding fs i
-prefix ps = fromSeq . prefix' ps . toSeq
+resetOn :: i -> SeqBinding fs i
+resetOn = undefined
+
+withReset :: [i] -> SeqBinding fs i -> SeqBinding fs i
+withReset = undefined
+
+prefix :: [i] -> [i] -> Binding fs i -> Binding fs i
+prefix rs ps = fromSeq . withReset rs . withPrefix ps . toSeq
 
 
 -- type SeqBinding fs i = State [i] (Binding' [i] fs i)
