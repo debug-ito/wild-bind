@@ -8,8 +8,8 @@ module WildBind.Seq
        ( prefix,
          SeqBinding,
          withPrefix,
-         resetOn,
-         withReset,
+         cancelOn,
+         withCancel,
          toSeq,
          fromSeq
        ) where
@@ -35,14 +35,14 @@ toSeq = undefined
 fromSeq :: SeqBinding fs i -> Binding fs i
 fromSeq = undefined
 
-resetOn :: i -> SeqBinding fs i
-resetOn = undefined
+cancelOn :: i -> SeqBinding fs i
+cancelOn = undefined
 
-withReset :: [i] -> SeqBinding fs i -> SeqBinding fs i
-withReset = undefined
+withCancel :: [i] -> SeqBinding fs i -> SeqBinding fs i
+withCancel = undefined
 
 prefix :: [i] -> [i] -> Binding fs i -> Binding fs i
-prefix rs ps = fromSeq . withReset rs . withPrefix ps . toSeq
+prefix rs ps = fromSeq . withCancel rs . withPrefix ps . toSeq
 
 
 -- type SeqBinding fs i = State [i] (Binding' [i] fs i)
