@@ -372,11 +372,14 @@ runStatefulAction next_b' cur_bs state_action =
     return (next_b', next_bs)
 
 -- | Revise (modify) actions in the given 'Binding''.
-revise :: (bs -> fs -> i -> Action IO a -> Maybe (Action IO a))
+revise :: (forall a . bs -> fs -> i -> Action IO a -> Maybe (Action IO a))
        -- ^ A function to revise the action. If it returns 'Nothing',
        -- the action is unbound.
        -> Binding' bs fs i
        -- ^ original binding
        -> Binding' bs fs i
        -- ^ revised binding
-revise = undefined
+revise f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
+  where
+    f_to_map bs fs i orig_act = fmap liftActionR $ f bs fs i (actionWithFrontState fs orig_act)
+  
