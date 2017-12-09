@@ -1,6 +1,7 @@
 module WildBind.SeqSpec (main,spec) where
 
 import Control.Applicative ((<*>))
+import Control.Monad (forM_)
 import Control.Monad.IO.Class (liftIO)
 import qualified Control.Monad.Trans.State as State
 import Data.Monoid ((<>))
@@ -15,7 +16,8 @@ import WildBind.Binding
 import WildBind.Description (ActionDescription)
 import WildBind.Seq
   ( prefix,
-    toSeq, fromSeq, withPrefix
+    toSeq, fromSeq,
+    withPrefix, withCancel
   )
 
 import WildBind.ForTest
@@ -125,6 +127,28 @@ spec_SeqBinding = describe "SeqBinding" $ do
       checkBoundDescs (SS "") [(SIa, "a")]
       execAll (SS "") [SIa]
       checkBoundInputs (SS "") [SIc]
-      
+  describe "withCancel" $ do
+    it "should weakly add 'cancel' binding regardless of sequence state" $ evalStateEmpty $ do
+      State.put $ fromSeq $ withPrefix [SIc] $ withCancel [SIa, SIb, SIc] $ ( toSeq b_a
+                                                                              <> (withPrefix [SIc] $ toSeq b_b)
+                                                                            )
+      let checkStart = do
+            checkBoundInputs (SS "") [SIa, SIb, SIc]
+            forM_ [SIa, SIb] $ \c -> checkBoundDesc (SS "") c "cancel"
+      checkStart
+      execAll (SS "") [SIa, SIb, SIa]
+      checkStart
+      execAll (SS "") [SIc]
+      checkBoundInputs (SS "") [SIa, SIb, SIc]
+      checkBoundDesc (SS "") SIa "a"
+      checkBoundDesc (SS "") SIb "cancel"
+      execAll (SS "") [SIa]
+      checkStart
+      execAll (SS "") [SIc, SIb]
+      checkStart
+      execAll (SS "") [SIc, SIc]
+      checkBoundDescs (SS "") [(SIa, "cancel"), (SIb, "b"), (SIc, "cancel")]
+      execAll (SS "") [SIb]
+      checkStart
       
       
