@@ -55,11 +55,12 @@ module WildBind.Binding
          convInput,
          convBack,
          advice,
+         revise,
+         revise',
          before,
          after,
          justBefore,
          justAfter,
-         revise,
          -- * Execution
          boundAction,
          boundAction',
@@ -392,4 +393,9 @@ revise :: (forall a . bs -> fs -> i -> Action IO a -> Maybe (Action IO a))
 revise f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
   where
     f_to_map bs fs i orig_act = fmap liftActionR $ f bs fs i (actionWithFrontState fs orig_act)
-  
+
+-- | Like 'revise', but this function allows revising the back-end state.
+revise' :: (bs -> fs -> i -> Action (StateT bs IO) a -> Maybe (Action (StateT bs IO) a))
+        -> Binding' bs fs i
+        -> Binding' bs fs i
+revise' = undefined

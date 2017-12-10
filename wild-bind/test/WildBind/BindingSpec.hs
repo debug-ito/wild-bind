@@ -724,4 +724,22 @@ spec_revise = do
           got = WB.revise rev b
       actRun $ WB.boundAction' got (SB 4) (SS "FF") SIa
       checkOut "XXXX4FF"
+  describe "revise'" $ do
+    it "should allow modifying the back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let b = WB.binds' $ do
+            WB.on SIa `WB.as` "a" `WB.run` do
+              (SB bs) <- State.get
+              liftIO $ modifyIORef out (++ show bs)
+          rev _ (SS fs) _ = WB.justAfter af . WB.before bf
+            where
+              bf = State.modify (\(SB s) -> SB (s + 1))
+              af = State.put $ SB $ length fs
+          got = WB.startFrom (SB 0) $ WB.revise' rev b
+      State.put got
+      execAll (SS "abc") [SIa]
+      checkOut "1"
+      execAll (SS "a") [SIa]
+      checkOut "14"
+      execAll (SS "") [SIa]
+      checkOut "142"
       
