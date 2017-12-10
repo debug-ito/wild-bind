@@ -17,7 +17,7 @@ import Test.QuickCheck (Gen, Arbitrary(arbitrary), property, listOf, sample')
 import qualified WildBind.Binding as WB
 import WildBind.ForTest
   ( SampleInput(..), SampleState(..), SampleBackState(..),
-    inputAll, execAll, evalStateEmpty, boundDescs
+    inputAll, execAll, evalStateEmpty, boundDescs, boundDescs'
   )
 
 main :: IO ()
@@ -701,8 +701,27 @@ spec_revise = do
       boundDescs got (SS "xx") `shouldMatchList` [(SIa, "a"), (SIb, "b")]
       boundDescs got (SS "xxx") `shouldMatchList` [(SIb, "b")]
       boundDescs got (SS "xxxx") `shouldMatchList` [(SIb, "b")]
-    it "should revise conditionally on back-end- state" $ do
-      True `shouldBe` False -- TODO
-    it "should allow modifying the action" $ do
-      True `shouldBe` False -- TODO
+    it "should revise conditionally on back-end state" $ do
+      let b = WB.binds $ do
+            WB.on SIa `WB.as` "a" `WB.run` return ()
+            WB.on SIb `WB.as` "b" `WB.run` return ()
+          rev (SB bs) _ i act = if bs >= 5 && i == SIb
+                                then Nothing
+                                else Just act
+          got = WB.revise rev $ WB.extend b
+      boundDescs' got (SB 3) (SS "") `shouldMatchList` [(SIa, "a"), (SIb, "b")]
+      boundDescs' got (SB 5) (SS "") `shouldMatchList` [(SIa, "a")]
+      boundDescs' got (SB 7) (SS "") `shouldMatchList` [(SIa, "a")]
+    it "should allow modifying the action" $ withStrRef $ \out checkOut -> do
+      let b = WB.binds' $ do
+            WB.on SIa `WB.as` "a" `WB.run` do
+              (SB bs) <- State.get
+              liftIO $ modifyIORef out (++ show bs)
+          rev (SB bs) (SS fs) _ = WB.justBefore bf . WB.after af
+            where
+              bf = modifyIORef out (++ replicate bs 'X')
+              af = modifyIORef out (++ fs)
+          got = WB.revise rev b
+      actRun $ WB.boundAction' got (SB 4) (SS "FF") SIa
+      checkOut "XXXX4FF"
       

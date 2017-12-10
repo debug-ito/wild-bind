@@ -6,6 +6,7 @@ module WildBind.ForTest
          execAll,
          evalStateEmpty,
          boundDescs,
+         boundDescs',
          curBoundInputs,
          curBoundDescs,
          curBoundDesc
@@ -58,10 +59,14 @@ execAll state inputs = do
 evalStateEmpty :: State.StateT (WB.Binding SampleState SampleInput) IO () -> IO ()
 evalStateEmpty s = State.evalStateT s mempty
 
+toDesc :: (i, WB.Action m a) -> (i, WBD.ActionDescription)
+toDesc (i, act) = (i, WB.actDescription act)
+
 boundDescs :: WB.Binding s i -> s -> [(i, WBD.ActionDescription)]
 boundDescs b s = map toDesc $ WB.boundActions b s
-  where
-    toDesc (i, act) = (i, WB.actDescription act)
+
+boundDescs' :: WB.Binding' bs fs i -> bs -> fs -> [(i, WBD.ActionDescription)]
+boundDescs' b bs fs = map toDesc $ WB.boundActions' b bs fs
 
 curBoundInputs :: s -> State.StateT (WB.Binding s i) IO [i]
 curBoundInputs s = State.gets WB.boundInputs <*> pure s
