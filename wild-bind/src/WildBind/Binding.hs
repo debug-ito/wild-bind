@@ -57,6 +57,8 @@ module WildBind.Binding
          advice,
          before,
          after,
+         justBefore,
+         justAfter,
          revise,
          -- * Execution
          boundAction,
@@ -104,6 +106,14 @@ after :: (Applicative m)
       -> Action m a -- ^ the original 'Action'.
       -> Action m a
 after hook act = act { actDo = actDo act <* hook }
+
+-- | Same as 'before', but it returns 'Just'.
+justBefore :: (Applicative m) => m b -> Action m a -> Maybe (Action m a)
+justBefore m a = Just $ before m a
+
+-- | Same as 'after', but it returns 'Just'.
+justAfter :: (Applicative m) => m b -> Action m a -> Maybe (Action m a)
+justAfter m a = Just $ after m a
 
 -- | WildBind back-end binding with both explicit and implicit
 -- states. @bs@ is the explicit back-end state, @fs@ is the front-end
