@@ -71,8 +71,9 @@ module WildBind.Binding
        ) where
 
 import Control.Applicative (Applicative, (<*), (*>))
+import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Reader (ReaderT(..), withReaderT)
-import Control.Monad.Trans.State (StateT, runStateT, mapStateT)
+import Control.Monad.Trans.State (StateT(..), runStateT, mapStateT)
 import Control.Monad.Trans.Writer (Writer, tell, execWriter, mapWriter)
 import qualified Data.Map as M
 import Data.Monoid (Monoid(..), Endo(Endo, appEndo))
@@ -392,10 +393,17 @@ revise :: (forall a . bs -> fs -> i -> Action IO a -> Maybe (Action IO a))
        -- ^ revised binding
 revise f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
   where
-    f_to_map bs fs i orig_act = fmap liftActionR $ f bs fs i (actionWithFrontState fs orig_act)
+    f_to_map bs fs i orig_act = fmap liftActionR $ f bs fs i $ actionWithFrontState fs orig_act
 
 -- | Like 'revise', but this function allows revising the back-end state.
-revise' :: (bs -> fs -> i -> Action (StateT bs IO) a -> Maybe (Action (StateT bs IO) a))
+revise' :: (forall a . bs -> fs -> i -> Action (StateT bs IO) a -> Maybe (Action (StateT bs IO) a))
         -> Binding' bs fs i
         -> Binding' bs fs i
-revise' = undefined
+revise' f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
+  where
+    f_to_map bs fs i orig_act = (fmap . mapActDo) (sToR bs) $ f bs fs i $ mapActDo (rToS fs) orig_act
+    rToS :: fs -> ReaderT fs IO (a, bs) -> StateT bs IO a
+    rToS fs m = StateT $ const $ runReaderT m fs
+    sToR :: bs -> StateT bs IO a -> ReaderT fs IO (a, bs)
+    sToR bs m = lift $ runStateT m bs
+
