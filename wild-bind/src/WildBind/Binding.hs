@@ -117,6 +117,9 @@ justBefore m a = Just $ before m a
 justAfter :: (Applicative m) => m b -> Action m a -> Maybe (Action m a)
 justAfter m a = Just $ after m a
 
+-- | State/Reader/IO Monad
+type SRIM bs fs = StateT bs (ReaderT fs IO)
+
 -- | WildBind back-end binding with both explicit and implicit
 -- states. @bs@ is the explicit back-end state, @fs@ is the front-end
 -- state, and @i@ is the input type.
@@ -125,22 +128,26 @@ justAfter m a = Just $ after m a
 -- function.
 newtype Binding' bs fs i =
   Binding'
-  { unBinding' :: bs -> fs -> M.Map i (Action (ReaderT fs IO) (Binding' bs fs i, bs))
+  { unBinding' :: bs -> fs -> M.Map i (Action (SRIM bs fs) (Binding' bs fs i))
   }
 
-actionWithFrontState :: fs -> Action (ReaderT fs m) a -> Action m a
-actionWithFrontState fs reader_action = reader_action { actDo = unwrapped_do }
-  where
-    unwrapped_do = flip runReaderT fs $ actDo reader_action
+runSRIM :: bs -> fs -> SRIM bs fs a -> IO (a, bs)
+runSRIM bs fs m = flip runReaderT fs $ flip runStateT bs m
+
+redoSRIM :: IO (a, bs) -> SRIM bs fs a
+redoSRIM m = StateT $ const $ lift m
 
 mapActDo :: (m a -> n b) -> Action m a -> Action n b
 mapActDo f act = act { actDo = f $ actDo act }
 
+mapActResult :: Functor m => (a -> b) -> M.Map i (Action m a) -> M.Map i (Action m b)
+mapActResult = fmap . fmap
+
 liftActionR :: Action m a -> Action (ReaderT fs m) a
 liftActionR = mapActDo (ReaderT . const)
 
-withActionR :: (fs -> fs') -> Action (ReaderT fs' m) a -> Action (ReaderT fs m) a
-withActionR f = mapActDo (withReaderT f)
+withActionR :: (fs -> fs') -> Action (SRIM bs fs') a -> Action (SRIM bs fs) a
+withActionR f = (mapActDo . mapStateT) (withReaderT f)
 
 -- | WildBind back-end binding between inputs and actions. @s@ is the
 -- front-end state type, and @i@ is the input type.
@@ -155,8 +162,8 @@ type Binding s i = Binding' () s i
 instance Ord i => Monoid (Binding' bs fs i) where
   mempty = noBinding
   mappend abind bbind = Binding' $ \bs fs ->
-    let amap = mapResult (`mappend` bbind) id $ unBinding' abind bs fs
-        bmap = mapResult (abind `mappend`) id $ unBinding' bbind bs fs
+    let amap = mapActResult (`mappend` bbind) $ unBinding' abind bs fs
+        bmap = mapActResult (abind `mappend`) $ unBinding' bbind bs fs
     in M.unionWith (\_ b -> b) amap bmap
 
 -- | A 'Binding'' with no bindings. It's the same as 'mempty', except
@@ -171,7 +178,7 @@ boundAction b state input = (fmap . fmap) fst $ boundAction' b () state input
 -- | Get the 'Action' bound to the specified back-end state @bs@,
 -- front-end state @fs@ and input @i@
 boundAction' :: (Ord i) => Binding' bs fs i -> bs -> fs -> i -> Maybe (Action IO (Binding' bs fs i, bs))
-boundAction' b bs fs input = fmap (actionWithFrontState fs) $ M.lookup input $ unBinding' b bs fs
+boundAction' b bs fs input = (fmap . mapActDo) (runSRIM bs fs) $ M.lookup input $ unBinding' b bs fs
 
 -- | Get the list of all bound inputs @i@ and their corresponding
 -- actions for the specified front-end state @s@.
@@ -184,7 +191,7 @@ boundActions b state = fmap (\(i, act) -> (i, fmap fst act)) $ boundActions' b (
 boundActions' :: Binding' bs fs i -> bs -> fs -> [(i, Action IO (Binding' bs fs i, bs))]
 boundActions' b bs fs = map convertAction $ M.toList $ unBinding' b bs fs
   where
-    convertAction (i, act) = (i, actionWithFrontState fs act)
+    convertAction (i, act) = (i, mapActDo (runSRIM bs fs) act)
 
 -- | Get the list of all bound inputs @i@ for the specified front-end
 -- state @s@.
@@ -261,7 +268,7 @@ advice f = Binder . mapWriter f_writer . unBinder where
 
 statelessBinding :: M.Map i (Action (ReaderT fs IO) r) -> Binding' bs fs i
 statelessBinding bind_map = impl where
-  impl = Binding' $ \bs _ -> (fmap . fmap) (const (impl, bs)) $ bind_map
+  impl = Binding' $ \_ _ -> (fmap . mapActDo) lift $ mapActResult (const impl) $ bind_map
 
 -- | Non-monadic version of 'binds'.
 binding :: Ord i => [(i, Action IO r)] -> Binding' bs fs i
@@ -295,8 +302,8 @@ ifBoth :: (bs -> fs -> Bool) -- ^ The predicate
        -> Binding' bs fs i
 ifBoth p thenb elseb = Binding' $ \bs fs ->
   if p bs fs
-  then mapResult (\nextb -> ifBoth p nextb elseb) id $ unBinding' thenb bs fs
-  else mapResult (\nextb -> ifBoth p thenb nextb) id $ unBinding' elseb bs fs
+  then mapActResult (\nextb -> ifBoth p nextb elseb) $ unBinding' thenb bs fs
+  else mapActResult (\nextb -> ifBoth p thenb nextb) $ unBinding' elseb bs fs
 
 -- | Add a condition on the front-end state to 'Binding'.
 whenFront :: (fs -> Bool) -- ^ The predicate.
@@ -317,18 +324,15 @@ whenBoth :: (bs -> fs -> Bool) -- ^ The predicate.
          -> Binding' bs fs i
 whenBoth p b = ifBoth p b noBinding
 
-mapResult :: Functor m => (a -> a') -> (b -> b') -> M.Map i (Action m (a, b)) -> M.Map i (Action m (a',b'))
-mapResult amapper bmapper = (fmap . fmap) (\(a, b) -> (amapper a, bmapper b))
-
 -- | Contramap the front-end state.
 convFront :: (fs -> fs') -> Binding' bs fs' i -> Binding' bs fs i
 convFront cmapper orig_bind = Binding' $ \bs fs ->
-  mapResult (convFront cmapper) id $ fmap (withActionR cmapper) $ unBinding' orig_bind bs (cmapper fs)
+  mapActResult (convFront cmapper) $ fmap (withActionR cmapper) $ unBinding' orig_bind bs (cmapper fs)
 
 -- | Map the front-end input.
 convInput :: Ord i' => (i -> i') -> Binding' bs fs i -> Binding' bs fs i'
 convInput mapper orig_bind = Binding' $ \bs fs ->
-  mapResult (convInput mapper) id $ M.mapKeys mapper $ unBinding' orig_bind bs fs
+  mapActResult (convInput mapper) $ M.mapKeys mapper $ unBinding' orig_bind bs fs
 
 -- | Convert the back-end state. Intuitively, it converts a small
 -- state type @bs@ into a bigger state type @bs'@, which includes
@@ -345,7 +349,10 @@ convBack :: (bs -> bs' -> bs') -- ^ A setter. It's supposed to set
          -> Binding' bs fs i
          -> Binding' bs' fs i
 convBack setter getter orig_bind = Binding' $ \bs' fs ->
-  mapResult (convBack setter getter) (\bs -> setter bs bs') $ unBinding' orig_bind (getter bs') fs
+  (fmap . mapActDo) convState $ unBinding' orig_bind (getter bs') fs
+  where
+    convState ms = StateT $ \bs' -> fmap (convResult bs') $ runStateT ms $ getter bs'
+    convResult bs' (next_b, bs) = (convBack setter getter next_b, setter bs bs')
 
 -- | Convert 'Binding'' to 'Binding' by hiding the explicit state
 -- @bs@.
@@ -353,9 +360,14 @@ startFrom :: bs -- ^ Initial state
           -> Binding' bs fs i -- ^ Binding' with explicit state
           -> Binding fs i -- ^ Binding containing the state inside
 startFrom init_state b' = Binding' $ \() front_state ->
-  (fmap . fmap) toB $ unBinding' b' init_state front_state
+  mapActResult toB $ (fmap . mapActDo) (startSRIM init_state) $ unBinding' b' init_state front_state
   where
-    toB (next_b', next_state) = (startFrom next_state next_b', ())
+    toB (next_b', next_state) = startFrom next_state next_b'
+
+startSRIM :: bs -> SRIM bs fs a -> SRIM () fs (a, bs)
+startSRIM bs m = StateT $ \() -> fmap toState $ runStateT m bs
+  where
+    toState (a, result_bs) = ((a, result_bs), ())
 
 -- | Extend 'Binding' to 'Binding''. In the result 'Binding'', the
 -- explicit back-end state is just ignored and unmodified.
@@ -371,17 +383,9 @@ binding' = statefulBinding . fmap addR . M.fromList where
 bindingF' :: Ord i => [(i, Action (StateT bs (ReaderT fs IO)) r)] -> Binding' bs fs i
 bindingF' = statefulBinding . M.fromList
 
-statefulBinding :: M.Map i (Action (StateT bs (ReaderT fs IO)) r) -> Binding' bs fs i
+statefulBinding :: M.Map i (Action (SRIM bs fs) r) -> Binding' bs fs i
 statefulBinding bind_map = impl where
-  impl = Binding' $ \bs _ -> fmap (runStatefulAction impl bs) bind_map
-
-runStatefulAction :: Monad m => Binding' bs fs i -> bs -> Action (StateT bs m) r -> Action m (Binding' bs fs i, bs)
-runStatefulAction next_b' cur_bs state_action =
-  state_action { actDo = recursive_act }
-  where
-  recursive_act = do
-    (_, next_bs) <- runStateT (actDo state_action) cur_bs
-    return (next_b', next_bs)
+  impl = Binding' $ \_ _ -> mapActResult (const impl) bind_map
 
 -- | Revise (modify) actions in the given 'Binding''.
 revise :: (forall a . bs -> fs -> i -> Action IO a -> Maybe (Action IO a))
@@ -393,17 +397,26 @@ revise :: (forall a . bs -> fs -> i -> Action IO a -> Maybe (Action IO a))
        -- ^ revised binding
 revise f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
   where
-    f_to_map bs fs i orig_act = fmap liftActionR $ f bs fs i $ actionWithFrontState fs orig_act
+    f_to_map bs fs i orig_act = (fmap . mapActDo) redoSRIM $ f bs fs i $ mapActDo (runSRIM bs fs) orig_act
+
+-- resultのBindingにreviseをrecursive適用しなくていいのかな？？ そうしないと状態遷移したらrevise効果が消えそうな気がする。
+-- (mapResult (revise' f) id)などとやればいい。
 
 -- | Like 'revise', but this function allows revising the back-end state.
-revise' :: (forall a . bs -> fs -> i -> Action (StateT bs IO) a -> Maybe (Action (StateT bs IO) a))
+revise' :: (bs -> fs -> i -> Action (StateT bs IO) a -> Maybe (Action (StateT bs IO) a))
         -> Binding' bs fs i
         -> Binding' bs fs i
-revise' f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
-  where
-    f_to_map bs fs i orig_act = (fmap . mapActDo) (sToR bs) $ f bs fs i $ mapActDo (rToS fs) orig_act
-    rToS :: fs -> ReaderT fs IO (a, bs) -> StateT bs IO a
-    rToS fs m = StateT $ const $ runReaderT m fs
-    sToR :: bs -> StateT bs IO a -> ReaderT fs IO (a, bs)
-    sToR bs m = lift $ runStateT m bs
+revise' = undefined
+
+-- -- | Like 'revise', but this function allows revising the back-end state.
+-- revise' :: (forall a . bs -> fs -> i -> Action (StateT bs IO) a -> Maybe (Action (StateT bs IO) a))
+--         -> Binding' bs fs i
+--         -> Binding' bs fs i
+-- revise' f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
+--   where
+--     f_to_map bs fs i orig_act = (fmap . mapActDo) (sToR bs) $ f bs fs i $ mapActDo (rToS fs) orig_act
+--     rToS :: fs -> ReaderT fs IO (a, bs) -> StateT bs IO a
+--     rToS fs m = StateT $ const $ runReaderT m fs
+--     sToR :: bs -> StateT bs IO a -> ReaderT fs IO (a, bs)
+--     sToR bs m = lift $ runStateT m bs
 
