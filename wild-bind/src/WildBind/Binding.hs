@@ -403,20 +403,13 @@ revise f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs f
 -- (mapResult (revise' f) id)などとやればいい。
 
 -- | Like 'revise', but this function allows revising the back-end state.
-revise' :: (bs -> fs -> i -> Action (StateT bs IO) a -> Maybe (Action (StateT bs IO) a))
+revise' :: (forall a . bs -> fs -> i -> Action (StateT bs IO) a -> Maybe (Action (StateT bs IO) a))
         -> Binding' bs fs i
         -> Binding' bs fs i
-revise' = undefined
-
--- -- | Like 'revise', but this function allows revising the back-end state.
--- revise' :: (forall a . bs -> fs -> i -> Action (StateT bs IO) a -> Maybe (Action (StateT bs IO) a))
---         -> Binding' bs fs i
---         -> Binding' bs fs i
--- revise' f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
---   where
---     f_to_map bs fs i orig_act = (fmap . mapActDo) (sToR bs) $ f bs fs i $ mapActDo (rToS fs) orig_act
---     rToS :: fs -> ReaderT fs IO (a, bs) -> StateT bs IO a
---     rToS fs m = StateT $ const $ runReaderT m fs
---     sToR :: bs -> StateT bs IO a -> ReaderT fs IO (a, bs)
---     sToR bs m = lift $ runStateT m bs
-
+revise' f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
+  where
+    f_to_map bs fs i orig_act = (fmap . mapActDo) toSRIM $ f bs fs i $ mapActDo (runR fs) orig_act
+    runR :: fs -> SRIM bs fs a -> StateT bs IO a
+    runR fs m = mapStateT (flip runReaderT fs) m
+    toSRIM :: StateT bs IO a -> SRIM bs fs a
+    toSRIM m = mapStateT lift m
