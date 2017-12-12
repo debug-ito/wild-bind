@@ -143,8 +143,8 @@ mapActDo f act = act { actDo = f $ actDo act }
 mapActResult :: Functor m => (a -> b) -> M.Map i (Action m a) -> M.Map i (Action m b)
 mapActResult = fmap . fmap
 
-liftActionR :: Action m a -> Action (ReaderT fs m) a
-liftActionR = mapActDo (ReaderT . const)
+liftActionR :: Monad m => Action m a -> Action (ReaderT fs m) a
+liftActionR = mapActDo lift
 
 withActionR :: (fs -> fs') -> Action (SRIM bs fs') a -> Action (SRIM bs fs) a
 withActionR f = (mapActDo . mapStateT) (withReaderT f)
@@ -377,7 +377,7 @@ extend = convBack (const id) (const ())
 -- | Non-monadic version of 'binds''.
 binding' :: Ord i => [(i, Action (StateT bs IO) r)] -> Binding' bs fs i
 binding' = statefulBinding . fmap addR . M.fromList where
-  addR = mapActDo $ mapStateT (ReaderT . const)
+  addR = mapActDo $ mapStateT lift
 
 -- | Non-monadic version of 'bindsF''.
 bindingF' :: Ord i => [(i, Action (StateT bs (ReaderT fs IO)) r)] -> Binding' bs fs i
