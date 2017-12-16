@@ -23,7 +23,10 @@ import WildBind.Seq
 import WildBind.ForTest
   ( SampleInput(..), SampleState(..),
     evalStateEmpty, execAll,
-    boundDescs, curBoundInputs, curBoundDescs, curBoundDesc
+    boundDescs, curBoundInputs, curBoundDescs, curBoundDesc,
+    checkBoundInputs,
+    checkBoundDescs,
+    checkBoundDesc
   )
 
 main :: IO ()
@@ -80,16 +83,6 @@ spec_prefix = describe "prefix" $ do
     execAll (SS "") [SIa]
     checkBoundInputs (SS "") [SIc]
 
-
-checkBoundInputs :: (Eq i, Show i) => s -> [i] -> State.StateT (Binding s i) IO ()
-checkBoundInputs fs expected = liftIO . (`shouldMatchList` expected) =<< curBoundInputs fs
-
-checkBoundDescs :: (Eq i, Show i) => s -> [(i, ActionDescription)] -> State.StateT (Binding s i) IO ()
-checkBoundDescs fs expected = liftIO . (`shouldMatchList` expected) =<< curBoundDescs fs
-
-checkBoundDesc :: (Ord i) => s -> i -> ActionDescription -> State.StateT (Binding s i) IO ()
-checkBoundDesc fs input expected = liftIO . (`shouldBe` Just expected) =<< curBoundDesc fs input
-  
 
 spec_SeqBinding :: Spec
 spec_SeqBinding = describe "SeqBinding" $ do

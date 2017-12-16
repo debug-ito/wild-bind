@@ -9,7 +9,10 @@ module WildBind.ForTest
          boundDescs',
          curBoundInputs,
          curBoundDescs,
-         curBoundDesc
+         curBoundDesc,
+         checkBoundInputs,
+         checkBoundDescs,
+         checkBoundDesc
        ) where
 
 import Control.Applicative ((<$>), (<*>))
@@ -17,7 +20,7 @@ import Control.Monad (join)
 import Control.Monad.IO.Class (liftIO)
 import qualified Control.Monad.Trans.State as State
 import Test.QuickCheck (Arbitrary(arbitrary,shrink), arbitraryBoundedEnum)
-import Test.Hspec (shouldReturn)
+import Test.Hspec (shouldReturn, shouldMatchList, shouldBe)
 
 import qualified WildBind.Binding as WB
 import qualified WildBind.Description as WBD
@@ -76,3 +79,13 @@ curBoundDescs s = State.gets boundDescs <*> pure s
 
 curBoundDesc :: Ord i => s -> i -> State.StateT (WB.Binding s i) IO (Maybe WBD.ActionDescription)
 curBoundDesc s i = (fmap . fmap) WB.actDescription $ State.gets WB.boundAction <*> pure s <*> pure i
+
+checkBoundInputs :: (Eq i, Show i) => s -> [i] -> State.StateT (WB.Binding s i) IO ()
+checkBoundInputs fs expected = liftIO . (`shouldMatchList` expected) =<< curBoundInputs fs
+
+checkBoundDescs :: (Eq i, Show i) => s -> [(i, WBD.ActionDescription)] -> State.StateT (WB.Binding s i) IO ()
+checkBoundDescs fs expected = liftIO . (`shouldMatchList` expected) =<< curBoundDescs fs
+
+checkBoundDesc :: (Ord i) => s -> i -> WBD.ActionDescription -> State.StateT (WB.Binding s i) IO ()
+checkBoundDesc fs input expected = liftIO . (`shouldBe` Just expected) =<< curBoundDesc fs input
+  

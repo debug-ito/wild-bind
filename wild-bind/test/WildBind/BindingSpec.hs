@@ -17,7 +17,8 @@ import Test.QuickCheck (Gen, Arbitrary(arbitrary), property, listOf, sample')
 import qualified WildBind.Binding as WB
 import WildBind.ForTest
   ( SampleInput(..), SampleState(..), SampleBackState(..),
-    inputAll, execAll, evalStateEmpty, boundDescs, boundDescs'
+    inputAll, execAll, evalStateEmpty, boundDescs, boundDescs',
+    checkBoundDescs
   )
 
 main :: IO ()
@@ -757,9 +758,23 @@ spec_revise = do
       checkOut "14"
       execAll (SS "") [SIa]
       checkOut "142"
-  -- revise'でNothingに落とす場合のテストもいるか。
-  
-  -- implicit stateを持つ場合もテストが必要かも。revise, revise'ともに。
-
-  -- 今度は1回目のbeforeが効いて、２回目のbeforeはなくなっている感じ。これはrecursive reviseしてないからでは？
+  it "should allow unbind conditionally" $ evalStateEmpty $ do
+    let b = WB.binds' $ do
+          WB.on SIa `WB.as` "a" `WB.run` State.modify (\(SB bs) -> SB $ bs + 1)
+          WB.on SIb `WB.as` "b" `WB.run` return ()
+        rev (SB bs) (SS fs) i orig = if i == SIb && bs >= 3 && bs <= 6 && fs /= "XXX"
+                                     then Nothing
+                                     else Just orig
+        got = WB.startFrom (SB 0) $ WB.revise' rev b
+    State.put got
+    checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
+    execAll (SS "") [SIa, SIa]
+    checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
+    execAll (SS "") [SIa]
+    checkBoundDescs (SS "") [(SIa, "a")]
+    checkBoundDescs (SS "XXX") [(SIa, "a"), (SIb, "b")]
+    execAll (SS "") [SIa, SIa]
+    checkBoundDescs (SS "") [(SIa, "a")]
+    execAll (SS "") [SIa]
+    checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
       
