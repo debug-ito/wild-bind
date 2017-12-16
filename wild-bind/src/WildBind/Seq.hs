@@ -20,7 +20,7 @@ import Data.Monoid (Monoid(..), (<>), mconcat)
 
 import WildBind.Binding
   ( Binding, Binding', binds', whenBack, on, as, run, extend,
-    startFrom
+    startFrom, revise', justBefore
   )
 
 newtype SeqBinding fs i = SeqBinding ([i] -> Binding' [i] fs i)
@@ -42,7 +42,9 @@ withPrefixSingle p (SeqBinding fb) =
     nextBinding cur_prefix = fb (cur_prefix ++ [p])
 
 toSeq :: Eq i => Binding fs i -> SeqBinding fs i
-toSeq b = SeqBinding $ \ps -> whenBack (== ps) $ extend b -- TODO: ここで既存のコマンドをreviseしてcancelをかけないといけない。beforeでcancelするか。
+toSeq b = SeqBinding $ \ps -> whenBack (== ps) $ revise' cancelBefore $ extend b
+  where
+    cancelBefore _ _ _ = justBefore $ State.put []
 
 fromSeq :: SeqBinding fs i -> Binding fs i
 fromSeq (SeqBinding fb) = startFrom [] $ fb []
