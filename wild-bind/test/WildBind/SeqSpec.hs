@@ -65,21 +65,20 @@ spec_prefix = describe "prefix" $ do
     checkBoundInputs (SS "") [SIc]
   specify "cancel binding" $ evalStateEmpty $ do
     State.put $ prefix [SIa] [SIc, SIb] base_b
-    checkBoundInputs (SS "") [SIa, SIc]
-    execAll (SS "") [SIa]
-    checkBoundInputs (SS "") [SIa, SIc]
-    execAll (SS "") [SIc]
+    checkBoundInputs (SS "") [SIc]
+    execAll (SS "") [SIc] -- there is no cancel binding at the top level.
     checkBoundInputs (SS "") [SIa, SIb]
+    checkBoundDesc (SS "") SIa "cancel"
     execAll (SS "") [SIa]
-    checkBoundInputs (SS "") [SIa, SIc]
+    checkBoundInputs (SS "") [SIc]
     execAll (SS "") [SIc, SIb]
-    checkBoundDescs (SS "") [(SIa, "cancel"), (SIb, "b")]
+    checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]  -- cancel binding should be weak and overridden.
     execAll (SS "") [SIb]
-    checkBoundInputs (SS "") [SIa, SIc]
+    checkBoundInputs (SS "") [SIc]
     execAll (SS "") [SIc, SIb]
-    checkBoundDescs (SS "") [(SIa, "cancel"), (SIb, "b")]
+    checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
     execAll (SS "") [SIa]
-    checkBoundInputs (SS "") [SIa, SIc]
+    checkBoundInputs (SS "") [SIc]
 
 
 checkBoundInputs :: (Eq i, Show i) => s -> [i] -> State.StateT (Binding s i) IO ()
@@ -128,27 +127,29 @@ spec_SeqBinding = describe "SeqBinding" $ do
       execAll (SS "") [SIa]
       checkBoundInputs (SS "") [SIc]
   describe "withCancel" $ do
-    it "should weakly add 'cancel' binding regardless of sequence state" $ evalStateEmpty $ do
-      State.put $ fromSeq $ withPrefix [SIc] $ withCancel [SIa, SIb, SIc] $ ( toSeq b_a
+    it "should weakly add 'cancel' binding when at least one prefix is kept in the state." $ evalStateEmpty $ do
+      State.put $ fromSeq $ withPrefix [SIa, SIc] $ withCancel [SIa, SIb, SIc] $ ( toSeq b_a
                                                                               <> (withPrefix [SIc] $ toSeq b_b)
                                                                             )
-      let checkStart = do
+      let checkPrefixOne = do
+            checkBoundInputs (SS "") [SIa]
+            execAll (SS "") [SIa]
             checkBoundInputs (SS "") [SIa, SIb, SIc]
             forM_ [SIa, SIb] $ \c -> checkBoundDesc (SS "") c "cancel"
-      checkStart
-      execAll (SS "") [SIa, SIb, SIa]
-      checkStart
+      checkPrefixOne
+      execAll (SS "") [SIa]
+      checkPrefixOne
       execAll (SS "") [SIc]
       checkBoundInputs (SS "") [SIa, SIb, SIc]
       checkBoundDesc (SS "") SIa "a"
       checkBoundDesc (SS "") SIb "cancel"
       execAll (SS "") [SIa]
-      checkStart
+      checkPrefixOne
       execAll (SS "") [SIc, SIb]
-      checkStart
+      checkPrefixOne
       execAll (SS "") [SIc, SIc]
       checkBoundDescs (SS "") [(SIa, "cancel"), (SIb, "b"), (SIc, "cancel")]
       execAll (SS "") [SIb]
-      checkStart
+      checkPrefixOne
       
       
