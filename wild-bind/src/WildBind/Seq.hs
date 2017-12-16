@@ -48,7 +48,7 @@ fromSeq :: SeqBinding fs i -> Binding fs i
 fromSeq (SeqBinding fb) = startFrom [] $ fb []
 
 cancelOn :: Ord i => i -> SeqBinding fs i
-cancelOn c = SeqBinding $ const $ binds' $ on c `as` "cancel" `run` State.put []
+cancelOn c = SeqBinding $ const $ whenBack (not . null) $ binds' $ on c `as` "cancel" `run` State.put []
 
 withCancel :: Ord i => [i] -> SeqBinding fs i -> SeqBinding fs i
 withCancel cs sb = cancelBindings <> sb
