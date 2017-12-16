@@ -773,7 +773,7 @@ spec_revise = do
       execAll (SS "") [SIa]
       checkBoundDescs (SS "") [(SIa, "a")]
       checkBoundDescs (SS "XXX") [(SIa, "a"), (SIb, "b")]
-      execAll (SS "") [SIa, SIa]
+      execAll (SS "") [SIa, SIa, SIa]
       checkBoundDescs (SS "") [(SIa, "a")]
       execAll (SS "") [SIa]
       checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
