@@ -758,23 +758,23 @@ spec_revise = do
       checkOut "14"
       execAll (SS "") [SIa]
       checkOut "142"
-  it "should allow unbind conditionally" $ evalStateEmpty $ do
-    let b = WB.binds' $ do
-          WB.on SIa `WB.as` "a" `WB.run` State.modify (\(SB bs) -> SB $ bs + 1)
-          WB.on SIb `WB.as` "b" `WB.run` return ()
-        rev (SB bs) (SS fs) i orig = if i == SIb && bs >= 3 && bs <= 6 && fs /= "XXX"
-                                     then Nothing
-                                     else Just orig
-        got = WB.startFrom (SB 0) $ WB.revise' rev b
-    State.put got
-    checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
-    execAll (SS "") [SIa, SIa]
-    checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
-    execAll (SS "") [SIa]
-    checkBoundDescs (SS "") [(SIa, "a")]
-    checkBoundDescs (SS "XXX") [(SIa, "a"), (SIb, "b")]
-    execAll (SS "") [SIa, SIa]
-    checkBoundDescs (SS "") [(SIa, "a")]
-    execAll (SS "") [SIa]
-    checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
+    it "should allow unbind conditionally" $ evalStateEmpty $ do
+      let b = WB.binds' $ do
+            WB.on SIa `WB.as` "a" `WB.run` State.modify (\(SB bs) -> SB $ bs + 1)
+            WB.on SIb `WB.as` "b" `WB.run` return ()
+          rev (SB bs) (SS fs) i orig = if i == SIb && bs >= 3 && bs <= 6 && fs /= "XXX"
+                                       then Nothing
+                                       else Just orig
+          got = WB.startFrom (SB 0) $ WB.revise' rev b
+      State.put got
+      checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
+      execAll (SS "") [SIa, SIa]
+      checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
+      execAll (SS "") [SIa]
+      checkBoundDescs (SS "") [(SIa, "a")]
+      checkBoundDescs (SS "XXX") [(SIa, "a"), (SIb, "b")]
+      execAll (SS "") [SIa, SIa]
+      checkBoundDescs (SS "") [(SIa, "a")]
+      execAll (SS "") [SIa]
+      checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
       
