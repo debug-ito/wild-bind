@@ -395,21 +395,20 @@ revise :: (forall a . bs -> fs -> i -> Action IO a -> Maybe (Action IO a))
        -- ^ original binding
        -> Binding' bs fs i
        -- ^ revised binding
-revise f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
-  where
-    f_to_map bs fs i orig_act = (fmap . mapActDo) redoSRIM $ f bs fs i $ mapActDo (runSRIM bs fs) orig_act
-
--- resultのBindingにreviseをrecursive適用しなくていいのかな？？ そうしないと状態遷移したらrevise効果が消えそうな気がする。
--- (mapResult (revise' f) id)などとやればいい。
+revise f = reviseThis where
+  reviseThis (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
+  f_to_map bs fs i orig_act = fmap convertResult $ f bs fs i $ mapActDo (runSRIM bs fs) orig_act
+  convertResult = fmap reviseThis . mapActDo redoSRIM
 
 -- | Like 'revise', but this function allows revising the back-end state.
 revise' :: (forall a . bs -> fs -> i -> Action (StateT bs IO) a -> Maybe (Action (StateT bs IO) a))
         -> Binding' bs fs i
         -> Binding' bs fs i
-revise' f (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
-  where
-    f_to_map bs fs i orig_act = (fmap . mapActDo) toSRIM $ f bs fs i $ mapActDo (runR fs) orig_act
-    runR :: fs -> SRIM bs fs a -> StateT bs IO a
-    runR fs m = mapStateT (flip runReaderT fs) m
-    toSRIM :: StateT bs IO a -> SRIM bs fs a
-    toSRIM m = mapStateT lift m
+revise' f = reviseThis where
+  reviseThis (Binding' orig) = Binding' $ \bs fs -> M.mapMaybeWithKey (f_to_map bs fs) (orig bs fs)
+  f_to_map bs fs i orig_act = fmap convertResult $ f bs fs i $ mapActDo (runR fs) orig_act
+  runR :: fs -> SRIM bs fs a -> StateT bs IO a
+  runR fs m = mapStateT (flip runReaderT fs) m
+  convertResult = fmap reviseThis . mapActDo toSRIM
+  toSRIM :: StateT bs IO a -> SRIM bs fs a
+  toSRIM m = mapStateT lift m
