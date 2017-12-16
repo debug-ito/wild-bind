@@ -724,6 +724,21 @@ spec_revise = do
           got = WB.revise rev b
       actRun $ WB.boundAction' got (SB 4) (SS "FF") SIa
       checkOut "XXXX4FF"
+    it "should be effective after change of back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
+      let b = WB.startFrom (SB 0) $ WB.binds' $ do
+            WB.on SIa `WB.run` do
+              (SB bs) <- State.get
+              liftIO $ modifyIORef out (++ show bs)
+              State.put (SB $ bs + 1)
+          rev _ _ _ = WB.justAfter $ modifyIORef out (++ "X")
+          got = WB.revise rev b
+      State.put got
+      execAll (SS "") [SIa]
+      checkOut "0X"
+      execAll (SS "") [SIa]
+      checkOut "0X1X"
+      execAll (SS "") [SIa]
+      checkOut "0X1X2X"
   describe "revise'" $ do
     it "should allow modifying the back-end state" $ evalStateEmpty $ withStrRef $ \out checkOut -> do
       let b = WB.binds' $ do
@@ -742,4 +757,9 @@ spec_revise = do
       checkOut "14"
       execAll (SS "") [SIa]
       checkOut "142"
+  -- revise'でNothingに落とす場合のテストもいるか。
+  
+  -- implicit stateを持つ場合もテストが必要かも。revise, revise'ともに。
+
+  -- 今度は1回目のbeforeが効いて、２回目のbeforeはなくなっている感じ。これはrecursive reviseしてないからでは？
       
