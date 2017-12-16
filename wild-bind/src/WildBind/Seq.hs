@@ -35,7 +35,7 @@ withPrefix ps sb = foldr withPrefixSingle sb ps
 
 withPrefixSingle :: Ord i => i -> SeqBinding fs i -> SeqBinding fs i
 withPrefixSingle p (SeqBinding fb) = 
-  SeqBinding $ \cur_prefix -> prefixBinding cur_prefix <> nextBinding cur_prefix
+  SeqBinding $ \cur_prefix -> nextBinding cur_prefix <> prefixBinding cur_prefix
   where
     prefixBinding cur_prefix = whenBack (== cur_prefix) $ binds' $ do
       on p `as` "prefix" `run` State.modify (++ [p])

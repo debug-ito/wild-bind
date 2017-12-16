@@ -122,8 +122,8 @@ spec_SeqBinding = describe "SeqBinding" $ do
   describe "withCancel" $ do
     it "should weakly add 'cancel' binding when at least one prefix is kept in the state." $ evalStateEmpty $ do
       State.put $ fromSeq $ withPrefix [SIa, SIc] $ withCancel [SIa, SIb, SIc] $ ( toSeq b_a
-                                                                              <> (withPrefix [SIc] $ toSeq b_b)
-                                                                            )
+                                                                                   <> (withPrefix [SIc] $ toSeq b_b)
+                                                                                 )
       let checkPrefixOne = do
             checkBoundInputs (SS "") [SIa]
             execAll (SS "") [SIa]
