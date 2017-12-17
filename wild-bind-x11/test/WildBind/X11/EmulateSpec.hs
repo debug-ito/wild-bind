@@ -12,9 +12,10 @@ import WildBind (frontNextEvent, FrontEvent(..))
 import qualified WildBind.Description as WBD
 import WildBind.X11
   ( withX11Front, makeFrontEnd,
-    XMod(..), (.+), release, press,
+    XMod(..), release, press,
     defaultRootWindow,
-    XKeyEvent(..), KeyEventType(..)
+    XKeyEvent(..), KeyEventType(..),
+    alt, super, ctrl, shift
   )
 import WildBind.X11.Emulate (sendKeyTo)
 import WildBind.X11.Internal.Key (xKeyEventToXKeyInput, getKeyMaskMap, KeyMaskMap)
@@ -27,13 +28,13 @@ main = hspec spec
 
 spec :: Spec
 spec = checkIfX11Available $ describe "sendKeyTo" $ do
-  let inputs = [ Alt .+ Super .+ Xlib.xK_r,
+  let inputs = [ alt $ super Xlib.xK_r,
                  release Xlib.xK_w,
                  press Xlib.xK_Right,
-                 release $ Ctrl .+ Shift .+ Xlib.xK_F12,
-                 Ctrl .+ Alt .+ Xlib.xK_3
+                 release $ ctrl $ shift Xlib.xK_F12,
+                 ctrl $ alt Xlib.xK_3
                    
-                 -- Ctrl .+ Shift .+ Xlib.xK_bracketleft
+                 -- ctrl $ shift Xlib.xK_bracketleft
 
                  ---- "Shift" modifier is tricky, because it affects
                  ---- the keysym depending on the keyboard and key map

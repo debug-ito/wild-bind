@@ -17,9 +17,13 @@ module WildBind.X11.Internal.Key
          XKeyEvent(..),
          XMod(..),
          ToXKeyEvent(..),
-         (.+),
+         addXMod,
          press,
          release,
+         shift,
+         ctrl,
+         alt,
+         super,
          -- * Grabs
          xGrabKey,
          xUngrabKey,
@@ -320,12 +324,10 @@ keyMaskToXMods kmmap mask = S.fromList$ toXMod =<< [ (maskShift, Shift),
                                then [mod_symbol]
                                else []
 
--- | Add a 'XMod' to 'XKeyEvent' or 'Xlib.KeySym'.
-(.+) :: ToXKeyEvent k => XMod -> k -> XKeyEvent
-modi .+ mkey = case toXKeyEvent mkey of
+-- | Add a 'XMod' to 'xKeyEventMods'.
+addXMod :: ToXKeyEvent k => XMod -> k -> XKeyEvent
+addXMod modi mkey = case toXKeyEvent mkey of
   XKeyEvent ev_type mods ks -> XKeyEvent ev_type (S.insert modi mods) ks
-
-infixr 6 .+
 
 -- | Set 'KeyPress' to 'xKeyEventType'.
 press :: ToXKeyEvent k => k -> XKeyEvent
@@ -335,6 +337,21 @@ press k = (toXKeyEvent k) { xKeyEventType = KeyPress }
 release :: ToXKeyEvent k => k -> XKeyEvent
 release k = (toXKeyEvent k) { xKeyEventType = KeyRelease }
 
+-- | Add 'Shift' modifier to 'xKeyEventMods'.
+shift :: ToXKeyEvent k => k -> XKeyEvent
+shift = addXMod Shift
+
+-- | Add 'Ctrl' modifier to 'xKeyEventMods'.
+ctrl :: ToXKeyEvent k => k -> XKeyEvent
+ctrl = addXMod Ctrl
+
+-- | Add 'Alt' modifier to 'xKeyEventMods'.
+alt :: ToXKeyEvent k => k -> XKeyEvent
+alt = addXMod Alt
+
+-- | Add 'Super' modifier to 'xKeyEventMods'.
+super :: ToXKeyEvent k => k -> XKeyEvent
+super = addXMod Super
 
 -- | Send a 'XKeyEvent' to the window.
 xSendKeyEvent :: KeyMaskMap -> Xlib.Display -> Xlib.Window -> XKeyEvent -> IO ()

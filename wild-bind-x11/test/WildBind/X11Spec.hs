@@ -19,7 +19,8 @@ import qualified WildBind.Description as WBD
 import qualified WildBind.Input.NumPad as NumPad
 import WildBind.X11
   ( withFrontEnd, ActiveWindow, XKeyInput,
-    XMod(..), (.+), XKeyEvent(..), KeyEventType(..)
+    XMod(..), XKeyEvent(..), KeyEventType(..),
+    ctrl, alt, super, shift
   )
 
 import WildBind.X11.TestUtil (checkIfX11Available, withGrabs)
@@ -92,10 +93,10 @@ spec = checkIfX11Available $ do
       grabCase' f
   describe "X11Front - normal modified keys (pressed)" $ do
     it "should distinguish modifiers" $ maybeRun $ withFrontEndForTest $ \f -> do
-      let inputs = [ Ctrl .+ Xlib.xK_i,
-                     Ctrl .+ Alt .+ Xlib.xK_i,
-                     Super .+ Xlib.xK_i,
-                     Shift .+ Super .+ Xlib.xK_I
+      let inputs = [ ctrl Xlib.xK_i,
+                     ctrl $ alt Xlib.xK_i,
+                     super Xlib.xK_i,
+                     shift $ super Xlib.xK_I
                    ]
       withGrabs f inputs $ do
         p ("Grabbed " ++ (intercalate ", " $ map describeStr inputs))

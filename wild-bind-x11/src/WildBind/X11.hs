@@ -19,9 +19,13 @@ module WildBind.X11
          XMod(..),
          KeyEventType(..),
          ToXKeyEvent(..),
-         (.+),
          press,
          release,
+         shift,
+         ctrl,
+         alt,
+         super,
+         addXMod,
          XKeyInput(..),
          -- * X11Front
          X11Front,
@@ -45,9 +49,10 @@ import WildBind.X11.Internal.Key
     XKeyEvent(..),
     XMod(..),
     ToXKeyEvent(..),
-    (.+),
     KeyEventType(..),
-    press, release
+    press, release,
+    addXMod,
+    shift, ctrl, alt, super
   )
 import WildBind.X11.Internal.Window (ActiveWindow, Window, winInstance, winClass, winName)
 
