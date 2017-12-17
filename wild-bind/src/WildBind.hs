@@ -22,6 +22,14 @@ module WildBind
 
          module WildBind.Input.NumPad
          -- | Defines input symbol types for number pad keys.
+
+-- * Support modules
+--
+-- 
+-- | The following modules are not re-exported from this module.
+--
+-- - "WildBind.Seq": support module to build a binding to key
+--   sequences.
        ) where
 
 
