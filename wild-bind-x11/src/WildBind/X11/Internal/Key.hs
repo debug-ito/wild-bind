@@ -265,7 +265,9 @@ data XKeyEvent =
   XKeyEvent
   { xKeyEventType :: KeyEventType, 
     xKeyEventMods :: S.Set XMod, -- ^ set of key modifiers enabled.
-    xKeyEventKeySym :: Xlib.KeySym -- ^ X11 KeySym for the key.
+    xKeyEventKeySym :: Xlib.KeySym
+    -- ^ X11 KeySym for the key. "WildBind.X11.KeySym" re-exports
+    -- 'KeySym' values.
   }
   deriving (Show,Eq,Ord)
 
