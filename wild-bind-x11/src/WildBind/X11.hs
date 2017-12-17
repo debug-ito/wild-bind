@@ -7,10 +7,11 @@
 module WildBind.X11
        ( -- * X11 front-end
          withFrontEnd,
+         XKeyInput(..),
          -- * Windows in X11
          Window,
          ActiveWindow,
-         -- ** Accessor functions for Window
+         -- ** Getters
          winInstance,
          winClass,
          winName,
@@ -19,6 +20,7 @@ module WildBind.X11
          XMod(..),
          KeyEventType(..),
          ToXKeyEvent(..),
+         -- ** Setters
          press,
          release,
          shift,
@@ -26,7 +28,6 @@ module WildBind.X11
          alt,
          super,
          addXMod,
-         XKeyInput(..),
          -- * X11Front
          X11Front,
          withX11Front,

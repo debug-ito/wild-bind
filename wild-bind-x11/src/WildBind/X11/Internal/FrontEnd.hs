@@ -53,7 +53,7 @@ import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
 -- actions. See "WildBind.X11.Emulate".
 --
 -- 'X11Front' is relatively low-level interface, so it's more likely
--- for this API to change than 'FrontEnd'.
+-- for this API to change in the future than 'FrontEnd'.
 data X11Front k =
   X11Front { x11Display :: Xlib.Display,
              x11Debouncer :: Ndeb.Debouncer,

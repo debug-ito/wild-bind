@@ -263,18 +263,20 @@ data XMod = Shift
 -- | High-level X11 key event.
 data XKeyEvent =
   XKeyEvent
-  { xKeyEventType :: KeyEventType,
-    xKeyEventMods :: S.Set XMod,
-    xKeyEventKeySym :: Xlib.KeySym
+  { xKeyEventType :: KeyEventType, 
+    xKeyEventMods :: S.Set XMod, -- ^ set of key modifiers enabled.
+    xKeyEventKeySym :: Xlib.KeySym -- ^ X11 KeySym for the key.
   }
   deriving (Show,Eq,Ord)
 
+-- | 'fromKeyEvent' always returns 'Just'.
 instance XKeyInput XKeyEvent where
   toKeySym (XKeyEvent _ _ ks) = ks
   toModifierMasks kmmap (XKeyEvent _ mods _) =
     map (.|. xModsToKeyMask kmmap mods) $ lockVariations kmmap
   fromKeyEvent kmmap ev_type keysym mask = Just $ XKeyEvent ev_type (keyMaskToXMods kmmap mask) keysym
 
+-- | Something that can converted to 'XKeyEvent'.
 class ToXKeyEvent k where
   toXKeyEvent :: k -> XKeyEvent
 
