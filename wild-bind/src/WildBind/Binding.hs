@@ -49,11 +49,14 @@ module WildBind.Binding
          whenBack,
          whenBoth,
          -- * Conversion
+         -- ** Stateful bindings
          startFrom,
          extend,
+         -- ** Type conversion
          convFront,
          convInput,
          convBack,
+         -- ** Action conversion
          advice,
          revise,
          revise',
