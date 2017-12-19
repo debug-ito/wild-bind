@@ -12,13 +12,15 @@ module WildBind.ForTest
          curBoundDesc,
          checkBoundInputs,
          checkBoundDescs,
-         checkBoundDesc
+         checkBoundDesc,
+         withRefChecker
        ) where
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (join)
-import Control.Monad.IO.Class (liftIO)
+import Control.Monad.IO.Class (liftIO, MonadIO)
 import qualified Control.Monad.Trans.State as State
+import Data.IORef (IORef, newIORef, readIORef)
 import Test.QuickCheck (Arbitrary(arbitrary,shrink), arbitraryBoundedEnum)
 import Test.Hspec (shouldReturn, shouldMatchList, shouldBe)
 
@@ -89,3 +91,11 @@ checkBoundDescs fs expected = liftIO . (`shouldMatchList` expected) =<< curBound
 checkBoundDesc :: (Ord i) => s -> i -> WBD.ActionDescription -> State.StateT (WB.Binding s i) IO ()
 checkBoundDesc fs input expected = liftIO . (`shouldBe` Just expected) =<< curBoundDesc fs input
   
+withRefChecker :: (Eq a, Show a, MonadIO m)
+               => a
+               -> (IORef a -> (a -> m ()) -> m ())
+               -> m ()
+withRefChecker init_ref action = do
+  out <- liftIO $ newIORef init_ref
+  let checkOut expected = liftIO $ readIORef out `shouldReturn` expected
+  action out checkOut

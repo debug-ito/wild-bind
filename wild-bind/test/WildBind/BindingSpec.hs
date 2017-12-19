@@ -18,7 +18,8 @@ import qualified WildBind.Binding as WB
 import WildBind.ForTest
   ( SampleInput(..), SampleState(..), SampleBackState(..),
     inputAll, execAll, evalStateEmpty, boundDescs, boundDescs',
-    checkBoundDescs
+    checkBoundDescs,
+    withRefChecker
   )
 
 main :: IO ()
@@ -41,10 +42,7 @@ newStrRef :: MonadIO m => m (IORef String)
 newStrRef = liftIO $ newIORef []
 
 withStrRef :: MonadIO m => (IORef String -> (String -> m ()) -> m ()) -> m ()
-withStrRef action = do
-  out <- newStrRef
-  let checkOut exp_str = liftIO $ readIORef out `shouldReturn` exp_str
-  action out checkOut
+withStrRef = withRefChecker []
 
 outOn :: MonadIO m => IORef [a] -> i -> a -> (i, WB.Action m ())
 outOn out_ref input out_elem = (input, WB.Action "" $ liftIO $ modifyIORef out_ref (++ [out_elem]))
