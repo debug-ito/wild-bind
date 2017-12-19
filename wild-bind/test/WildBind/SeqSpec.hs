@@ -5,19 +5,22 @@ import Control.Monad (forM_)
 import Control.Monad.IO.Class (liftIO)
 import qualified Control.Monad.Trans.State as State
 import Data.Monoid ((<>))
+import Data.IORef (modifyIORef, newIORef, readIORef)
 import Test.Hspec
 
 import WildBind.Binding
   ( binds, on, run, as,
     boundActions, actDescription,
     boundInputs,
-    Binding
+    Binding,
+    justBefore
   )
 import WildBind.Description (ActionDescription)
 import WildBind.Seq
   ( prefix,
     toSeq, fromSeq,
-    withPrefix, withCancel
+    withPrefix, withCancel,
+    reviseSeq
   )
 
 import WildBind.ForTest
@@ -26,7 +29,8 @@ import WildBind.ForTest
     boundDescs, curBoundInputs, curBoundDescs, curBoundDesc,
     checkBoundInputs,
     checkBoundDescs,
-    checkBoundDesc
+    checkBoundDesc,
+    withRefChecker
   )
 
 main :: IO ()
@@ -36,6 +40,7 @@ spec :: Spec
 spec = do
   spec_prefix
   spec_SeqBinding
+  spec_reviseSeq
 
 spec_prefix :: Spec
 spec_prefix = describe "prefix" $ do
@@ -145,4 +150,22 @@ spec_SeqBinding = describe "SeqBinding" $ do
       execAll (SS "") [SIb]
       checkPrefixOne
       
-      
+spec_reviseSeq :: Spec
+spec_reviseSeq = describe "reviseSeq" $ do
+  it "should allow access to prefix keys input so far" $ evalStateEmpty $ withRefChecker [] $ \out checkOut -> do
+    act_out <- liftIO $ newIORef ""
+    let sb = withCancel [SIa] $ withPrefix [SIa, SIb, SIc] $ toSeq $ base_b
+        base_b = binds $ on SIb `as` "B" `run` modifyIORef act_out (++ "B executed")
+        rev ps _ _ = justBefore $ modifyIORef out (++ [ps])
+    State.put $ fromSeq $ reviseSeq rev sb
+    execAll (SS "") [SIa, SIa]
+    checkOut [[], [SIa]]
+    execAll (SS "") [SIa, SIb, SIc]
+    checkOut [[], [SIa], [], [SIa], [SIa, SIb]]
+    liftIO $ readIORef act_out `shouldReturn` ""
+    execAll (SS "") [SIb]
+    checkOut [[], [SIa], [], [SIa], [SIa, SIb], [SIa, SIb, SIc]]
+    liftIO $ readIORef act_out `shouldReturn` "B executed"
+  it "should allow unbinding" $ do
+    True `shouldBe` False
+    
