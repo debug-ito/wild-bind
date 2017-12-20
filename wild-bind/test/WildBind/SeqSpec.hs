@@ -166,6 +166,27 @@ spec_reviseSeq = describe "reviseSeq" $ do
     execAll (SS "") [SIb]
     checkOut [[], [SIa], [], [SIa], [SIa, SIb], [SIa, SIb, SIc]]
     liftIO $ readIORef act_out `shouldReturn` "B executed"
-  it "should allow unbinding" $ do
-    True `shouldBe` False
+  it "should allow unbinding" $ evalStateEmpty $ do
+    let sb = withPrefix [SIa]
+             ( toSeq ba
+               <> (withPrefix [SIb] $ toSeq bab)
+               <> (withPrefix [SIa] $ toSeq baa)
+             )
+        ba  = binds $ on SIc `as` "c on a" `run` return ()
+        bab = binds $ on SIc `as` "c on ab" `run` return ()
+        baa = binds $ do
+          on SIc `as` "c on aa" `run` return ()
+          on SIb `as` "b on aa" `run` return ()
+        rev ps _ i act = if (ps == [SIa] && i == SIb) || (ps == [SIa,SIa] && i == SIc)
+                         then Nothing
+                         else Just act
+    State.put $ fromSeq $ reviseSeq rev sb
+    checkBoundInputs (SS "") [SIa]
+    execAll (SS "") [SIa]
+    checkBoundInputs (SS "") [SIa, SIc] -- SIb should be canceled
+    execAll (SS "") [SIa]
+    checkBoundDescs (SS "") [(SIb, "b on aa")] -- SIc should be canceled
+    execAll (SS "") [SIb]
+    checkBoundInputs (SS "") [SIa]
+    
     

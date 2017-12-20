@@ -25,7 +25,7 @@ import Data.Monoid (Monoid(..), (<>), mconcat)
 
 import WildBind.Binding
   ( Binding, Binding', binds', whenBack, on, as, run, extend,
-    startFrom, revise', justBefore,
+    startFrom, revise', justBefore, revise,
     Action
   )
 
@@ -108,8 +108,8 @@ prefix :: Ord i
 prefix cs ps = fromSeq . withCancel cs . withPrefix ps . toSeq
 
 -- | Revise actions in 'SeqBinding'. See 'WildBind.Binding.revise'.
-reviseSeq :: ([i] -> fs -> i -> Action IO a -> Maybe (Action IO a))
+reviseSeq :: (forall a . [i] -> fs -> i -> Action IO a -> Maybe (Action IO a))
              -- ^ Revising function. @[i]@ is the prefix keys input so far.
           -> SeqBinding fs i
           -> SeqBinding fs i
-reviseSeq = undefined
+reviseSeq f (SeqBinding orig) = SeqBinding $ fmap (revise f) orig
