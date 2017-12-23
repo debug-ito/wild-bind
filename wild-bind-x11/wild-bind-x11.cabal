@@ -25,7 +25,8 @@ library
                         WildBind.X11.Internal.Key,
                         WildBind.X11.Internal.Window,
                         WildBind.X11.Internal.NotificationDebouncer
-  other-modules:        WildBind.X11.Internal.FrontEnd
+  other-modules:        WildBind.X11.Internal.FrontEnd,
+                        WildBind.X11.Internal.GrabMan
   build-depends:        base >=4.6 && <5.0,
                         wild-bind >=0.1.0 && <0.2,
                         text >=1.2.0 && <1.3,

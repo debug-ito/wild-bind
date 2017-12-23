@@ -18,6 +18,7 @@ import Control.Applicative ((<$>), empty)
 import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.STM (atomically, TChan, newTChanIO, tryReadTChan, writeTChan)
 import Control.Exception (bracket, throwIO)
+import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Cont (ContT(ContT), runContT)
 import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
@@ -45,6 +46,7 @@ import WildBind.X11.Internal.Window
     defaultRootWindowForDisplay
   )
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
+import qualified WildBind.X11.Internal.GrabMan as GM
 
 -- | The X11 front-end. @k@ is the input key type.
 --
@@ -59,7 +61,8 @@ data X11Front k =
              x11Debouncer :: Ndeb.Debouncer,
              x11PrevActiveWindow :: IORef (Maybe ActiveWindow),
              x11PendingEvents :: TChan (FrontEvent ActiveWindow k),
-             x11KeyMaskMap :: KeyMaskMap
+             x11KeyMaskMap :: KeyMaskMap,
+             x11GrabMan :: IORef GM.GrabMan
            }
 
 x11RootWindow :: X11Front k -> Xlib.Window
@@ -120,8 +123,9 @@ withX11Front' func_name = if rtsSupportsBoundThreads then impl else error_impl w
       (Xlib.substructureNotifyMask .|. Ndeb.xEventMask)
     awin_ref <- liftIO $ newIORef Nothing
     pending_events <- liftIO $ newTChanIO
+    grab_man <- liftIO $ GM.new
     liftIO $ Ndeb.notify debouncer
-    return $ X11Front disp debouncer awin_ref pending_events keymask_map
+    return $ X11Front disp debouncer awin_ref pending_events keymask_map grab_man
   error_impl _ = throwIO $ userError ("You need to build with -threaded option when you use " ++ func_name ++ " function.")
 
 
@@ -175,9 +179,6 @@ updateState front fev = case fev of
   (FEInput _) -> return ()
   (FEChange s) -> writeIORef (x11PrevActiveWindow front) (Just s)
 
-grabDef :: (KeyMaskMap -> Xlib.Display -> Xlib.Window -> k -> IO ()) -> X11Front k -> k -> IO ()
-grabDef func front key = func (x11KeyMaskMap front) (x11Display front) (x11RootWindow front) key
-
 nextEvent :: (XKeyInput k) => X11Front k -> IO (FrontEvent ActiveWindow k)
 nextEvent handle = loop where
   loop = do
@@ -199,11 +200,28 @@ nextEvent handle = loop where
     liftIO $ updateState handle fevent
     return fevent
 
+
+data GrabOp = DoSetGrab | DoUnsetGrab deriving (Show,Eq,Ord)
+
+runGrab :: XKeyInput k => X11Front k -> GrabOp -> k -> IO ()
+runGrab x11 op input = do
+  do_change_grab <- GM.onRef (x11GrabMan x11) (changeGrab input_event)
+  when do_change_grab $ do
+    changeGrabLower (x11KeyMaskMap x11) (x11Display x11) (x11RootWindow x11) input
+  where
+    input_event = undefined ----- TODO: あー、(XKeyInput k => k -> XKeyEvent)だと思ってたけど、そんなことないんだった。。
+    changeGrab = case op of
+      DoSetGrab -> GM.set
+      DoUnsetGrab -> GM.unset
+    changeGrabLower = case op of
+      DoSetGrab -> xGrabKey
+      DoUnsetGrab -> xUngrabKey
+
 -- | Create 'FrontEnd' from 'X11Front' object.
 makeFrontEnd :: (XKeyInput k, WBD.Describable k) => X11Front k -> FrontEnd ActiveWindow k
 makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
-                            frontSetGrab = grabDef xGrabKey f,
-                            frontUnsetGrab = grabDef xUngrabKey f,
+                            frontSetGrab = runGrab f DoSetGrab,
+                            frontUnsetGrab = runGrab f DoUnsetGrab,
                             frontNextEvent = nextEvent f
                           }
 
