@@ -41,6 +41,7 @@ import Data.Foldable (foldr, fold)
 import Data.List (nub)
 import qualified Data.Map as M
 import Data.Maybe (mapMaybe, listToMaybe)
+import Data.Monoid ((<>))
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Foreign
@@ -293,9 +294,12 @@ instance (ToXKeyEvent a, ToXKeyEvent b) => ToXKeyEvent (Either a b) where
   toXKeyEvent = either toXKeyEvent toXKeyEvent
 
 instance Describable XKeyEvent where
-  describe (XKeyEvent _ mods keysym) = T.pack (mods_str ++ Xlib.keysymToString keysym)
+  describe (XKeyEvent ev mods keysym) = ev_txt <> T.pack (mods_str ++ Xlib.keysymToString keysym)
     where
       mods_str = fold $ S.map (\m -> show m ++ "+") mods
+      ev_txt = case ev of
+        KeyPress -> "press "
+        KeyRelease -> "release "
 
 xModToKeyMask :: KeyMaskMap -> XMod -> Xlib.KeyMask
 xModToKeyMask kmmap modi = case modi of
