@@ -20,7 +20,7 @@ import WildBind
   ( FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent),
     FrontEvent(FEChange,FEInput), Describable, ActionDescription,
     Option(..), defOption, wildBind',
-    binds', startFrom, on, as, run, whenBack
+    binds', startFrom, on, as, run, whenBack, revise, justBefore
   )
 import qualified WildBind.Description as WBD
 import qualified WildBind.Input.NumPad as NumPad
@@ -108,7 +108,7 @@ spec = checkIfX11Available $ do
     it "should control key grab based on ('release' || 'press')" $ maybeRun $ withFrontEnd $ \f -> do
       got_binds_rev <- newIORef []
       let opt = defOption { optBindingHook = unshiftNewBinding got_binds_rev,
-                            optCatch = (\_ _ _ -> return ())
+                            optCatch = (\_ _ e -> throwIO e)
                           }
           b_base = binds' $ do
             on (press $ ctrl $ WKS.xK_g) `as` "P(C-g)" `run` liftIO (throwIO $ MyException "NG")
@@ -118,7 +118,8 @@ spec = checkIfX11Available $ do
           b_1 = whenBack (== 1) $ binds' $ do
             on (press $ ctrl $ WKS.xK_i) `as` "P(C-i)" `run` State.put 0
             on (press $ alt $ ctrl $ WKS.xK_x) `as` "P(M-C-x)" `run` return ()
-          b = startFrom (0 :: Int) $ b_base <> b_0 <> b_1
+          rev _ _ i = justBefore $ p ("Input: " ++ (unpack $ WBD.describe i))
+          b = revise rev $ startFrom (0 :: Int) $ b_base <> b_0 <> b_1
           exp_descs = [ ["P(C-g)", "R(M-C-x)", "P(C-i)"],
                         ["P(C-g)", "R(M-C-x)", "P(C-i)", "P(M-C-x)"],
                         ["P(C-g)", "R(M-C-x)", "P(C-i)"]
