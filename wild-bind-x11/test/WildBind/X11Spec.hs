@@ -1,10 +1,15 @@
-{-# LANGUAGE FlexibleContexts, CPP #-}
+{-# LANGUAGE FlexibleContexts, CPP, OverloadedStrings #-}
 module WildBind.X11Spec (main, spec) where
 
 import Control.Applicative ((<$>))
-import Control.Exception (finally)
+import Control.Concurrent.Async (async, waitCatch)
+import Control.Exception (finally, Exception(fromException), throwIO)
 import Control.Monad (forM_)
-import Data.List (intercalate)
+import Control.Monad.IO.Class (liftIO)
+import qualified Control.Monad.Trans.State as State
+import Data.Monoid ((<>))
+import Data.List (intercalate, reverse)
+import Data.IORef (IORef, newIORef, readIORef, modifyIORef)
 import Data.Text (unpack)
 import Data.Time.Clock (getCurrentTime, diffUTCTime)
 import qualified Graphics.X11.Xlib as Xlib
@@ -13,17 +18,25 @@ import Test.Hspec
 
 import WildBind
   ( FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent),
-    FrontEvent(FEChange,FEInput), Describable
+    FrontEvent(FEChange,FEInput), Describable, ActionDescription,
+    Option(..), defOption, wildBind',
+    binds', startFrom, on, as, run, whenBack
   )
 import qualified WildBind.Description as WBD
 import qualified WildBind.Input.NumPad as NumPad
 import WildBind.X11
   ( withFrontEnd, ActiveWindow, XKeyInput,
     XMod(..), XKeyEvent(..), KeyEventType(..),
-    ctrl, alt, super, shift
+    ctrl, alt, super, shift, release, press
   )
+import qualified WildBind.X11.KeySym as WKS
 
 import WildBind.X11.TestUtil (checkIfX11Available, withGrabs)
+
+newtype MyException = MyException String
+                    deriving (Show,Eq,Ord)
+
+instance Exception MyException
 
 main :: IO ()
 main = hspec spec
@@ -67,6 +80,17 @@ stopWatchMsec act = do
 describeStr :: Describable a => a -> String
 describeStr = unpack . WBD.describe
 
+unshiftNewBinding :: Eq i => IORef [[(i,ActionDescription)]] -> [(i,ActionDescription)] -> IO ()
+unshiftNewBinding ref got = do
+  cur <- readIORef ref
+  case cur of
+   [] -> update
+   (latest : _) -> if latest == got
+                   then update
+                   else return ()
+  where
+    update = modifyIORef ref (got :)
+
 spec :: Spec
 spec = checkIfX11Available $ do
   describe "X11Front" $ do
@@ -81,6 +105,33 @@ spec = checkIfX11Available $ do
       withFrontEnd $ \f2 -> do
         frontSetGrab f1 NumPad.NumLeft `shouldReturn` ()
         frontSetGrab f2 NumPad.NumLeft `shouldReturn` ()
+    it "should control key grab based on ('release' || 'press')" $ maybeRun $ withFrontEnd $ \f -> do
+      got_binds_rev <- newIORef []
+      let opt = defOption { optBindingHook = unshiftNewBinding got_binds_rev,
+                            optCatch = (\_ _ _ -> return ())
+                          }
+          b_base = binds' $ do
+            on (press $ ctrl $ WKS.xK_g) `as` "P(C-g)" `run` liftIO (throwIO $ MyException "NG")
+            on (release $ alt $ ctrl $ WKS.xK_x) `as` "R(M-C-x)" `run` liftIO (throwIO $ MyException "OK")
+          b_0 = whenBack (== 0) $ binds' $ do
+            on (press $ ctrl $ WKS.xK_i) `as` "P(C-i)" `run` State.put 1
+          b_1 = whenBack (== 1) $ binds' $ do
+            on (press $ ctrl $ WKS.xK_i) `as` "P(C-i)" `run` State.put 0
+            on (press $ alt $ ctrl $ WKS.xK_x) `as` "P(M-C-x)" `run` return ()
+          b = startFrom (0 :: Int) $ b_base <> b_0 <> b_1
+          exp_descs = [ ["P(C-g)", "R(M-C-x)", "P(C-i)"],
+                        ["P(C-g)", "R(M-C-x)", "P(C-i)", "P(M-C-x)"],
+                        ["P(C-g)", "R(M-C-x)", "P(C-i)"]
+                      ]
+      p "Input C-i C-i M-C-x. If wildBind is still blocked, then type C-g."
+      result <- waitCatch =<< async (wildBind' opt b f)
+      got_descs <- fmap ((map . map) snd . reverse) $ readIORef got_binds_rev
+      length got_descs `shouldBe` length exp_descs
+      forM_ (zip got_descs exp_descs) $ uncurry shouldMatchList
+      case result of
+       Right _ -> expectationFailure "expects an exception, but nothing happened."
+       Left e -> fromException e `shouldBe` (Just $ MyException "OK")
+      
   describe "X11Front - NumPadUnlocked" $ do
     it "should grab/ungrab keys" $ maybeRun $ withFrontEndForTest $ \f -> do
       let grabCase' :: FrontEnd ActiveWindow NumPad.NumPadUnlocked -> Expectation

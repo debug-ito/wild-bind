@@ -58,7 +58,7 @@ test-suite spec
   if flag(test-interactive)
     cpp-options:        -DTEST_INTERACTIVE
   main-is:              Spec.hs
-  other-extensions:     FlexibleContexts, CPP
+  other-extensions:     FlexibleContexts, CPP, OverloadedStrings
   other-modules:        WildBind.X11Spec,
                         WildBind.X11.EmulateSpec,
                         WildBind.X11.Internal.NotificationDebouncerSpec,
@@ -66,7 +66,8 @@ test-suite spec
   build-depends:        base, wild-bind-x11,
                         wild-bind, X11, text, transformers,
                         hspec >=2.1.7,
-                        time >=1.5.0 && <1.9
+                        time >=1.5.0 && <1.9,
+                        async
 
 source-repository head
   type:                 git
