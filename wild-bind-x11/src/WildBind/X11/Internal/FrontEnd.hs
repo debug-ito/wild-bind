@@ -62,11 +62,8 @@ data X11Front k =
              x11PrevActiveWindow :: IORef (Maybe ActiveWindow),
              x11PendingEvents :: TChan (FrontEvent ActiveWindow k),
              x11KeyMaskMap :: KeyMaskMap,
-             x11GrabMan :: IORef GM.GrabMan
+             x11GrabMan :: IORef (GM.GrabMan k)
            }
-
-x11RootWindow :: X11Front k -> Xlib.Window
-x11RootWindow = Xlib.defaultRootWindow . x11Display
 
 x11PopPendingEvent :: X11Front k -> IO (Maybe (FrontEvent ActiveWindow k))
 x11PopPendingEvent f = atomically $ tryReadTChan $ x11PendingEvents f
@@ -102,7 +99,7 @@ openMyDisplay = Xlib.openDisplay ""
 --   are bound and input @(press xK_a)@, @(press xK_b)@, @(release xK_a)@,
 --   @(release xK_b)@, the last @(release xK_b)@ is NOT captured
 --   because key grab ends with @(release xK_a)@.
-withFrontEnd :: (XKeyInput i, WBD.Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
+withFrontEnd :: (XKeyInput i, WBD.Describable i, Ord i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
 withFrontEnd action = withX11Front' "WildBind.X11.withFrontEnd" $ \x11front -> action (makeFrontEnd x11front)
 
 -- | Same as 'withFrontEnd', but it creates 'X11Front'. To create
@@ -123,7 +120,7 @@ withX11Front' func_name = if rtsSupportsBoundThreads then impl else error_impl w
       (Xlib.substructureNotifyMask .|. Ndeb.xEventMask)
     awin_ref <- liftIO $ newIORef Nothing
     pending_events <- liftIO $ newTChanIO
-    grab_man <- liftIO $ GM.new
+    grab_man <- liftIO $ GM.new keymask_map disp (Xlib.defaultRootWindow disp)
     liftIO $ Ndeb.notify debouncer
     return $ X11Front disp debouncer awin_ref pending_events keymask_map grab_man
   error_impl _ = throwIO $ userError ("You need to build with -threaded option when you use " ++ func_name ++ " function.")
@@ -201,27 +198,14 @@ nextEvent handle = loop where
     return fevent
 
 
-data GrabOp = DoSetGrab | DoUnsetGrab deriving (Show,Eq,Ord)
-
-runGrab :: XKeyInput k => X11Front k -> GrabOp -> k -> IO ()
-runGrab x11 op input = do
-  do_change_grab <- GM.onRef (x11GrabMan x11) (changeGrab input_event)
-  when do_change_grab $ do
-    changeGrabLower (x11KeyMaskMap x11) (x11Display x11) (x11RootWindow x11) input
-  where
-    input_event = undefined ----- TODO: あー、(XKeyInput k => k -> XKeyEvent)だと思ってたけど、そんなことないんだった。。
-    changeGrab = case op of
-      DoSetGrab -> GM.set
-      DoUnsetGrab -> GM.unset
-    changeGrabLower = case op of
-      DoSetGrab -> xGrabKey
-      DoUnsetGrab -> xUngrabKey
+runGrab :: (XKeyInput k, Ord k) => X11Front k -> GM.GrabOp -> k -> IO ()
+runGrab x11 = GM.modify (x11GrabMan x11)
 
 -- | Create 'FrontEnd' from 'X11Front' object.
-makeFrontEnd :: (XKeyInput k, WBD.Describable k) => X11Front k -> FrontEnd ActiveWindow k
+makeFrontEnd :: (XKeyInput k, WBD.Describable k, Ord k) => X11Front k -> FrontEnd ActiveWindow k
 makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
-                            frontSetGrab = runGrab f DoSetGrab,
-                            frontUnsetGrab = runGrab f DoUnsetGrab,
+                            frontSetGrab = runGrab f GM.DoSetGrab,
+                            frontUnsetGrab = runGrab f GM.DoUnsetGrab,
                             frontNextEvent = nextEvent f
                           }
 

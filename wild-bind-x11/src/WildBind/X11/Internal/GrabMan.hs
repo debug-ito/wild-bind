@@ -7,72 +7,90 @@
 -- __This is an internal module. Package users should not rely on this.__
 module WildBind.X11.Internal.GrabMan
        ( GrabMan,
+         GrabOp(..),
          new,
-         set,
-         unset,
-         onRef
+         modify
        ) where
 
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import qualified Data.Map.Strict as M
 import Data.Monoid (Monoid(..), (<>))
+import qualified Data.Set as S
+import qualified Graphics.X11.Xlib as Xlib
 
-import WildBind.X11.Internal.Key (XKeyEvent(..), press, KeyEventType(..))
+import WildBind.X11.Internal.Key
+  ( XKeyEvent(..), press, KeyEventType(..),
+    KeyMaskMap, XKeyInput(..)
+  )
 
-data GrabEvent =
-  GrabEvent
-  { grabPress :: Bool,
-    grabRelease :: Bool
+type GrabField = (Xlib.KeySym, Xlib.KeyMask)
+
+type GrabbedInputs k = M.Map GrabField (S.Set k)
+
+insertG :: Ord k => GrabField -> k -> GrabbedInputs k -> (GrabbedInputs k, Bool)
+insertG field key inputs = (new_inputs, is_new_entry)
+  where
+    is_new_entry = M.member field inputs
+    new_inputs = M.insertWith S.union field (S.singleton key) inputs
+
+deleteG :: Ord k => GrabField -> k -> GrabbedInputs k -> (GrabbedInputs k, Bool)
+deleteG field key inputs = (new_inputs, is_entry_deleted)
+  where
+    (new_inputs, is_entry_deleted) = case M.lookup field inputs of
+      Nothing -> (inputs, False)
+      Just cur_grabbed -> let new_grabbed = S.delete key cur_grabbed
+                              removed = new_grabbed == mempty
+                          in ( if removed
+                               then M.delete field inputs
+                               else M.insert field new_grabbed inputs,
+                               
+                               removed
+                             )
+
+data GrabOp = DoSetGrab | DoUnsetGrab deriving (Show,Eq,Ord)
+
+modifyG :: Ord k => GrabOp -> GrabField -> k -> GrabbedInputs k -> (GrabbedInputs k, Bool)
+modifyG op = case op of
+  DoSetGrab -> insertG
+  DoUnsetGrab -> deleteG
+
+data GrabMan k =
+  GrabMan
+  { gmKeyMaskMap :: KeyMaskMap,
+    gmDisplay :: Xlib.Display,
+    gmRootWindow :: Xlib.Window,
+    gmGrabbedInputs :: GrabbedInputs k
   }
   deriving (Show,Eq,Ord)
 
-instance Monoid GrabEvent where
-  mempty = GrabEvent False False
-  mappend a b = GrabEvent { grabPress = (grabPress a) || (grabPress b),
-                            grabRelease = (grabRelease a) || (grabRelease b)
-                          }
+new :: KeyMaskMap -> Xlib.Display -> Xlib.Window -> IO (IORef (GrabMan k))
+new kmm disp win = newIORef $ GrabMan { gmKeyMaskMap = kmm,
+                                        gmDisplay = disp,
+                                        gmRootWindow = win,
+                                        gmGrabbedInputs = mempty
+                                      }
 
-grabFor :: XKeyEvent -> GrabEvent
-grabFor e = case xKeyEventType e of
-  KeyPress -> mempty { grabPress = True }
-  KeyRelease -> mempty { grabRelease = True }
+grabFieldsFor :: XKeyInput k => KeyMaskMap -> k -> [GrabField]
+grabFieldsFor kmmap k = do
+  sym <- return $ toKeySym k
+  modmask <- toModifierMasks kmmap k
+  return (sym, modmask)
 
-unsetGrabEvent :: XKeyEvent -> GrabEvent -> GrabEvent
-unsetGrabEvent e ge = case xKeyEventType e of
-  KeyPress -> ge { grabPress = False }
-  KeyRelease -> ge { grabRelease = False }
-
-newtype GrabMan = GrabMan (M.Map XKeyEvent GrabEvent)
-                deriving (Monoid,Show,Eq,Ord)
-
-new :: IO (IORef GrabMan)
-new = newIORef mempty
-
-set :: XKeyEvent -> GrabMan -> (GrabMan, Bool)
-set raw_input (GrabMan gm) = (GrabMan new_gm, do_set_grab)
+modifyGM :: (XKeyInput k, Ord k) => GrabOp -> k -> GrabMan k -> (GrabMan k, [GrabField])
+modifyGM op input gm = foldr modifySingle (gm, []) fields
   where
-    input = press raw_input
-    do_set_grab = M.member input gm
-    new_gm = M.insertWith (<>) input (grabFor raw_input) gm
+    fields = grabFieldsFor (gmKeyMaskMap gm) input
+    modifySingle field (cur_gm, cur_changed) = (new_gm, new_changed)
+      where
+        (new_gi, modified) = modifyG op field input $ gmGrabbedInputs cur_gm
+        new_gm = cur_gm { gmGrabbedInputs = new_gi }
+        new_changed = if modified then (field : cur_changed) else cur_changed
 
-unset :: XKeyEvent -> GrabMan -> (GrabMan, Bool)
-unset raw_input (GrabMan gm) = (GrabMan new_gm, do_unset_grab)
-  where
-    input = press raw_input
-    (new_gm, do_unset_grab) = case M.lookup input gm of
-      Nothing -> (gm, False)
-      Just cur_ge -> let new_ge = unsetGrabEvent raw_input cur_ge
-                         removed = new_ge == mempty
-                     in ( if removed
-                          then M.delete input gm
-                          else M.insert input new_ge gm,
-                          removed
-                        )
-
-onRef :: IORef GrabMan -> (GrabMan -> (GrabMan, a)) -> IO a
-onRef gm_ref f = do
+modify :: (XKeyInput k, Ord k) => IORef (GrabMan k) -> GrabOp -> k -> IO ()
+modify gm_ref op input = do
   cur_gm <- readIORef gm_ref
-  let (new_gm, ret) = f cur_gm
+  let (new_gm, changed_fields) = modifyGM op input cur_gm
   writeIORef gm_ref new_gm
-  return ret
+  return ()
+  -- TODO: 
 
