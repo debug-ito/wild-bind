@@ -85,7 +85,7 @@ unshiftNewBinding ref got = do
   cur <- readIORef ref
   case cur of
    [] -> update
-   (latest : _) -> if latest == got
+   (latest : _) -> if latest /= got
                    then update
                    else return ()
   where
