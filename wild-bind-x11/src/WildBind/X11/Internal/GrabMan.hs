@@ -34,7 +34,7 @@ type GrabbedInputs k = M.Map GrabField (S.Set k)
 insertG :: Ord k => GrabField -> k -> GrabbedInputs k -> (GrabbedInputs k, Bool)
 insertG field key inputs = (new_inputs, is_new_entry)
   where
-    is_new_entry = M.member field inputs
+    is_new_entry = not $ M.member field inputs
     new_inputs = M.insertWith S.union field (S.singleton key) inputs
 
 deleteG :: Ord k => GrabField -> k -> GrabbedInputs k -> (GrabbedInputs k, Bool)
