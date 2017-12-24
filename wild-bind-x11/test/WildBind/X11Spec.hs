@@ -51,7 +51,7 @@ maybeRun _ = pendingWith ("You need to set test-interactive flag to run the test
 p :: String -> IO ()
 p = hPutStrLn stderr . ("--- " ++)
 
-withFrontEndForTest :: (XKeyInput i, Describable i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
+withFrontEndForTest :: (XKeyInput i, Describable i, Ord i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
 withFrontEndForTest action = withFrontEnd $ \front -> do
   _ <- frontNextEvent front -- discard the first FEChange event.
   action front

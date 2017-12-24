@@ -23,7 +23,8 @@ import qualified Graphics.X11.Xlib as Xlib
 
 import WildBind.X11.Internal.Key
   ( XKeyEvent(..), press, KeyEventType(..),
-    KeyMaskMap, XKeyInput(..)
+    KeyMaskMap, XKeyInput(..),
+    xGrabKey, xUngrabKey
   )
 
 type GrabField = (Xlib.KeySym, Xlib.KeyMask)
@@ -93,7 +94,11 @@ modify :: (XKeyInput k, Ord k) => IORef (GrabMan k) -> GrabOp -> k -> IO ()
 modify gm_ref op input = do
   cur_gm <- readIORef gm_ref
   let (new_gm, changed_fields) = modifyGM op input cur_gm
+      disp = gmDisplay cur_gm
+      rwin = gmRootWindow cur_gm
   writeIORef gm_ref new_gm
-  return ()
-  -- TODO: 
+  forM_ changed_fields $ \(keysym, mask) -> do
+    case op of
+     DoSetGrab -> xGrabKey disp rwin keysym mask
+     DoUnsetGrab -> xUngrabKey disp rwin keysym mask
 
