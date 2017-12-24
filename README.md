@@ -2,15 +2,18 @@
 
 ![icon](https://raw.githubusercontent.com/debug-ito/wild-bind/master/resource/icon.png) ![travis status](https://api.travis-ci.org/debug-ito/wild-bind.png)
 
-WildBind is a dynamic and programmable key binding framework for number pads.
+WildBind is a dynamic and programmable key binding framework.
 
 Features:
 
 - It supports X11 desktop environments.
-- It binds any action to number pad keys.
+- It binds any action to keyboard events.
 - Key bindings are written in Haskell (actually, it's just a bunch of Haskell modules).
 - Key bindings can be **dynamic**, i.e. you can use different key bindings for different active windows.
 - Key bindings can be **stateful**, e.g. you can bind actions to **sequences** of keys.
+
+WildBind started as a binding framework for **number pad keys**, but now it supports more generic keyboard events.
+
 
 ## Contents
 
@@ -22,6 +25,7 @@ Features:
 - [Binding Description](#binding-description)
 - [Types and Modules](#types-and-modules)
 - [Stateful Binding](#stateful-binding)
+- [Binding for Generic Keys](#binding-for-generic-keys)
 - [External Tools](#external-tools)
 - [Advanced Topics](#advanced-topics)
 
@@ -297,6 +301,30 @@ The above script sets upper bound to the state. If the state reaches 10, the `up
 
 `ifBack p b1 b2` creates a `Binding'` that chooses between `b1` and `b2`. `p` is a predicate for the state of the `Binding'`. If `p` is `True`, `b1` is enabled. Otherwise, `b2` is enabled.
 
+
+## Binding for Generic Keys
+
+So far we have made some bindings for number pad keys. WildBind also supports bindings for generic keys, such as `Ctrl + C` and `Alt + F1`. In this case, we cannot use the indicator window to show binding descriptions.
+
+```haskell
+{-# LANGUAGE OverloadedStrings #-}
+import WildBind
+  ( wildBind, Binding,
+    binds, on, as, run
+  )
+import WildBind.X11
+  ( withFrontEnd, ActiveWindow, XKeyEvent,
+    ctrl, alt
+  )
+import WildBind.X11.KeySym (xK_c, xK_F1)
+
+main = withFrontEnd $ wildBind myBinding
+
+myBinding :: Binding ActiveWindow XKeyEvent
+myBinding = binds $ do
+  on (ctrl xK_c) `as` "Ctrl + C" `run` putStrLn "Pushed Ctrl + C"
+  on (alt xK_F1) `as` "Alt + F1" `run` putStrLn "Pushed Alt + F1"
+```
 
 
 ## External Tools
