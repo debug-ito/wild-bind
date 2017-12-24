@@ -197,17 +197,15 @@ nextEvent handle = loop where
     liftIO $ updateState handle fevent
     return fevent
 
-
-runGrab :: (XKeyInput k, Ord k) => X11Front k -> GM.GrabOp -> k -> IO ()
-runGrab x11 = GM.modify (x11GrabMan x11)
-
 -- | Create 'FrontEnd' from 'X11Front' object.
 makeFrontEnd :: (XKeyInput k, WBD.Describable k, Ord k) => X11Front k -> FrontEnd ActiveWindow k
 makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
-                            frontSetGrab = runGrab f GM.DoSetGrab,
-                            frontUnsetGrab = runGrab f GM.DoUnsetGrab,
+                            frontSetGrab = runGrab GM.DoSetGrab,
+                            frontUnsetGrab = runGrab GM.DoUnsetGrab,
                             frontNextEvent = nextEvent f
                           }
+  where
+    runGrab = GM.modify (x11GrabMan f)
 
 -- | Get the default root window.
 defaultRootWindow :: X11Front k -> Window
