@@ -84,7 +84,7 @@ class XKeyInput k where
   toKeySym :: k -> Xlib.KeySym
   -- ^ Get the X11 keysym for this input.
   toModifierMasks :: KeyMaskMap -> k -> NonEmpty Xlib.KeyMask
-  -- ^ Get modifers masks to grab the keysym. The grab action is
+  -- ^ Get modifer masks to grab the keysym. The grab action is
   -- repeated for all modifier masks. By default, it just returns 0.
   toModifierMasks _ _ = return 0
   fromKeyEvent :: KeyMaskMap -> KeyEventType -> Xlib.KeySym -> Xlib.KeyMask -> Maybe k

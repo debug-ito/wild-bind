@@ -4,7 +4,7 @@
 -- Description: X11 event emulation functions
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
--- This modules defines functions to emulate key inputs.
+-- This module defines functions to emulate key inputs.
 module WildBind.X11.Emulate
        ( -- * Create key inputs
          sendKeyTo,

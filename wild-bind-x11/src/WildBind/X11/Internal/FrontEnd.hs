@@ -96,7 +96,7 @@ openMyDisplay = Xlib.openDisplay ""
 --
 -- - Key input is captured only while the first grabbed key is
 --   pressed. For example, if @(release xK_a)@ and @(release xK_b)@
---   are bound and input @(press xK_a)@, @(press xK_b)@, @(release xK_a)@,
+--   are bound, and you input @(press xK_a)@, @(press xK_b)@, @(release xK_a)@,
 --   @(release xK_b)@, the last @(release xK_b)@ is NOT captured
 --   because key grab ends with @(release xK_a)@.
 withFrontEnd :: (XKeyInput i, WBD.Describable i, Ord i) => (FrontEnd ActiveWindow i -> IO a) -> IO a
