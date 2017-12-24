@@ -39,6 +39,7 @@ import Data.Bits ((.|.), (.&.))
 import qualified Data.Bits as Bits
 import Data.Foldable (foldr, fold)
 import Data.List (nub)
+import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Map as M
 import Data.Maybe (mapMaybe, listToMaybe)
 import Data.Monoid ((<>))
@@ -82,10 +83,10 @@ isMasked kmmap accessor target = if (target .&. accessor kmmap) == 0
 class XKeyInput k where
   toKeySym :: k -> Xlib.KeySym
   -- ^ Get the X11 keysym for this input.
-  toModifierMasks :: KeyMaskMap -> k -> [Xlib.KeyMask]
+  toModifierMasks :: KeyMaskMap -> k -> NonEmpty Xlib.KeyMask
   -- ^ Get modifers masks to grab the keysym. The grab action is
-  -- repeated for all modifier masks. If the result is empty, X11
-  -- grabs the keysym without any modifers.
+  -- repeated for all modifier masks. By default, it just returns 0.
+  toModifierMasks _ _ = return 0
   fromKeyEvent :: KeyMaskMap -> KeyEventType -> Xlib.KeySym -> Xlib.KeyMask -> Maybe k
   -- ^ Create the input object from a key event type, a keysym and a
   -- modifier (got from XEvent.)
@@ -115,7 +116,6 @@ instance XKeyInput NumPad.NumPadUnlocked where
     NumPad.NumMulti -> Xlib.xK_KP_Multiply
     NumPad.NumMinus -> Xlib.xK_KP_Subtract
     NumPad.NumPlus -> Xlib.xK_KP_Add
-  toModifierMasks _ _ = []
   fromKeyEvent _ KeyPress _ _ = Nothing
   fromKeyEvent kmmask KeyRelease keysym mask = if is_numlocked
                                                then Nothing
@@ -146,7 +146,7 @@ instance XKeyInput NumPad.NumPadLocked where
     NumPad.NumLPeriod -> Xlib.xK_KP_Delete
     -- XKeysymToKeycode() didn't return the correct keycode for XK_KP_Decimal in numpaar code...
     
-  toModifierMasks kmmap _ = [maskNumLock kmmap]
+  toModifierMasks kmmap _ = return $ maskNumLock kmmap
 
   -- Xlib handles the [(.) (Delete)] key in a weird way. In the input
   -- event, it brings XK_KP_Decimal when NumLock enabled, XK_KP_Delete
@@ -240,7 +240,7 @@ xGrabKey disp win key mask = do
 -- exception.
 
 -- | Release the grab on the specified key.
-xUngrabKey :: XKeyInput k => Xlib.Display -> Xlib.Window -> Xlib.KeySym -> Xlib.KeyMask -> IO ()
+xUngrabKey :: Xlib.Display -> Xlib.Window -> Xlib.KeySym -> Xlib.KeyMask -> IO ()
 xUngrabKey disp win key mask = do
   code <- Xlib.keysymToKeycode disp key
   Xlib.ungrabKey disp code mask win
@@ -267,7 +267,7 @@ data XKeyEvent =
 instance XKeyInput XKeyEvent where
   toKeySym (XKeyEvent _ _ ks) = ks
   toModifierMasks kmmap (XKeyEvent _ mods _) =
-    map (.|. xModsToKeyMask kmmap mods) $ lockVariations kmmap
+    fmap (.|. xModsToKeyMask kmmap mods) $ lockVariations kmmap
   fromKeyEvent kmmap ev_type keysym mask = Just $ XKeyEvent ev_type (keyMaskToXMods kmmap mask) keysym
 
 -- | Something that can converted to 'XKeyEvent'.
@@ -304,13 +304,17 @@ xModsToKeyMask kmmap = foldr f 0
   where
     f modi mask = xModToKeyMask kmmap modi .|. mask
 
-lockVariations :: KeyMaskMap -> [Xlib.KeyMask]
-lockVariations kmmap = nub $ do
+lockVariations :: KeyMaskMap -> NonEmpty Xlib.KeyMask
+lockVariations kmmap = toNonEmpty $ nub $ do
   numl <- [0, maskNumLock kmmap]
   capsl <- [0, maskCapsLock kmmap]
   shiftl <- [0, maskShiftLock kmmap]
   scl <- [0, maskScrollLock kmmap]
   return (numl .|. capsl .|. shiftl .|. scl)
+  where
+    toNonEmpty [] = return 0
+    -- the result should always include 0, so the above case is not really necessary.
+    toNonEmpty (x:rest) = x :| rest
 
 keyMaskToXMods :: KeyMaskMap -> Xlib.KeyMask -> S.Set XMod
 keyMaskToXMods kmmap mask = S.fromList$ toXMod =<< [ (maskShift, Shift),

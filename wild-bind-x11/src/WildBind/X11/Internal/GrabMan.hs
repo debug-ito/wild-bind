@@ -12,7 +12,10 @@ module WildBind.X11.Internal.GrabMan
          modify
        ) where
 
+import Control.Monad (forM_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
+import Data.Foldable (foldr)
+import Data.List.NonEmpty (NonEmpty)
 import qualified Data.Map.Strict as M
 import Data.Monoid (Monoid(..), (<>))
 import qualified Data.Set as S
@@ -70,7 +73,7 @@ new kmm disp win = newIORef $ GrabMan { gmKeyMaskMap = kmm,
                                         gmGrabbedInputs = mempty
                                       }
 
-grabFieldsFor :: XKeyInput k => KeyMaskMap -> k -> [GrabField]
+grabFieldsFor :: XKeyInput k => KeyMaskMap -> k -> NonEmpty GrabField
 grabFieldsFor kmmap k = do
   sym <- return $ toKeySym k
   modmask <- toModifierMasks kmmap k
