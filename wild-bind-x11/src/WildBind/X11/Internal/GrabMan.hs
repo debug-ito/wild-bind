@@ -5,6 +5,17 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 -- __This is an internal module. Package users should not rely on this.__
+--
+-- 'GrabMan' is a \"grab manager\". It manages the state of key grabs.
+--
+-- Of course X11 server itself manages key grabs. The reason why we
+-- need 'GrabMan' is that the input symbols for X11 FrontEnd do not
+-- map one-to-one to X11 'GrabField's. For example, @(press $ ctrl xK_x)@
+-- actually corresponds to multiple 'GrabField's, each with a different
+-- 'Xlib.KeyMask'. In addition, @(release $ ctrl xK_x)@ has exactly the
+-- same set of 'GrabField's as @(press $ ctrl xK_x)@. For each possible
+-- 'GrabField', we need to grab it if and only if there is at least
+-- one grabbed input symbol for the 'GrabField'.
 module WildBind.X11.Internal.GrabMan
        ( GrabMan,
          GrabOp(..),
@@ -27,8 +38,12 @@ import WildBind.X11.Internal.Key
     xGrabKey, xUngrabKey
   )
 
+-- | Unit of key grabs in X11. X server manages state of key grabs
+-- independently for each 'GrabField'.
 type GrabField = (Xlib.KeySym, Xlib.KeyMask)
 
+-- | High-level grab state. For each 'GrabField', the 'M.Map' value is
+-- non-empty set of input symbols (type @k@) currently grabbed.
 type GrabbedInputs k = M.Map GrabField (S.Set k)
 
 insertG :: Ord k => GrabField -> k -> GrabbedInputs k -> (GrabbedInputs k, Bool)
@@ -51,6 +66,7 @@ deleteG field key inputs = (new_inputs, is_entry_deleted)
                                removed
                              )
 
+-- | Grab operation. Either \"set grab\" or \"unset grab\".
 data GrabOp = DoSetGrab | DoUnsetGrab deriving (Show,Eq,Ord)
 
 modifyG :: Ord k => GrabOp -> GrabField -> k -> GrabbedInputs k -> (GrabbedInputs k, Bool)
@@ -58,6 +74,7 @@ modifyG op = case op of
   DoSetGrab -> insertG
   DoUnsetGrab -> deleteG
 
+-- | The key grab manager.
 data GrabMan k =
   GrabMan
   { gmKeyMaskMap :: KeyMaskMap,
@@ -67,6 +84,7 @@ data GrabMan k =
   }
   deriving (Show,Eq,Ord)
 
+-- | Create a new 'GrabMan'.
 new :: KeyMaskMap -> Xlib.Display -> Xlib.Window -> IO (IORef (GrabMan k))
 new kmm disp win = newIORef $ GrabMan { gmKeyMaskMap = kmm,
                                         gmDisplay = disp,
@@ -80,7 +98,11 @@ grabFieldsFor kmmap k = do
   modmask <- toModifierMasks kmmap k
   return (sym, modmask)
 
-modifyGM :: (XKeyInput k, Ord k) => GrabOp -> k -> GrabMan k -> (GrabMan k, [GrabField])
+-- | Pure version of 'modify'.
+modifyGM :: (XKeyInput k, Ord k) => GrabOp -> k -> GrabMan k
+         -> (GrabMan k, [GrabField])
+         -- ^ the next state of 'GrabMan', and the list of
+         -- 'GrabField's which needs modifying with the X server.
 modifyGM op input gm = foldr modifySingle (gm, []) fields
   where
     fields = grabFieldsFor (gmKeyMaskMap gm) input
@@ -90,6 +112,8 @@ modifyGM op input gm = foldr modifySingle (gm, []) fields
         new_gm = cur_gm { gmGrabbedInputs = new_gi }
         new_changed = if modified then (field : cur_changed) else cur_changed
 
+-- | Modify the grab state. The modification operation is specified by
+-- 'GrabOp'. It controls grabs of the X server if necessary.
 modify :: (XKeyInput k, Ord k) => IORef (GrabMan k) -> GrabOp -> k -> IO ()
 modify gm_ref op input = do
   cur_gm <- readIORef gm_ref
