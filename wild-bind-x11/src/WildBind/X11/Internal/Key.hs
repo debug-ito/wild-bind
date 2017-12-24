@@ -180,15 +180,6 @@ xKeyEventToXKeyInput kmmap ev_type kev = do
   (_, _, _, _, _, _, _, status, _, _) <- liftIO $ Xlib.get_KeyEvent $ Foreign.castPtr kev
   MaybeT $ return $ fromKeyEvent kmmap ev_type keysym status
 
--- | Convert a 'XKeyInput' into a KeyCode and KeyMasks for grabbing.
-xKeyCode :: XKeyInput k => KeyMaskMap -> Xlib.Display -> k -> IO (Xlib.KeyCode, [Xlib.KeyMask])
-xKeyCode kmmap disp key = (,) <$> keysym <*> masks
-  where
-    keysym = Xlib.keysymToKeycode disp $ toKeySym key
-    masks = pure $ defaultMask $ toModifierMasks kmmap key
-    defaultMask [] = [0]
-    defaultMask ms = ms
-
 type XModifierMap = [(Xlib.Modifier, [Xlib.KeyCode])]
 
 -- | Get current 'KeyMaskMap'.
@@ -239,20 +230,20 @@ modifierToKeyMask = Bits.shift 1 . fromIntegral
 
 -- | Grab the specified key on the specified window. The key is
 -- captured from now on, so the window won't get that.
-xGrabKey :: XKeyInput k => KeyMaskMap -> Xlib.Display -> Xlib.Window -> k -> IO ()
-xGrabKey kmmap disp win key = do
-  (code, masks) <- xKeyCode kmmap disp key
-  forM_ masks $ \mask -> Xlib.grabKey disp code mask win False Xlib.grabModeAsync Xlib.grabModeAsync
+xGrabKey :: Xlib.Display -> Xlib.Window -> Xlib.KeySym -> Xlib.KeyMask -> IO ()
+xGrabKey disp win key mask = do
+  code <- Xlib.keysymToKeycode disp key
+  Xlib.grabKey disp code mask win False Xlib.grabModeAsync Xlib.grabModeAsync
 
 -- grabKey throws an exception if that key for the window is already
 -- grabbed by another X client. For now, we don't handle that
 -- exception.
 
 -- | Release the grab on the specified key.
-xUngrabKey :: XKeyInput k => KeyMaskMap -> Xlib.Display -> Xlib.Window -> k -> IO ()
-xUngrabKey kmmap disp win key = do
-  (code, masks) <- xKeyCode kmmap disp key
-  forM_ masks $ \mask -> Xlib.ungrabKey disp code mask win
+xUngrabKey :: XKeyInput k => Xlib.Display -> Xlib.Window -> Xlib.KeySym -> Xlib.KeyMask -> IO ()
+xUngrabKey disp win key mask = do
+  code <- Xlib.keysymToKeycode disp key
+  Xlib.ungrabKey disp code mask win
 
 -- | X11 key modifiers.
 data XMod = Shift
