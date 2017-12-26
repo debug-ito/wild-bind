@@ -308,10 +308,10 @@ So far we have made some bindings for number pad keys. WildBind also supports bi
 
 ```haskell
 {-# LANGUAGE OverloadedStrings #-}
-import WildBind
-  ( wildBind, Binding,
-    binds, on, as, run
+import WildBind.Binding
+  ( Binding, binds, on, as, run
   )
+import WildBind.Exec (wildBind)
 import WildBind.X11
   ( withFrontEnd, ActiveWindow, XKeyEvent,
     ctrl, alt
@@ -325,6 +325,19 @@ myBinding = binds $ do
   on (ctrl xK_c) `as` "Ctrl + C" `run` putStrLn "Pushed Ctrl + C"
   on (alt xK_F1) `as` "Alt + F1" `run` putStrLn "Pushed Alt + F1"
 ```
+
+`withFrontEnd` function creates the X11 FrontEnd object, and `wildBind` function combines the FrontEnd and `myBinding`.
+
+This time the input key type of `myBinding` is `XKeyEvent`, which has the following three fields:
+
+- X11 KeySym for the key. They are exported from [WildBind.X11.KeySym](https://hackage.haskell.org/package/wild-bind-x11/docs/WildBind-X11-KeySym.html).
+- Whether the event is `press` or `release`. By default, it's `press`.
+- Optional modifier keys such as `ctrl` or `alt`.
+
+
+## Key Event Emulation
+
+## Binding for Key Sequences
 
 
 ## External Tools
