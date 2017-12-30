@@ -6,7 +6,7 @@ import Control.Exception (finally)
 import Control.Monad (forM_)
 import Data.Bool (bool)
 import Data.Foldable (foldl')
-import Data.List (isPrefixOf, reverse, stripPrefix, dropWhile)
+import Data.List (isPrefixOf, reverse, stripPrefix, span)
 import Data.Char (isSpace)
 import System.Directory (doesFileExist, removeFile)
 import System.Environment (lookupEnv)
@@ -20,12 +20,14 @@ main :: IO ()
 main = do
   stack_opts <- getStackOpts
   withTestCases "../README.md" $ \readme -> do
-    hspec $ specFor stack_opts readme
+    withTestCases "../wild-bind-x11/src/WildBind/X11/Emulate.hs" $ \emu -> do
+      hspec $ specFor stack_opts (readme ++ emu)
 
 specFor :: String -> [TestCase] -> Spec
 specFor stack_opts tcs = sequence_ $ map singleSpec tcs
   where
-    singleSpec tc = describe label $ it "should compile OK" $ checkCompile stack_opts tc
+    singleSpec tc = describe label $ it "should compile OK" $ do
+      checkCompile stack_opts tc
       where
         label = "==== " ++ (tcFileName tc) ++ ": " ++ (show $ tcIndex tc)
 
@@ -35,6 +37,7 @@ withTestCases filename cont = withFile filename ReadMode $ \h -> cont =<< loadFi
     loadFile handle = makeTestCases filename <$> extractExamples <$> hGetContents handle
 
 type CodeBlock = String
+type Prefix = String
 
 data TestCase = TestCase { tcIndex :: Int,
                            tcPrefix :: CodeBlock,
@@ -42,7 +45,7 @@ data TestCase = TestCase { tcIndex :: Int,
                            tcFileName :: String
                          } deriving (Show,Eq,Ord)
 
-data CodeAcc = CodeAcc { caCurrent :: Maybe CodeBlock,
+data CodeAcc = CodeAcc { caCurrent :: Maybe (CodeBlock, Prefix),
                          caResult :: [CodeBlock]
                        } deriving (Show,Eq,Ord)
 
@@ -50,23 +53,28 @@ extractExamples :: String -> [CodeBlock]
 extractExamples = obtainResult . foldl' f start . lines where
   start = CodeAcc Nothing []
   f acc line = case caCurrent acc of
-    Nothing | line == "```haskell" -> acc { caCurrent = Just "" }
+    Nothing | line == "```haskell" -> acc { caCurrent = Just ("", "") }
             | otherwise -> case mblock of
               Nothing -> acc
-              Just block -> acc { caCurrent = Just block }
-    Just cur | line == "```" -> finish cur acc
-             | "#!" `isPrefixOf` blockline -> acc
-             | otherwise -> acc { caCurrent = Just $ (cur ++ blockline ++ "\n") }
+              Just (block, prefix) -> acc { caCurrent = Just $ (block ++ "\n", prefix) }
+    Just (cur, prefix) -> case stripPrefix prefix line of
+      Nothing -> finish cur acc
+      Just line_body | line_body == "```" -> finish cur acc
+                     | "#!" `isPrefixOf` line_body -> acc
+                     | otherwise -> acc { caCurrent = Just $ (cur ++ line_body ++ "\n", prefix) }
     where
-      mblock = stripCodeBlockPrefix line
-      blockline = maybe line id mblock
+      mblock = stripSpacedPrefix "-- > " line
   finish cur acc = CodeAcc { caCurrent = Nothing,
                              caResult = cur : caResult acc
                            }
-  obtainResult CodeAcc { caCurrent = mcur, caResult = ret } = reverse $ maybe ret (\cur -> cur : ret) mcur
+  obtainResult CodeAcc { caCurrent = mcur, caResult = ret } = reverse $ maybe ret (\(cur, _) -> cur : ret) mcur
 
-stripCodeBlockPrefix :: String -> Maybe String
-stripCodeBlockPrefix = stripPrefix "-- > " . dropWhile isSpace
+stripSpacedPrefix :: Prefix -> String -> Maybe (String, Prefix)
+stripSpacedPrefix prefix = makeResult . span isSpace
+  where
+    makeResult (spaces, rest) = do
+      body <- stripPrefix prefix rest
+      return (body, spaces ++ prefix)
 
 prefixFor :: Int -> CodeBlock
 prefixFor 2 = prefix_basic_process
