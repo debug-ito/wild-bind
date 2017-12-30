@@ -341,11 +341,11 @@ This time the input key type of `myBinding` is `XKeyEvent`, which has the follow
 
 WildBind can emulate key events, that is, generate synthetic keyboard input events.
 
-See [WildBind.X11.Emulate](https://hackage.haskell.org/package/wild-bind-x11/docs/WildBind-X11-Emulate.html) module for detail.
+See [WildBind.X11.Emulate](https://hackage.haskell.org/package/wild-bind-x11/docs/WildBind-X11-Emulate.html) module and [its example](https://hackage.haskell.org/package/wild-bind-x11/docs/WildBind-X11-Emulate-Example.html) for detail.
 
 ## Binding for Key Sequences
 
-The module [WildBind.Seq](https://hackage.haskell.org/package/wild-bind/docs/WildBind-Seq.html) exports some functions to build binding for key sequences. Check out [the module documentation](https://hackage.haskell.org/package/wild-bind/docs/WildBind-Seq.html) for detail.
+The module [WildBind.Seq](https://hackage.haskell.org/package/wild-bind/docs/WildBind-Seq.html) exports some functions to build binding for key sequences. Check out [the module documentation](https://hackage.haskell.org/package/wild-bind/docs/WildBind-Seq.html) and [its example](https://hackage.haskell.org/package/wild-bind-task-x11/docs/WildBind-Task-X11-Seq-Example.html) for detail.
 
 ## External Tools
 
