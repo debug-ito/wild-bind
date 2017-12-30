@@ -47,7 +47,7 @@ type Prefix = Text
 data TestCase = TestCase { tcIndex :: Int,
                            tcPrefix :: CodeBlock,
                            tcBody :: CodeBlock,
-                           tcFileName :: String
+                           tcFileName :: FilePath
                          } deriving (Show,Eq,Ord)
 
 data CodeAcc = CodeAcc { caCurrent :: Maybe (CodeBlock, Prefix),
@@ -82,7 +82,7 @@ stripSpacedPrefix prefix = makeResult . T.span isSpace
       body <- T.stripPrefix prefix rest
       return (body, spaces <> prefix)
 
-prefixFor :: String -> Int -> CodeBlock
+prefixFor :: FilePath -> Int -> CodeBlock
 prefixFor "../README.md" index = readme index
   where
     readme 2 = prefix_basic_process
@@ -139,7 +139,7 @@ pushKey key = spawnCommand ("xdotool key " <> key)
 |]
 
 
-makeTestCases :: String -> [CodeBlock] -> [TestCase]
+makeTestCases :: FilePath -> [CodeBlock] -> [TestCase]
 makeTestCases filename blocks = map f $ zip [0 ..] blocks where
   f (i, cb) = TestCase { tcIndex = i,
                          tcPrefix = prefixFor filename i,
