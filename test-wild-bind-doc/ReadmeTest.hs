@@ -36,7 +36,7 @@ specFor stack_opts tcs = sequence_ $ map singleSpec tcs
     singleSpec tc = describe label $ it "should compile OK" $ do
       checkCompile stack_opts tc
       where
-        label = "==== " ++ (tcFileName tc) ++ ": " ++ (show $ tcIndex tc)
+        label = "Source " ++ (tcFileName tc) ++ ", block index " ++ (show $ tcIndex tc)
 
 loadTestCases :: FilePath -> IO [TestCase]
 loadTestCases filename = makeTestCases filename <$> extractExamples <$> TIO.readFile filename
