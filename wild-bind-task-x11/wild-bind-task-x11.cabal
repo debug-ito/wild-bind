@@ -18,7 +18,8 @@ library
   hs-source-dirs:       src
   ghc-options:          -Wall -fno-warn-unused-imports
   default-extensions:   OverloadedStrings
-  exposed-modules:      WildBind.Task.X11
+  exposed-modules:      WildBind.Task.X11,
+                        WildBind.Task.X11.Seq.Example
   -- other-modules:
   build-depends:        base >=4.6 && <5.0,
                         wild-bind >=0.1.0 && <0.2,
