@@ -5,6 +5,28 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 -- This module defines functions to emulate key inputs.
+--
+-- Synopsis:
+--
+-- > {-# LANGUAGE OverloadedStrings #-}
+-- > import WildBind
+-- >   ( Binding,
+-- >     wildBind, bindsF, on, as, run
+-- >   )
+-- > import WildBind.X11
+-- >   ( X11Front, XKeyEvent, ActiveWindow,
+-- >     withX11Front, makeFrontEnd,
+-- >     alt, ctrl, press, release
+-- >   )
+-- > import WildBind.X11.KeySym (xK_c, xK_w)
+-- > import WildBind.X11.Emulate (sendKey)
+-- > 
+-- > main :: IO ()
+-- > main = withX11Front $ \x11 -> wildBind (myBinding x11) (makeFrontEnd x11)
+-- > 
+-- > myBinding :: X11Front XKeyEvent -> Binding ActiveWindow XKeyEvent
+-- > myBinding x11 = bindsF $ do
+-- >   on (alt xK_w) `as` "Copy" `run` sendKey x11 (ctrl xK_c)
 module WildBind.X11.Emulate
        ( -- * Create key inputs
          sendKeyTo,
