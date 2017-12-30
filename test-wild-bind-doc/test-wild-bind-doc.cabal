@@ -13,11 +13,12 @@ test-suite spec
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m"
   main-is:              ReadmeTest.hs
-  default-extensions:   OverloadedStrings
-  other-extensions:     QuasiQuotes
+  other-extensions:     QuasiQuotes,
+                        OverloadedStrings
   build-depends:        base >=0 && <999.99,
                         wild-bind-task-x11 >=0 && <999.99,
                         hspec >=0 && <999.99,
                         directory >=0 && <999.99,
                         process >=0 && <999.99,
-                        raw-strings-qq >=0 && <999.99
+                        raw-strings-qq >=0 && <999.99,
+                        text >=0 && <999.99
