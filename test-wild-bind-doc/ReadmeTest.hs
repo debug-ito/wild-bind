@@ -7,7 +7,7 @@ import Control.Monad (forM_)
 import Data.Bool (bool)
 import Data.Foldable (foldl')
 import Data.List (isPrefixOf, reverse, stripPrefix, span)
-import Data.Char (isSpace)
+import Data.Char (isSpace, toLower)
 import System.Directory (doesFileExist, removeFile)
 import System.Environment (lookupEnv)
 import System.Exit (ExitCode(ExitSuccess))
@@ -54,20 +54,21 @@ extractExamples = obtainResult . foldl' f start . lines where
   start = CodeAcc Nothing []
   f acc line = case caCurrent acc of
     Nothing | line == "```haskell" -> acc { caCurrent = Just ("", "") }
-            | otherwise -> case mblock of
+            | otherwise -> case stripSpacedPrefix "-- > " line of
               Nothing -> acc
-              Just (block, prefix) -> acc { caCurrent = Just $ (block ++ "\n", prefix) }
+              Just (block, prefix) -> if startOfExample block
+                                      then acc { caCurrent = Just $ (block ++ "\n", prefix) }
+                                      else acc
     Just (cur, prefix) -> case stripPrefix prefix line of
       Nothing -> finish cur acc
       Just line_body | line_body == "```" -> finish cur acc
                      | "#!" `isPrefixOf` line_body -> acc
                      | otherwise -> acc { caCurrent = Just $ (cur ++ line_body ++ "\n", prefix) }
-    where
-      mblock = stripSpacedPrefix "-- > " line
   finish cur acc = CodeAcc { caCurrent = Nothing,
                              caResult = cur : caResult acc
                            }
   obtainResult CodeAcc { caCurrent = mcur, caResult = ret } = reverse $ maybe ret (\(cur, _) -> cur : ret) mcur
+  startOfExample line = map toLower line == "-- example"
 
 stripSpacedPrefix :: Prefix -> String -> Maybe (String, Prefix)
 stripSpacedPrefix prefix = makeResult . span isSpace

@@ -8,6 +8,8 @@
 --
 -- Synopsis:
 --
+-- > -- Example
+-- > 
 -- > {-# LANGUAGE OverloadedStrings #-}
 -- > import WildBind
 -- >   ( Binding,
