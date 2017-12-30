@@ -19,22 +19,27 @@ import Text.RawString.QQ (r)
 main :: IO ()
 main = do
   stack_opts <- getStackOpts
-  withREADME $ \readme_doc -> hspec $ sequence_ $ map (specFor stack_opts) $ makeTestCases $ extractExamples readme_doc
+  withTestCases "../README.md" $ \readme -> do
+    hspec $ specFor stack_opts readme
 
-specFor :: String -> TestCase -> Spec
-specFor stack_opts tc = describe label $ do
-  it "should compile OK" $ checkCompile stack_opts tc
+specFor :: String -> [TestCase] -> Spec
+specFor stack_opts tcs = sequence_ $ map singleSpec tcs
   where
-    label = "==== example " ++ (show $ tcIndex tc)
+    singleSpec tc = describe label $ it "should compile OK" $ checkCompile stack_opts tc
+      where
+        label = "==== " ++ (tcFileName tc) ++ ": " ++ (show $ tcIndex tc)
 
-withREADME :: (String -> IO a) -> IO a
-withREADME cont = withFile "../README.md" ReadMode $ \h -> cont =<< hGetContents h
+withTestCases :: String -> ([TestCase] -> IO a) -> IO a
+withTestCases filename cont = withFile filename ReadMode $ \h -> cont =<< loadFile h
+  where
+    loadFile handle = makeTestCases filename <$> extractExamples <$> hGetContents handle
 
 type CodeBlock = String
 
 data TestCase = TestCase { tcIndex :: Int,
                            tcPrefix :: CodeBlock,
-                           tcBody :: CodeBlock
+                           tcBody :: CodeBlock,
+                           tcFileName :: String
                          } deriving (Show,Eq,Ord)
 
 data CodeAcc = CodeAcc { caCurrent :: Maybe CodeBlock,
@@ -117,12 +122,12 @@ pushKey key = spawnCommand ("xdotool key " <> key)
 |]
 
 
-
-makeTestCases :: [CodeBlock] -> [TestCase]
-makeTestCases = map f . zip [0 ..] where
+makeTestCases :: String -> [CodeBlock] -> [TestCase]
+makeTestCases filename blocks = map f $ zip [0 ..] blocks where
   f (i, cb) = TestCase { tcIndex = i,
                          tcPrefix = prefixFor i,
-                         tcBody = cb
+                         tcBody = cb,
+                         tcFileName = filename
                        }
 
 getStackOpts :: IO String
