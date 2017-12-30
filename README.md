@@ -26,6 +26,7 @@ WildBind started as a binding framework for **number pad keys**, but now it supp
 - [Types and Modules](#types-and-modules)
 - [Stateful Binding](#stateful-binding)
 - [Binding for Generic Keys](#binding-for-generic-keys)
+- [Key Event Emulation](#key-event-emulation)
 - [External Tools](#external-tools)
 - [Advanced Topics](#advanced-topics)
 
@@ -336,6 +337,10 @@ This time the input key type of `myBinding` is `XKeyEvent`, which has the follow
 
 
 ## Key Event Emulation
+
+WildBind can emulate key events, that is, generate synthetic keyboard input events.
+
+See [WildBind.X11.Emulate](https://hackage.haskell.org/package/wild-bind-x11/docs/WildBind-X11-Emulate.html) module for detail.
 
 ## Binding for Key Sequences
 
