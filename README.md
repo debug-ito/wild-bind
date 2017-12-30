@@ -27,6 +27,7 @@ WildBind started as a binding framework for **number pad keys**, but now it supp
 - [Stateful Binding](#stateful-binding)
 - [Binding for Generic Keys](#binding-for-generic-keys)
 - [Key Event Emulation](#key-event-emulation)
+- [Binding for Key Sequences](#binding-for-key-sequences)
 - [External Tools](#external-tools)
 - [Advanced Topics](#advanced-topics)
 
@@ -344,6 +345,7 @@ See [WildBind.X11.Emulate](https://hackage.haskell.org/package/wild-bind-x11/doc
 
 ## Binding for Key Sequences
 
+The module [WildBind.Seq](https://hackage.haskell.org/package/wild-bind/docs/WildBind-Seq.html) exports some functions to build binding for key sequences. Check out [the module documentation](https://hackage.haskell.org/package/wild-bind/docs/WildBind-Seq.html) for detail.
 
 ## External Tools
 
