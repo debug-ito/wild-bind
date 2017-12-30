@@ -22,9 +22,7 @@ import Text.RawString.QQ (r)
 
 main :: IO ()
 main = do
-  let sources = [ "../README.md",
-                  "../wild-bind-x11/src/WildBind/X11/Emulate.hs",
-                  "../wild-bind/src/WildBind/Seq.hs"
+  let sources = [ "../README.md"
                 ]
   stack_opts <- getStackOpts
   cases <- concat <$> mapM loadTestCases sources
