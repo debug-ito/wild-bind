@@ -76,23 +76,25 @@ stripSpacedPrefix prefix = makeResult . span isSpace
       body <- stripPrefix prefix rest
       return (body, spaces ++ prefix)
 
-prefixFor :: Int -> CodeBlock
-prefixFor 2 = prefix_basic_process
-prefixFor 3 = prefix_basic_process
-prefixFor 4 = prefix_with_pushKey
-prefixFor 5 = prefix_with_pushKey ++ [r|
+prefixFor :: String -> Int -> CodeBlock
+prefixFor "../README.md" index = readme index
+  where
+    readme 2 = prefix_basic_process
+    readme 3 = prefix_basic_process
+    readme 4 = prefix_with_pushKey
+    readme 5 = prefix_with_pushKey ++ [r|
 myBinding = forFirefox
 
 |]
 
-prefixFor 6 = prefix_basic_process ++ [r|
+    readme 6 = prefix_basic_process ++ [r|
 myBinding = binds $ do
   on NumCenter `run` putStrLn "Hello, world!"
 
 |]
 
-prefixFor 7 = prefix_basic_process
-prefixFor 9 = [r|
+    readme 7 = prefix_basic_process
+    readme 9 = [r|
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Task.X11
 
@@ -109,8 +111,9 @@ myBinding :: Binding ActiveWindow NumPadUnlocked
 myBinding = startFrom 0 myBinding'  --------------------------------- (4)
 
 |]
+    readme _ = ""
 
-prefixFor _ = ""
+prefixFor _ _ = ""
 
 prefix_basic_process :: CodeBlock
 prefix_basic_process =  [r|
@@ -133,7 +136,7 @@ pushKey key = spawnCommand ("xdotool key " <> key)
 makeTestCases :: String -> [CodeBlock] -> [TestCase]
 makeTestCases filename blocks = map f $ zip [0 ..] blocks where
   f (i, cb) = TestCase { tcIndex = i,
-                         tcPrefix = prefixFor i,
+                         tcPrefix = prefixFor filename i,
                          tcBody = cb,
                          tcFileName = filename
                        }
