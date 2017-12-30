@@ -6,7 +6,8 @@ import Control.Exception (finally)
 import Control.Monad (forM_)
 import Data.Bool (bool)
 import Data.Foldable (foldl')
-import Data.List (isPrefixOf, reverse)
+import Data.List (isPrefixOf, reverse, stripPrefix, dropWhile)
+import Data.Char (isSpace)
 import System.Directory (doesFileExist, removeFile)
 import System.Environment (lookupEnv)
 import System.Exit (ExitCode(ExitSuccess))
@@ -45,16 +46,22 @@ extractExamples = obtainResult . foldl' f start . lines where
   start = CodeAcc Nothing []
   f acc line = case caCurrent acc of
     Nothing | line == "```haskell" -> acc { caCurrent = Just "" }
-            | otherwise -> acc
+            | otherwise -> case mblock of
+              Nothing -> acc
+              Just block -> acc { caCurrent = Just block }
     Just cur | line == "```" -> finish cur acc
-             | "#!" `isPrefixOf` line -> acc
-             | otherwise -> acc { caCurrent = Just $ (cur ++ line ++ "\n") }
+             | "#!" `isPrefixOf` blockline -> acc
+             | otherwise -> acc { caCurrent = Just $ (cur ++ blockline ++ "\n") }
+    where
+      mblock = stripCodeBlockPrefix line
+      blockline = maybe line id mblock
   finish cur acc = CodeAcc { caCurrent = Nothing,
                              caResult = cur : caResult acc
                            }
   obtainResult CodeAcc { caCurrent = mcur, caResult = ret } = reverse $ maybe ret (\cur -> cur : ret) mcur
-  
 
+stripCodeBlockPrefix :: String -> Maybe String
+stripCodeBlockPrefix = stripPrefix "-- > " . dropWhile isSpace
 
 prefixFor :: Int -> CodeBlock
 prefixFor 2 = prefix_basic_process
