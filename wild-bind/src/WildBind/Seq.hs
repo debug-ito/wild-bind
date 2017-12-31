@@ -10,6 +10,8 @@
 -- For example, see
 -- [WildBind.Task.X11.Seq.Example in wild-bind-task-x11](https://hackage.haskell.org/package/wild-bind-task-x11/docs/WildBind-Task-X11-Seq-Example.html) package.
 --
+-- @since 0.1.1.0
+--
     
 module WildBind.Seq
        ( -- * Simple API

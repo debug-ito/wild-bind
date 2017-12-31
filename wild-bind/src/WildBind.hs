@@ -29,7 +29,7 @@ module WildBind
 -- | The following modules are not re-exported from this module.
 --
 -- - "WildBind.Seq": support module to build a binding to key
---   sequences.
+--   sequences. /Since: 0.1.1.0/
        ) where
 
 

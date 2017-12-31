@@ -113,10 +113,14 @@ after :: (Applicative m)
 after hook act = act { actDo = actDo act <* hook }
 
 -- | Same as 'before', but it returns 'Just'.
+--
+-- @since 0.1.1.0
 justBefore :: (Applicative m) => m b -> Action m a -> Maybe (Action m a)
 justBefore m a = Just $ before m a
 
 -- | Same as 'after', but it returns 'Just'.
+--
+-- @since 0.1.1.0
 justAfter :: (Applicative m) => m b -> Action m a -> Maybe (Action m a)
 justAfter m a = Just $ after m a
 
@@ -228,6 +232,8 @@ binds = binding . flip runBinder []
 
 -- | Like 'binds', but this function allows actions to use the current
 -- front-end state via 'ReaderT'.
+--
+-- @since 0.1.1.0
 bindsF :: Ord i => Binder i (Action (ReaderT fs IO) r) a -> Binding' bs fs i
 bindsF = bindingF . flip runBinder []
 
@@ -239,6 +245,8 @@ binds' = binding' . flip runBinder []
 
 -- | Like 'binds'', but this function allows actions to use the
 -- current front-end state via 'ReaderT'.
+--
+-- @since 0.1.1.0
 bindsF' :: Ord i => Binder i (Action (StateT bs (ReaderT fs IO)) r) a -> Binding' bs fs i
 bindsF' = bindingF' . flip runBinder []
 
@@ -278,6 +286,8 @@ binding :: Ord i => [(i, Action IO r)] -> Binding' bs fs i
 binding = statelessBinding . fmap liftActionR . M.fromList
 
 -- | Non-monadic version of 'bindsF'.
+--
+-- @since 0.1.1.0
 bindingF :: Ord i => [(i, Action (ReaderT fs IO) r)] -> Binding' bs fs i
 bindingF = statelessBinding . M.fromList
 
@@ -383,6 +393,8 @@ binding' = statefulBinding . fmap addR . M.fromList where
   addR = mapActDo $ mapStateT lift
 
 -- | Non-monadic version of 'bindsF''.
+--
+-- @since 0.1.1.0
 bindingF' :: Ord i => [(i, Action (StateT bs (ReaderT fs IO)) r)] -> Binding' bs fs i
 bindingF' = statefulBinding . M.fromList
 
@@ -391,6 +403,8 @@ statefulBinding bind_map = impl where
   impl = Binding' $ \_ _ -> mapActResult (const impl) bind_map
 
 -- | Revise (modify) actions in the given 'Binding''.
+--
+-- @since 0.1.1.0
 revise :: (forall a . bs -> fs -> i -> Action IO a -> Maybe (Action IO a))
        -- ^ A function to revise the action. If it returns 'Nothing',
        -- the action is unbound.
@@ -404,6 +418,8 @@ revise f = reviseThis where
   convertResult = fmap reviseThis . mapActDo redoSRIM
 
 -- | Like 'revise', but this function allows revising the back-end state.
+--
+-- @since 0.1.1.0
 revise' :: (forall a . bs -> fs -> i -> Action (StateT bs IO) a -> Maybe (Action (StateT bs IO) a))
         -> Binding' bs fs i
         -> Binding' bs fs i

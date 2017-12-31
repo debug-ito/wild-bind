@@ -18,5 +18,6 @@ type ActionDescription = Text
 class Describable d where
   describe :: d -> ActionDescription
 
+-- | @since 0.1.1.0
 instance (Describable a, Describable b) => Describable (Either a b) where
   describe = either describe describe
