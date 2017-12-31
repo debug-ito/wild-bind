@@ -308,6 +308,8 @@ makeStatusMenu ind = impl where
 --
 -- If the contra-mapper function returns 'Nothing', those input
 -- symbols are ignored by the 'Indicator'.
+--
+-- @since 0.2.0.0
 adaptIndicator :: (i -> i') -- ^ mapper function
                -> (i' -> Maybe i) -- ^ contra-mapper function
                -> Indicator s i -- ^ original
@@ -322,6 +324,8 @@ adaptIndicator mapper cmapper ind =
       Just orig_input -> updateDescription ind orig_input
 
 -- | A binding that toggles presence of the 'Indicator'.
+--
+-- @since 0.2.0.0
 toggleBinding :: (NumPadPosition i, Ord i, Enum i, Bounded i)
               => Indicator s i
               -> NumPadLocked -- ^ the button to bind the 'togglePresence' action
