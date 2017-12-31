@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 -- |
 -- Module: WildBind.X11.Internal.Window
 -- Description: types and functions related to X11 windows

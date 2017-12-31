@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, TypeSynonymInstances, OverloadedStrings #-}
 -- |
 -- Module: WildBind.X11.Internal.Key
 -- Description: types and functions related to key symbols and their conversion
