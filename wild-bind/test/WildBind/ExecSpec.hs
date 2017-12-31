@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module WildBind.ExecSpec (main, spec) where
 
 import Control.Applicative ((<$>))

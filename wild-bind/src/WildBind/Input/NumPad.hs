@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 -- |
 -- Module: WildBind.Input.NumPad
 -- Description: Types about number pads

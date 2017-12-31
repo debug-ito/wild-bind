@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, RankNTypes, OverloadedStrings #-}
 -- |
 -- Module: WildBind.Binding
 -- Description: Functions to build Binding

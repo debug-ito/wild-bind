@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings, RankNTypes #-}
 -- |
 -- Module: WildBind.Seq
 -- Description: Support for binding sequence of input events.

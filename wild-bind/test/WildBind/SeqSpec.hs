@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module WildBind.SeqSpec (main,spec) where
 
 import Control.Applicative ((<*>))

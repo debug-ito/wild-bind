@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes, OverloadedStrings #-}
 module WildBind.BindingSpec (main, spec) where
 
 import Control.Applicative ((<$>), (<*>), pure)
