@@ -53,12 +53,16 @@ import WildBind.Description (Describable(..))
 import qualified WildBind.Input.NumPad as NumPad
 
 -- | Whether the key is pressed or released.
+--
+-- @since 0.2.0.0
 data KeyEventType = KeyPress
                   | KeyRelease
                   deriving (Show,Eq,Ord,Bounded,Enum)
 
 -- | 'Xlib.KeyMask' values assigned to each modifier keys/states. If
 -- the modifier doesn't exist, the mask is 0.
+--
+-- @since 0.2.0.0
 data KeyMaskMap =
   KeyMaskMap
   { maskShift :: Xlib.KeyMask,
@@ -80,6 +84,8 @@ isMasked kmmap accessor target = if (target .&. accessor kmmap) == 0
 -- | Class of data types that can be handled by X11. The data type can
 -- tell X11 to grab key with optional modifiers, and it can be
 -- extracted from a X11 Event object.
+--
+-- @since 0.2.0.0
 class XKeyInput k where
   toKeySym :: k -> Xlib.KeySym
   -- ^ Get the X11 keysym for this input.
@@ -174,6 +180,8 @@ instance (XKeyInput a, XKeyInput b) => XKeyInput (Either a b) where
     (fmap Left $ fromKeyEvent kmmap ev_type keysym mask) <|> (fmap Right $ fromKeyEvent kmmap ev_type keysym mask)
 
 -- | Extract the 'XKeyInput' from the XKeyEvent.
+--
+-- @since 0.2.0.0
 xKeyEventToXKeyInput :: XKeyInput k => KeyMaskMap -> KeyEventType -> Xlib.XKeyEventPtr -> MaybeT IO k
 xKeyEventToXKeyInput kmmap ev_type kev = do
   keysym <- MaybeT (fst <$> Xlib.lookupString kev)
@@ -183,6 +191,8 @@ xKeyEventToXKeyInput kmmap ev_type kev = do
 type XModifierMap = [(Xlib.Modifier, [Xlib.KeyCode])]
 
 -- | Get current 'KeyMaskMap'.
+--
+-- @since 0.2.0.0
 getKeyMaskMap :: Xlib.Display -> IO KeyMaskMap
 getKeyMaskMap disp = do
   xmodmap <- getXModifierMap disp
@@ -230,6 +240,8 @@ modifierToKeyMask = Bits.shift 1 . fromIntegral
 
 -- | Grab the specified key on the specified window. The key is
 -- captured from now on, so the window won't get that.
+--
+-- @since 0.2.0.0
 xGrabKey :: Xlib.Display -> Xlib.Window -> Xlib.KeySym -> Xlib.KeyMask -> IO ()
 xGrabKey disp win key mask = do
   code <- Xlib.keysymToKeycode disp key
@@ -240,12 +252,16 @@ xGrabKey disp win key mask = do
 -- exception.
 
 -- | Release the grab on the specified key.
+--
+-- @since 0.2.0.0
 xUngrabKey :: Xlib.Display -> Xlib.Window -> Xlib.KeySym -> Xlib.KeyMask -> IO ()
 xUngrabKey disp win key mask = do
   code <- Xlib.keysymToKeycode disp key
   Xlib.ungrabKey disp code mask win
 
 -- | X11 key modifiers.
+--
+-- @since 0.2.0.0
 data XMod = Shift
           | Ctrl
           | Alt
@@ -253,6 +269,8 @@ data XMod = Shift
           deriving (Show,Eq,Ord,Enum,Bounded)
 
 -- | High-level X11 key event.
+--
+-- @since 0.2.0.0
 data XKeyEvent =
   XKeyEvent
   { xKeyEventType :: KeyEventType, 
@@ -271,6 +289,8 @@ instance XKeyInput XKeyEvent where
   fromKeyEvent kmmap ev_type keysym mask = Just $ XKeyEvent ev_type (keyMaskToXMods kmmap mask) keysym
 
 -- | Something that can converted to 'XKeyEvent'.
+--
+-- @since 0.2.0.0
 class ToXKeyEvent k where
   toXKeyEvent :: k -> XKeyEvent
 
@@ -328,35 +348,51 @@ keyMaskToXMods kmmap mask = S.fromList$ toXMod =<< [ (maskShift, Shift),
                                else []
 
 -- | Add a 'XMod' to 'xKeyEventMods'.
+--
+-- @since 0.2.0.0
 addXMod :: ToXKeyEvent k => XMod -> k -> XKeyEvent
 addXMod modi mkey = case toXKeyEvent mkey of
   XKeyEvent ev_type mods ks -> XKeyEvent ev_type (S.insert modi mods) ks
 
 -- | Set 'KeyPress' to 'xKeyEventType'.
+--
+-- @since 0.2.0.0
 press :: ToXKeyEvent k => k -> XKeyEvent
 press k = (toXKeyEvent k) { xKeyEventType = KeyPress }
 
 -- | Set 'KeyRelease' to 'xKeyEventType'.
+--
+-- @since 0.2.0.0
 release :: ToXKeyEvent k => k -> XKeyEvent
 release k = (toXKeyEvent k) { xKeyEventType = KeyRelease }
 
 -- | Add 'Shift' modifier to 'xKeyEventMods'.
+--
+-- @since 0.2.0.0
 shift :: ToXKeyEvent k => k -> XKeyEvent
 shift = addXMod Shift
 
 -- | Add 'Ctrl' modifier to 'xKeyEventMods'.
+--
+-- @since 0.2.0.0
 ctrl :: ToXKeyEvent k => k -> XKeyEvent
 ctrl = addXMod Ctrl
 
 -- | Add 'Alt' modifier to 'xKeyEventMods'.
+--
+-- @since 0.2.0.0
 alt :: ToXKeyEvent k => k -> XKeyEvent
 alt = addXMod Alt
 
 -- | Add 'Super' modifier to 'xKeyEventMods'.
+--
+-- @since 0.2.0.0
 super :: ToXKeyEvent k => k -> XKeyEvent
 super = addXMod Super
 
 -- | Send a 'XKeyEvent' to the window.
+--
+-- @since 0.2.0.0
 xSendKeyEvent :: KeyMaskMap -> Xlib.Display -> Xlib.Window -> XKeyEvent -> IO ()
 xSendKeyEvent kmmap disp target_win key_event = Xlib.allocaXEvent $ \xev -> do
   setupXEvent xev

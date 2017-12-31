@@ -50,7 +50,10 @@ data Window =
   { winInstance :: Text,  -- ^ name of the application instance (part of @WM_CLASS@ property)
     winClass :: Text, -- ^ name of the application class (part of @WM_CLASS@ property)
     winName :: Text,  -- ^ what's shown in the title bar
-    winID :: Xlib.Window -- ^ X11 window ID
+    winID :: Xlib.Window
+    -- ^ X11 window ID.
+    --
+    -- @since 0.2.0.0
   } deriving (Eq,Ord,Show)
 
 -- | Use this type especially when the 'Window' is active.
@@ -61,6 +64,8 @@ emptyWindow :: Window
 emptyWindow = Window "" "" "" 0
 
 -- | Create 'Window' from X11's 'Xlib.Window'. Only for testing.
+--
+-- @since 0.2.0.0
 fromWinID :: Xlib.Window -> Window
 fromWinID wid = emptyWindow { winID = wid }
 
@@ -75,6 +80,8 @@ getActiveWindow disp = maybe emptyWindow id <$> runMaybeT getActiveWindowM where
     return $ (uncurry Window) class_hint name awin
 
 -- | Get the default root window of the display.
+--
+-- @since 0.2.0.0
 defaultRootWindowForDisplay :: Xlib.Display -> Window
 defaultRootWindowForDisplay disp = Window "" "" "" $ Xlib.defaultRootWindow disp
 

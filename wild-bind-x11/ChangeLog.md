@@ -1,5 +1,17 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.0  -- [TODO]
+
+* Fix crash when some kind of window (e.g. xdvi) is active. 
+* Remove `KeySymLike` and `ModifierLike` classes.
+* Add `XMod`, `KeyEventType`, `XKeyEvent`, `X11Front`  types.
+* Add `XKeyInput`, `ToXKeyEvent` classes.
+* Add `withX11Front`, `makeFrontEnd`, `press`, `release`,
+  `addXMod`, `shift`, `alt`, `ctrl`, `super`, `defaultRootWindow` functions.
+* Add `WildBind.X11.Emulate`, `WildBind.X11.Emulate.Example` and `WildBind.X11.KeySym` modules.
+* Changed signature of `xGrabKey` and `xUngrabKey` functions.
+
+
 ## 0.1.0.7  -- 2017-07-21
 
 * Confirmed build with `time-1.8`.

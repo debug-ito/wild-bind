@@ -7,6 +7,8 @@
 -- This module defines functions to emulate key inputs.
 --
 -- See "WildBind.X11.Emulate.Example" for an example.
+--
+-- @since 0.2.0.0
 module WildBind.X11.Emulate
        ( -- * Create key inputs
          sendKeyTo,

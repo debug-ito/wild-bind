@@ -56,6 +56,8 @@ import qualified WildBind.X11.Internal.GrabMan as GM
 --
 -- 'X11Front' is relatively low-level interface, so it's more likely
 -- for this API to change in the future than 'FrontEnd'.
+--
+-- @since 0.2.0.0
 data X11Front k =
   X11Front { x11Display :: Xlib.Display,
              x11Debouncer :: Ndeb.Debouncer,
@@ -104,6 +106,8 @@ withFrontEnd action = withX11Front' "WildBind.X11.withFrontEnd" $ \x11front -> a
 
 -- | Same as 'withFrontEnd', but it creates 'X11Front'. To create
 -- 'FrontEnd', use 'makeFrontEnd'.
+--
+-- @since 0.2.0.0
 withX11Front :: (X11Front k -> IO a) -> IO a
 withX11Front = withX11Front' "WildBind.X11.withX11Front"
 
@@ -198,6 +202,8 @@ nextEvent handle = loop where
     return fevent
 
 -- | Create 'FrontEnd' from 'X11Front' object.
+--
+-- @since 0.2.0.0
 makeFrontEnd :: (XKeyInput k, WBD.Describable k, Ord k) => X11Front k -> FrontEnd ActiveWindow k
 makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
                             frontSetGrab = runGrab GM.DoSetGrab,
@@ -208,5 +214,7 @@ makeFrontEnd f = FrontEnd { frontDefaultDescription = WBD.describe,
     runGrab = GM.modify (x11GrabMan f)
 
 -- | Get the default root window.
+--
+-- @since 0.2.0.0
 defaultRootWindow :: X11Front k -> Window
 defaultRootWindow = defaultRootWindowForDisplay . x11Display

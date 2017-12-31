@@ -4,6 +4,8 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 -- This module re-exports X11 'KeySym's.
+--
+-- @since 0.2.0.0
 module WildBind.X11.KeySym
        ( -- * The type
          KeySym,

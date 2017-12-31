@@ -5,6 +5,8 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 -- This is an example of using "WildBind.X11.Emulate". See the source.
+--
+-- @since 0.2.0.0
 module WildBind.X11.Emulate.Example
        where
 
