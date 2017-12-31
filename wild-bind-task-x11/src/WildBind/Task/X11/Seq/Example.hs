@@ -5,6 +5,8 @@
 --
 -- This is an example of using "WildBind.Seq" module to build bindings
 -- for key sequences. See the source.
+--
+-- @since 0.2.0.0
 module WildBind.Task.X11.Seq.Example
        where
 
