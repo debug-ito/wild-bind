@@ -16,11 +16,12 @@ module WildBind.ForTest
          withRefChecker
        ) where
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative ((<$>), (<*>), pure)
 import Control.Monad (join)
 import Control.Monad.IO.Class (liftIO, MonadIO)
 import qualified Control.Monad.Trans.State as State
 import Data.IORef (IORef, newIORef, readIORef)
+import Data.Monoid (mempty)
 import Test.QuickCheck (Arbitrary(arbitrary,shrink), arbitraryBoundedEnum)
 import Test.Hspec (shouldReturn, shouldMatchList, shouldBe)
 
