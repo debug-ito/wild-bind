@@ -37,7 +37,7 @@ library
                         mtl >=2.2.1 && <2.3,
                         fold-debounce >=0.2.0 && <0.3,
                         stm >=2.4.2 && <2.5,
-                        semigroups
+                        semigroups >=0.16.2.2 && <0.19
 
 -- executable wild-bind-x11
 --   default-language:     Haskell2010
