@@ -153,7 +153,7 @@ spec_SeqBinding = describe "SeqBinding" $ do
 spec_reviseSeq :: Spec
 spec_reviseSeq = describe "reviseSeq" $ do
   it "should allow access to prefix keys input so far" $ evalStateEmpty $ withRefChecker [] $ \out checkOut -> do
-    act_out <- liftIO $ newIORef ""
+    act_out <- liftIO $ newIORef ("" :: String)
     let sb = withCancel [SIa] $ withPrefix [SIa, SIb, SIc] $ toSeq $ base_b
         base_b = binds $ on SIb `as` "B" `run` modifyIORef act_out (++ "B executed")
         rev ps _ _ = justBefore $ modifyIORef out (++ [ps])
