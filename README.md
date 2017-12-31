@@ -158,7 +158,7 @@ forVLC = whenFront isVLC $ binds $ do  ------------------------------ (6)
 
 The above script makes binding on → and ← keys on a num pad, but they behave differently for different applications.
 
-First, we define a support function `pushKey` **(1)**. It generates a fake keyboard input specified by the argument. It uses an external tool called [xdotool](https://github.com/jordansissel/xdotool).
+First, we define a support function `pushKey` **(1)**. It generates a fake keyboard input specified by the argument. For now we use an external tool called [xdotool](https://github.com/jordansissel/xdotool), but WildBind also supports generating keyboard input. See ["Key Event Emulation"](#key-event-emulation) below if interested.
 
 Then we define `myBinding` **(2)**, which is combination of one for Firefox and one for VLC media player.
 
@@ -328,18 +328,20 @@ myBinding = binds $ do
   on (alt xK_F1) `as` "Alt + F1" `run` putStrLn "Pushed Alt + F1"
 ```
 
-`withFrontEnd` function creates the X11 FrontEnd object, and `wildBind` function combines the FrontEnd and `myBinding`.
+Instead of `wildNumPad` function used so far, we use `withFrontEnd` and `wildBind` functions to implement `main`. `withFrontEnd` function creates the X11 FrontEnd object, and `wildBind` function combines the FrontEnd and `myBinding`.
 
 This time the input key type of `myBinding` is `XKeyEvent`, which has the following three fields:
 
 - X11 KeySym for the key. They are exported from [WildBind.X11.KeySym](https://hackage.haskell.org/package/wild-bind-x11/docs/WildBind-X11-KeySym.html).
 - Whether the event is `press` or `release`. By default, it's `press`.
-- Optional modifier keys such as `ctrl` or `alt`.
+- Optional modifier keys such as `ctrl` and `alt`.
+
+The above example makes binding to `Ctrl + C` and `Alt + F1`. This means you can use WildBind for a generic key binding tool such as [XBindKeys](http://www.nongnu.org/xbindkeys/xbindkeys.html). WildBind, however, supports dynamic binding and Haskell programming.
 
 
 ## Key Event Emulation
 
-WildBind can emulate key events, that is, generate synthetic keyboard input events.
+WildBind can emulate key events, that is, generate fake (synthetic) keyboard input events.
 
 See [WildBind.X11.Emulate](https://hackage.haskell.org/package/wild-bind-x11/docs/WildBind-X11-Emulate.html) module and [its example](https://hackage.haskell.org/package/wild-bind-x11/docs/WildBind-X11-Emulate-Example.html) for detail.
 
