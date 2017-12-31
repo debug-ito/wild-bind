@@ -2,6 +2,8 @@
 
 ## 0.1.0.7  -- 2017-07-21
 
+* Confirmed build with `time-1.8`.
+
 ## 0.1.0.6  -- 2017-02-10
 
 * Confirmed build with `X11-1.8`.
