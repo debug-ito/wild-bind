@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 -- |
 -- Module: WildBind.Indicator
 -- Description: Graphical indicator for WildBind
