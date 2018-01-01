@@ -1,6 +1,6 @@
 # Revision history for wild-bind-indicator
 
-## 0.2.0.0  -- [TODO]
+## 0.2.0.0  -- 2018-01-01
 
 * Modify constraints of `withNumPadIndicator`, `wildBindWithIndicator`, `bindingHook` functions.
 * Add `adaptIndicator`, `toggleBinding` functions.
