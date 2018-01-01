@@ -1,6 +1,6 @@
 # Revision history for wild-bind
 
-## 0.1.1.0  -- [TODO]
+## 0.1.1.0  -- 2018-01-01
 
 * Description: add `Describable` instance of `Either`.
 * Binding: add some functions: 
