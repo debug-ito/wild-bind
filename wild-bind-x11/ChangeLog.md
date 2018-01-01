@@ -1,6 +1,6 @@
 # Revision history for wild-bind-x11
 
-## 0.2.0.0  -- [TODO]
+## 0.2.0.0  -- 2018-01-01
 
 * Fix crash when some kind of window (e.g. xdvi) is active. 
 * Remove `KeySymLike` and `ModifierLike` classes.
