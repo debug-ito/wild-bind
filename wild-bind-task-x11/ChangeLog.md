@@ -1,6 +1,6 @@
 # Revision history for wild-bind-task-x11
 
-## 0.2.0.0  -- [TODO]
+## 0.2.0.0  -- 2018-01-01
 
 * Modify constraints of `wildNumPad` and `wildNumPad'` functions
   because of the change in wild-bind-x11-0.2.0.0 package.
