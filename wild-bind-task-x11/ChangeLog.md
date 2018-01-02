@@ -1,5 +1,11 @@
 # Revision history for wild-bind-task-x11
 
+## 0.2.0.1  -- 2017-01-02
+
+* Fix dependency version bounds for wild-bind family packages.
+  (gh#3, thanks to @peti)
+
+
 ## 0.2.0.0  -- 2018-01-01
 
 * Modify constraints of `wildNumPad` and `wildNumPad'` functions
