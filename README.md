@@ -29,6 +29,7 @@ WildBind started as a binding framework for **number pad keys**, but now it supp
 - [Key Event Emulation](#key-event-emulation)
 - [Binding for Key Sequences](#binding-for-key-sequences)
 - [External Tools](#external-tools)
+- [See Also](#see-also)
 - [Advanced Topics](#advanced-topics)
 
 
@@ -356,13 +357,21 @@ There are some tools that are pretty useful in combination with WildBind. You ca
 - [xdotool](https://github.com/jordansissel/xdotool): We have already introduced this module above. It is an automation tool for X11. It inspects windows, manipulates windows and generates keyboard/mouse events.
 - [xautomation](https://www.hoopajoo.net/projects/xautomation.html): It is similar to xdotool, but it also contains a program called `visgrep`.  `visgrep` is a simple image matching tool. It searches an image for an image pattern, and returns its location.
 - [wmctrl](https://sites.google.com/site/tstyblo/wmctrl): It is a tool to interact with window managers for X11. It inspects and manipulates windows.
+- [xprop](https://www.x.org/archive/X11R7.5/doc/man/man1/xprop.1.html): A tool to inspect X11 windows. You can inspect `WM_CLASS` property of a window.
 - [boring-window-switcher](https://github.com/debug-ito/boring-window-switcher): It is a pretty simple window switcher for X11. It is useful when you want to switch windows ONLY WITH YOUR NUMBER PAD.
 
+## See Also
+
+Other tools similar to WildBind.
+
+- [XBindKeys](http://www.nongnu.org/xbindkeys/): A famous key binding daemon. Like wild-bind-x11, it uses X11 events to capture key inputs.
+- [xremap](https://github.com/k0kubun/xremap): A key remapper that supports Ruby DSL. Like wild-bind-x11, it uses X11 events to capture key inputs.
+- [rbindkeys](https://github.com/kui/rbindkeys): Like xremap, but this uses Linux Input Subsystem to capture key inputs.
+- [xkeysnail](https://github.com/mooz/xkeysnail): A key remmaper and binding tool that supports Python 3 DSL. It uses Linux Input Subsystem.
 
 ## Advanced Topics
 
 Advanced topics, such as wild-bind package architecture, can be found in [wild-bind's package README](https://github.com/debug-ito/wild-bind/tree/master/wild-bind).
-
 
 
 ## Author
