@@ -1,5 +1,10 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.1  -- 2018-02-06
+
+* Confirmed test with `async-2.2.1`.
+
+
 ## 0.2.0.0  -- 2018-01-01
 
 * Fix crash when some kind of window (e.g. xdvi) is active. 
