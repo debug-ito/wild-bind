@@ -1,5 +1,11 @@
 # Revision history for wild-bind
 
+## 0.1.1.1  -- 2018-03-14
+
+* Confirmed test with `hspec-2.5.0`.
+  Remove its dependency upper bound, because I think it's stable enough.
+
+
 ## 0.1.1.0  -- 2018-01-01
 
 * Description: add `Describable` instance of `Either`.
