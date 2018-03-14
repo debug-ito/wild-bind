@@ -52,7 +52,7 @@ test-suite spec
                         WildBind.SeqSpec,
                         WildBind.ForTest
   build-depends:        base, wild-bind, transformers,
-                        hspec >=2.1.7 && <2.5,
+                        hspec >=2.1.7,
                         QuickCheck >=2.6 && <3.0,
                         stm >=2.4.2 && <2.5,
                         microlens >=0.2.0 && <0.5
