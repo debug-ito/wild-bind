@@ -18,11 +18,10 @@ import Control.Applicative ((<$>), empty)
 import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.STM (atomically, TChan, newTChanIO, tryReadTChan, writeTChan)
 import Control.Exception (bracket, throwIO)
-import Control.Monad (when)
+import Control.Monad (when, filterM, mapM_)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Cont (ContT(ContT), runContT)
 import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
-import Control.Monad.Trans.List (ListT(ListT), runListT)
 import Control.Monad.Trans.Writer (WriterT, execWriterT, tell)
 import Data.Bits ((.|.))
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
@@ -152,8 +151,8 @@ identifyEvent deb xev = do
                          then return IEDebounced
                          else return IEUnknown
 
-convertEvent :: (XKeyInput k) => KeyMaskMap -> Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> ListT IO (FrontEvent ActiveWindow k)
-convertEvent kmmap disp deb xev = ListT $ execWriterT $ convertEventWriter where
+convertEvent :: (XKeyInput k) => KeyMaskMap -> Xlib.Display -> Ndeb.Debouncer -> Xlib.XEventPtr -> IO [FrontEvent ActiveWindow k]
+convertEvent kmmap disp deb xev = execWriterT $ convertEventWriter where
   tellChangeEvent = (tellElem . FEChange) =<< (liftIO $ getActiveWindow disp)
   convertEventWriter :: XKeyInput k => WriterT [FrontEvent ActiveWindow k] IO ()
   convertEventWriter = do
@@ -167,13 +166,13 @@ convertEvent kmmap disp deb xev = ListT $ execWriterT $ convertEventWriter where
      IEActiveWindow -> liftIO (Ndeb.notify deb) >> return ()
      IEUnknown -> return ()
 
-filterUnchangedEvent :: X11Front k -> FrontEvent ActiveWindow k -> ListT IO ()
-filterUnchangedEvent front (FEChange new_state) = do
+isSignificantEvent :: X11Front k -> FrontEvent ActiveWindow k -> IO Bool
+isSignificantEvent front (FEChange new_state) = do
   m_old_state <- liftIO $ readIORef $ x11PrevActiveWindow front
   case m_old_state of
-   Nothing -> return ()
-   Just old_state -> if new_state == old_state then empty else return ()
-filterUnchangedEvent _ _ = return ()
+   Nothing -> return True
+   Just old_state -> return (not $ new_state == old_state)
+isSignificantEvent _ _ = return True
 
 updateState :: X11Front k -> FrontEvent ActiveWindow k -> IO ()
 updateState front fev = case fev of
@@ -195,11 +194,11 @@ nextEvent handle = loop where
       (eve : rest) -> do
         x11UnshiftPendingEvents handle rest
         return eve
-  processEvents xev = runListT $ do
-    fevent <- convertEvent (x11KeyMaskMap handle) (x11Display handle) (x11Debouncer handle) xev
-    filterUnchangedEvent handle fevent
-    liftIO $ updateState handle fevent
-    return fevent
+  processEvents xev = do
+    fevents <- filterM (isSignificantEvent handle)
+               =<< convertEvent (x11KeyMaskMap handle) (x11Display handle) (x11Debouncer handle) xev
+    mapM_ (updateState handle) fevents
+    return fevents
 
 -- | Create 'FrontEnd' from 'X11Front' object.
 --
