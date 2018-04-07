@@ -80,6 +80,7 @@ import Control.Monad.Trans.State (StateT(..), runStateT, mapStateT)
 import Control.Monad.Trans.Writer (Writer, tell, execWriter, mapWriter)
 import qualified Data.Map as M
 import Data.Monoid (Monoid(..), Endo(Endo, appEndo))
+import Data.Semigroup (Semigroup(..))
 
 import WildBind.Description (ActionDescription)
 
@@ -160,6 +161,13 @@ withActionR f = (mapActDo . mapStateT) (withReaderT f)
 -- front-end state type, and @i@ is the input type.
 type Binding s i = Binding' () s i
 
+-- | See "Monoid" instance.
+instance Ord i => Semigroup (Binding' bs fs i) where
+  abind <> bbind = Binding' $ \bs fs ->
+    let amap = mapActResult (<> bbind) $ unBinding' abind bs fs
+        bmap = mapActResult (abind <>) $ unBinding' bbind bs fs
+    in M.unionWith (\_ b -> b) amap bmap
+
 -- | 'mempty' returns a 'Binding' where no binding is
 -- defined. 'mappend' combines two 'Binding's while preserving their
 -- individual implicit states. The right-hand 'Binding' has precedence
@@ -168,10 +176,7 @@ type Binding s i = Binding' () s i
 -- the binding from the right-hand one is used.
 instance Ord i => Monoid (Binding' bs fs i) where
   mempty = noBinding
-  mappend abind bbind = Binding' $ \bs fs ->
-    let amap = mapActResult (`mappend` bbind) $ unBinding' abind bs fs
-        bmap = mapActResult (abind `mappend`) $ unBinding' bbind bs fs
-    in M.unionWith (\_ b -> b) amap bmap
+  mappend = (<>)
 
 -- | A 'Binding'' with no bindings. It's the same as 'mempty', except
 -- 'noBinding' requires no context.

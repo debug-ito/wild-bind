@@ -27,7 +27,8 @@ module WildBind.Seq
 
 import Control.Monad.Trans.State (State)
 import qualified Control.Monad.Trans.State as State
-import Data.Monoid (Monoid(..), (<>), mconcat)
+import Data.Monoid (Monoid(..), mconcat)
+import Data.Semigroup (Semigroup(..))
 
 import WildBind.Binding
   ( Binding, Binding', binds', whenBack, on, as, run, extend,
@@ -39,10 +40,14 @@ import WildBind.Binding
 newtype SeqBinding fs i = SeqBinding ([i] -> Binding' [i] fs i)
 
 -- | Follows the same rule as 'Binding'.
+instance Ord i => Semigroup (SeqBinding fs i) where
+  (SeqBinding a) <> (SeqBinding b) =
+    SeqBinding $ \ps -> mappend (a ps) (b ps)
+
+-- | Follows the same rule as 'Binding'.
 instance Ord i => Monoid (SeqBinding fs i) where
   mempty = SeqBinding $ const mempty
-  mappend (SeqBinding a) (SeqBinding b) =
-    SeqBinding $ \ps -> mappend (a ps) (b ps)
+  mappend = (<>)
 
 -- | Prepend prefix keys to the 'SeqBinding'.
 --
