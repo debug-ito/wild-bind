@@ -62,7 +62,7 @@ matrix:
   #   compiler: ": #stack 7.8.4"
   #   addons: {apt: {packages: [ghc,ghc-7.8.4,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-3" TARGET=""
+  - env: BUILD=stack ARGS="--resolver lts-3" TARGET="wild-bind"
     compiler: ": #stack 7.10.2"
     addons: {apt: {packages: [ghc,ghc-7.10.2,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
