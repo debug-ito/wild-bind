@@ -48,14 +48,14 @@ matrix:
     addons: {apt: {packages: [cabal-install-1.18,ghc,ghc-7.8.4,happy-1.19.5,alex-3.1.7,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
   - env: BUILD=cabal GHCVER=8.2.2 CABALVER=2.0 HAPPYVER=1.19.5 ALEXVER=3.1.7
     compiler: ": #GHC 8.2.2"
-    addons: {apt: {packages: [cabal-install-2.0,ghc-8.2.2,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
+    addons: {apt: {packages: [cabal-install-2.0,ghc-8.2.2,happy-1.19.5,alex-3.1.7,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
 
   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
   # variable, such as using --stack-yaml to point to a different file.
   - env: BUILD=stack ARGS="" TARGET=""
     compiler: ": #stack default (build all)"
-    addons: {apt: {packages: [ghc,ghc-7.10.3,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+    addons: {apt: {packages: [ghc,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
   #### lts-2 doesn't have "microlens". Skipped.
   # - env: BUILD=stack ARGS="--resolver lts-2" TARGET="wild-bind"
@@ -80,11 +80,11 @@ matrix:
 
   - env: BUILD=stack ARGS="--resolver lts-9" TARGET=""
     compiler: ": #stack 8.0.2"
-    addons: {apt: {packages: [libgmp-dev]}}
+    addons: {apt: {packages: [ghc,ghc-8.0.2,libgmp-dev,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev]}}
 
   - env: BUILD=stack ARGS="--resolver lts-10" TARGET=""
     compiler: ": #stack 8.2.2"
-    addons: {apt: {packages: [libgmp-dev]}}
+    addons: {apt: {packages: [ghc,ghc-8.2.2,libgmp-dev,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev]}}
 
 
   # Nightly builds are allowed to fail
