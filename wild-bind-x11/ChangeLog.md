@@ -1,5 +1,11 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.2  -- 2018-04-10
+
+* Confirmed test with `base-4.11`.
+* Stop using `ListT`, because it's deprecated since `transformers-0.5.3.0`.
+
+
 ## 0.2.0.1  -- 2018-02-06
 
 * Confirmed test with `async-2.2.1`.
