@@ -1,5 +1,11 @@
 # Revision history for wild-bind
 
+## 0.1.2.0  -- 2018-04-10
+
+* Add `Semigroup` instance to `Binding` and `SeqBinding`.
+* Confirmed test with `base-4.11`.
+
+
 ## 0.1.1.1  -- 2018-03-14
 
 * Confirmed test with `hspec-2.5.0`.
