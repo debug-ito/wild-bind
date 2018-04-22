@@ -42,55 +42,55 @@ matrix:
 
   - env: BUILD=cabal GHCVER=7.6.3 CABALVER=1.16 HAPPYVER=1.19.5 ALEXVER=3.1.7
     compiler: ": #GHC 7.6.3"
-    addons: {apt: {packages: [cabal-install-1.16,ghc,ghc-7.6.3,happy-1.19.5,alex-3.1.7,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+    addons: {apt: {packages: [cabal-install-1.16,ghc,ghc-7.6.3,happy-1.19.5,alex-3.1.7,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
   - env: BUILD=cabal GHCVER=7.8.4 CABALVER=1.18 HAPPYVER=1.19.5 ALEXVER=3.1.7
     compiler: ": #GHC 7.8.4"
-    addons: {apt: {packages: [cabal-install-1.18,ghc,ghc-7.8.4,happy-1.19.5,alex-3.1.7,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+    addons: {apt: {packages: [cabal-install-1.18,ghc,ghc-7.8.4,happy-1.19.5,alex-3.1.7,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
   - env: BUILD=cabal GHCVER=8.2.2 CABALVER=2.0 HAPPYVER=1.19.5 ALEXVER=3.1.7
     compiler: ": #GHC 8.2.2"
-    addons: {apt: {packages: [cabal-install-2.0,ghc-8.2.2,happy-1.19.5,alex-3.1.7,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+    addons: {apt: {packages: [cabal-install-2.0,ghc-8.2.2,happy-1.19.5,alex-3.1.7,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
 
   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
   # variable, such as using --stack-yaml to point to a different file.
   - env: BUILD=stack ARGS="" TARGET=""
     compiler: ": #stack default (build all)"
-    addons: {apt: {packages: [ghc,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+    addons: {apt: {packages: [ghc,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
   #### lts-2 doesn't have "microlens". Skipped.
   # - env: BUILD=stack ARGS="--resolver lts-2" TARGET="wild-bind"
   #   compiler: ": #stack 7.8.4"
-  #   addons: {apt: {packages: [ghc,ghc-7.8.4,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+  #   addons: {apt: {packages: [ghc,ghc-7.8.4,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
   - env: BUILD=stack ARGS="--resolver lts-3" TARGET="wild-bind"
     compiler: ": #stack 7.10.2"
-    addons: {apt: {packages: [ghc,ghc-7.10.2,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+    addons: {apt: {packages: [ghc,ghc-7.10.2,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
   # - env: BUILD=stack ARGS="--resolver lts-5" TARGET="wild-bind"
   #   compiler: ": #stack 7.10.3"
-  #   addons: {apt: {packages: [ghc,ghc-7.10.3,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+  #   addons: {apt: {packages: [ghc,ghc-7.10.3,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
   - env: BUILD=stack ARGS="--resolver lts-6" TARGET=""
     compiler: ": #stack 7.10.3 (lts-6, build all)"
-    addons: {apt: {packages: [ghc,ghc-7.10.3,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+    addons: {apt: {packages: [ghc,ghc-7.10.3,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
   # - env: BUILD=stack ARGS="--resolver lts-7" TARGET=""
   #   compiler: ": #stack 8.0.1 (lts-7, build all)"
-  #   addons: {apt: {packages: [ghc,ghc-8.0.1,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+  #   addons: {apt: {packages: [ghc,ghc-8.0.1,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
   - env: BUILD=stack ARGS="--resolver lts-9" TARGET=""
     compiler: ": #stack 8.0.2"
-    addons: {apt: {packages: [ghc,ghc-8.0.2,libgmp-dev,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+    addons: {apt: {packages: [ghc,ghc-8.0.2,libgmp-dev,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
   - env: BUILD=stack ARGS="--resolver lts-10" TARGET=""
     compiler: ": #stack 8.2.2"
-    addons: {apt: {packages: [ghc,ghc-8.2.2,libgmp-dev,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+    addons: {apt: {packages: [ghc,ghc-8.2.2,libgmp-dev,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
 
   # Nightly builds are allowed to fail
   - env: BUILD=stack ARGS="--resolver nightly" TARGET=""
     compiler: ": #stack nightly (build all)"
-    addons: {apt: {packages: [ghc,libgmp,libgmp-dev,libx11-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
+    addons: {apt: {packages: [ghc,libgmp,libgmp-dev,libx11-dev,libxss-dev,libglib2.0-dev,libcairo2-dev,libpango1.0-dev,libgtk2.0-dev,libgtk2.0-dev], sources: [hvr-ghc]}}
 
   # Build on OS X in addition to Linux
   - env: BUILD=stack ARGS="" TARGET="wild-bind"
