@@ -1,5 +1,11 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.3  -- 2018-04-22
+
+* Confirmed test with `X11-1.9`.
+* Now it requires XScreenSaver extension (in Debian/Ubuntu, `libxss-dev` package).
+
+
 ## 0.2.0.2  -- 2018-04-10
 
 * Confirmed test with `base-4.11`.
