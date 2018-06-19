@@ -1,5 +1,10 @@
 # Revision history for wild-bind
 
+## 0.1.2.1  -- 2018-06-19
+
+* Confirmed test with `containers-0.6.0.1`.
+
+
 ## 0.1.2.0  -- 2018-04-10
 
 * Add `Semigroup` instance to `Binding` and `SeqBinding`.
