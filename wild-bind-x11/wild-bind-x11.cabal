@@ -1,5 +1,5 @@
 name:                   wild-bind-x11
-version:                0.2.0.4
+version:                0.2.0.5
 author:                 Toshio Ito <debug.ito@gmail.com>
 maintainer:             Toshio Ito <debug.ito@gmail.com>
 license:                BSD3
@@ -36,7 +36,7 @@ library
                         transformers >=0.3.0 && <0.6,
                         mtl >=2.2.1 && <2.3,
                         fold-debounce >=0.2.0 && <0.3,
-                        stm >=2.4.2 && <2.5,
+                        stm >=2.4.2 && <2.6,
                         semigroups >=0.16.2.2 && <0.19
 
 -- executable wild-bind-x11

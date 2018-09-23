@@ -1,5 +1,10 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.5  -- 2018-09-23
+
+* Confirmed test with `stm-2.5.0.0`.
+
+
 ## 0.2.0.4  -- 2018-06-19
 
 * Confirmed test with `containers-0.6.0.1`.

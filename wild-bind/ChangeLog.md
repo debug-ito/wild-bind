@@ -1,5 +1,10 @@
 # Revision history for wild-bind
 
+## 0.1.2.2  -- 2018-09-23
+
+* Confirmed test with `stm-2.5.0.0`.
+
+
 ## 0.1.2.1  -- 2018-06-19
 
 * Confirmed test with `containers-0.6.0.1`.
