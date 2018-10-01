@@ -1,5 +1,10 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.6  -- 2018-10-01
+
+* Confirm test with `base-4.12.0.0`
+
+
 ## 0.2.0.5  -- 2018-09-23
 
 * Confirmed test with `stm-2.5.0.0`.

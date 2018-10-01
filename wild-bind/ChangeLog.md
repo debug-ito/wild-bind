@@ -1,5 +1,10 @@
 # Revision history for wild-bind
 
+## 0.1.2.3  -- 2018-10-01
+
+* Confirm test with `base-4.12.0.0`
+
+
 ## 0.1.2.2  -- 2018-09-23
 
 * Confirmed test with `stm-2.5.0.0`.
