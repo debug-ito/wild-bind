@@ -1,5 +1,9 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.8  -- 2019-10-04
+
+* Confirm test with `time-1.9.3`.
+
 ## 0.2.0.7  -- 2019-05-11
 
 * Confirm test with `semigroups-0.19`.

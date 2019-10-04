@@ -1,5 +1,5 @@
 name:                   wild-bind-x11
-version:                0.2.0.7
+version:                0.2.0.8
 author:                 Toshio Ito <debug.ito@gmail.com>
 maintainer:             Toshio Ito <debug.ito@gmail.com>
 license:                BSD3
@@ -68,7 +68,7 @@ test-suite spec
   build-depends:        base, wild-bind-x11,
                         wild-bind, X11, text, transformers,
                         hspec >=2.1.7,
-                        time >=1.5.0 && <1.9,
+                        time >=1.5.0 && <1.10,
                         async >=2.0.2 && <2.3
 
 source-repository head
