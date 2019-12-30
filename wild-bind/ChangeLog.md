@@ -1,5 +1,9 @@
 # Revision history for wild-bind
 
+## 0.1.2.5  -- 2019-12-30
+
+* Confirm test with `base-4.13.0.0`
+
 ## 0.1.2.4  -- 2019-05-11
 
 * Confirm test with `semigroups-0.19`.
