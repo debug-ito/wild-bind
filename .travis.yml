@@ -158,7 +158,7 @@ before_install:
 ## # Get the list of packages from the stack.yaml file
 ## - PACKAGES=$(stack --install-ghc query locals | grep '^ *path' | sed 's@^ *path:@@')
 
-- PACKAGES=$(pwd)/wild-bind{,-x11}/
+- PACKAGES="$(pwd)/wild-bind/ $(pwd)/wild-bind-x11/"
 - export WILDBIND_README_TEST_STACK_OPTS="$ARGS"
 
 install:
