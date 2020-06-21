@@ -1,5 +1,9 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.10  -- 2020-06-21
+
+* Confirm test with `base-4.14.0.0`
+
 ## 0.2.0.9  -- 2019-12-30
 
 * Confirm test with `base-4.13.0.0`
