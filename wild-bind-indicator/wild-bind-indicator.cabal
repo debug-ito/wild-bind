@@ -22,7 +22,7 @@ library
   other-extensions:     OverloadedStrings, OverloadedLabels
   exposed-modules:      WildBind.Indicator
   other-modules:        Paths_wild_bind_indicator
-  build-depends:        base >=4.6 && <5.0,
+  build-depends:        base >=4.9 && <5.0,
                         wild-bind >=0.1.0 && <0.2,
                         transformers >=0.3.0 && <0.6,
                         gi-gtk,
