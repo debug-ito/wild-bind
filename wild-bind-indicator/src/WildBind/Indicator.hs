@@ -60,18 +60,25 @@ import Data.Word (Word32)
 --   )
 -- import qualified Graphics.UI.Gtk as G (get, set, on)
 
-import Data.GI.Base.Attributes (AttrOp((:=)))
-import qualified Data.GI.Base.Attributes as GIAttr
+import GI.Gtk 
+  ( -- Data.GI.Base.Attributes
+    AttrOp((:=))
+  )
+import qualified GI.Gtk as GIAttr (set, get, on)
 import GI.Gtk.Enums (WindowType(..), Justification(..))
 import qualified GI.Gtk.Functions as GIFunc
 import GI.Gtk.Objects.Button (buttonNew, buttonSetAlignment)
+import GI.Gtk.Objects.CheckMenuItem (checkMenuItemNewWithMnemonic, checkMenuItemSetActive)
 import GI.Gtk.Objects.Container (containerAdd)
 import GI.Gtk.Objects.Label (Label, labelNew, labelSetLineWrap, labelSetJustify, labelSetText)
+import GI.Gtk.Objects.Menu (Menu, menuNew, menuPopup)
+import GI.Gtk.Objects.MenuItem (menuItemNewWithMnemonic)
 import GI.Gtk.Objects.Misc (miscSetAlignment)
+import GI.Gtk.Objects.StatusIcon (statusIconNewFromFile)
 import GI.Gtk.Objects.Table (Table, tableNew, tableAttachDefaults)
-import GI.Gtk.Objects.Widget (widgetSetSizeRequest)
+import GI.Gtk.Objects.Widget (widgetSetSizeRequest, widgetShowAll, widgetHide)
 import GI.Gtk.Objects.Window
-  ( windowNew, windowSetKeepAbove, windowSetTitle, windowMove
+  ( Window, windowNew, windowSetKeepAbove, windowSetTitle, windowMove
   )
 
 import System.IO (stderr, hPutStrLn)
@@ -195,16 +202,16 @@ withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_imp
   createMainWinAndIndicator conf = flip runReaderT conf $ do
     win <- newNumPadWindow
     (tab, updater) <- newNumPadTable
-    liftIO $ containerAdd win tab
+    containerAdd win tab
     let indicator = Indicator
           { updateDescription = \i d -> updater i d,
-            getPresence = G.get win widgetVisible,
+            getPresence = GIAttr.get win #visible,
             setPresence = \visible -> if visible then widgetShowAll win else widgetHide win,
-            quit = mainQuit,
+            quit = GIFunc.mainQuit,
             allButtons = enumFromTo minBound maxBound
           }
-    liftIO $ void $ G.on win deleteEvent $ do
-      liftIO $ widgetHide win
+    void $ GIAttr.on win #deleteEvent $ \_ -> do
+      widgetHide win
       return True -- Do not emit 'destroy' signal
     liftIO $ void $ forkFinally (action $ transportIndicator indicator) finalAction
     return indicator
@@ -212,12 +219,13 @@ withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_imp
     case ret of
       Right _ -> return ()
       Left exception -> hPutStrLn stderr ("Fatal Error from WildBind: " ++ show exception)
-    postGUIAsync mainQuit
+    postGUIAsync GIFunc.mainQuit
   createStatusIcon conf indicator = do
     status_icon <- statusIconNewFromFile $ confIconPath conf
-    void $ G.on status_icon statusIconPopupMenu $ \mbutton time -> do
+    void $ GIAttr.on status_icon #popupMenu $ \button time -> do
       menu <- makeStatusMenu indicator
-      menuPopup menu $ (\button -> return (button, time)) =<< mbutton
+      -- menuPopup menu $ (\button -> return (button, time)) =<< mbutton
+      menuPopup menu Nothing Nothing Nothing button time
     return status_icon
 
 
@@ -236,7 +244,7 @@ bindingHook ind front bind_list = forM_ (allButtons ind) $ \input -> do
   
 newNumPadWindow :: NumPadContext Window
 newNumPadWindow = do
-  win <- windowNew WindowTypeTopLevel
+  win <- windowNew WindowTypeToplevel
   windowSetKeepAbove win True
   GIAttr.set win [ #skipPagerHint := True,
                    #skipTaskbarHint := True,
@@ -294,12 +302,12 @@ addButton tab left right top bottom = do
   miscSetAlignment lab 0 0.5
   labelSetJustify lab JustificationLeft
   button <- buttonNew
-  buttonSetAlignment button (0, 0.5)
+  buttonSetAlignment button 0 0.5
   containerAdd button lab
   tableAttachDefaults tab button left right top bottom
   bw <- (fromIntegral . confButtonWidth) <$> ask
   bh <- (fromIntegral . confButtonHeight) <$> ask
-  widgetSetSizeRequest lab (bw * (right - left)) (bh * (bottom - top))
+  widgetSetSizeRequest lab (bw * fromIntegral (right - left)) (bh * fromIntegral (bottom - top))
   return lab
 
 makeStatusMenu :: Indicator s i -> IO Menu
@@ -310,15 +318,15 @@ makeStatusMenu ind = impl where
     containerAdd menu =<< makeToggler
     return menu
   makeQuitItem = do
-    quit_item <- menuItemNewWithMnemonic ("_Quit" :: Text)
+    quit_item <- menuItemNewWithMnemonic "_Quit"
     widgetShowAll quit_item
-    void $ G.on quit_item menuItemActivated (quit ind)
+    void $ GIAttr.on quit_item #activate (quit ind)
     return quit_item
   makeToggler = do
-    toggler <- checkMenuItemNewWithMnemonic ("_Toggle description" :: Text)
+    toggler <- checkMenuItemNewWithMnemonic "_Toggle description"
     widgetShowAll toggler
     checkMenuItemSetActive toggler =<< getPresence ind
-    void $ G.on toggler checkMenuItemToggled (togglePresence ind)
+    void $ GIAttr.on toggler #toggled (togglePresence ind)
     return toggler
 
 -- | Map input type of 'Indicator', so that it can adapt to the new
