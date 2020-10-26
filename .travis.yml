@@ -82,9 +82,17 @@ matrix:
     compiler: ": #stack 8.0.2"
     addons: {apt: {packages: [ghc,ghc-8.0.2,libgmp-dev,libx11-dev,libxss-dev,libgirepository1.0-dev,libwebkit2gtk-4.0-dev,libgtksourceview-3.0-dev], sources: [hvr-ghc]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-10" TARGET=""
-    compiler: ": #stack 8.2.2"
-    addons: {apt: {packages: [ghc,ghc-8.2.2,libgmp-dev,libx11-dev,libxss-dev,libgirepository1.0-dev,libwebkit2gtk-4.0-dev,libgtksourceview-3.0-dev], sources: [hvr-ghc]}}
+  # - env: BUILD=stack ARGS="--resolver lts-10" TARGET=""
+  #   compiler: ": #stack 8.2.2"
+  #   addons: {apt: {packages: [ghc,ghc-8.2.2,libgmp-dev,libx11-dev,libxss-dev,libgirepository1.0-dev,libwebkit2gtk-4.0-dev,libgtksourceview-3.0-dev], sources: [hvr-ghc]}}
+
+  - env: BUILD=stack ARGS="--resolver lts-13" TARGET=""
+    compiler: ": #stack 8.6.5"
+    addons: {apt: {packages: [ghc,ghc-8.6.5,libgmp-dev,libx11-dev,libxss-dev,libgirepository1.0-dev,libwebkit2gtk-4.0-dev,libgtksourceview-3.0-dev], sources: [hvr-ghc]}}
+
+  - env: BUILD=stack ARGS="--resolver lts-15" TARGET=""
+    compiler: ": #stack 8.8.3"
+    addons: {apt: {packages: [ghc,ghc-8.8.3,libgmp-dev,libx11-dev,libxss-dev,libgirepository1.0-dev,libwebkit2gtk-4.0-dev,libgtksourceview-3.0-dev], sources: [hvr-ghc]}}
 
 
   # Nightly builds are allowed to fail
