@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings, OverloadedLabels, PatternSynonyms #-}
 -- |
 -- Module: WildBind.Indicator
 -- Description: Graphical indicator for WildBind
@@ -31,7 +31,8 @@ module WildBind.Indicator
        ) where
 
 import Control.Applicative ((<$>))
-import Control.Concurrent (forkFinally, rtsSupportsBoundThreads)
+import Control.Concurrent
+  (forkFinally, rtsSupportsBoundThreads, newEmptyMVar, putMVar, takeMVar)
 import Control.Exception (throwIO)
 import Control.Monad (void, forM_)
 import Control.Monad.IO.Class (liftIO)
@@ -60,6 +61,8 @@ import Data.Word (Word32)
 --   )
 -- import qualified Graphics.UI.Gtk as G (get, set, on)
 
+import GI.Gdk.Functions (threadsAddIdle)
+import GI.GLib.Constants (pattern PRIORITY_DEFAULT)
 import GI.Gtk 
   ( -- Data.GI.Base.Attributes
     AttrOp((:=))
@@ -359,3 +362,23 @@ toggleBinding :: (NumPadPosition i, Ord i, Enum i, Bounded i)
 toggleBinding ind button = binding $ map (\input -> (input, Action "Toggle description" $ togglePresence ind)) help_likes
   where
     help_likes = filter ((== button) . toNumPad) $ enumFromTo minBound maxBound
+
+
+-- | Schedule the given action to be executed by Gdk. The given action
+-- can include manipulation of Gtk+ objects. This function can be
+-- called by a thread that is different from the Gtk+ main loop
+-- thread. This function doesn't wait for the given action to finish.
+--
+-- See https://github.com/haskell-gi/haskell-gi/wiki/Using-threads-in-Gdk-and-Gtk--programs
+postGUIAsync :: IO () -> IO ()
+postGUIAsync action = void $ threadsAddIdle PRIORITY_DEFAULT (action >> return False)
+
+-- | Similar to 'postGUIAsync', but this function waits for the action
+-- to finish.
+postGUISync :: IO a -> IO a
+postGUISync action = do
+  mret <- newEmptyMVar
+  postGUIAsync $ do
+    ret <- action
+    putMVar mret ret
+  takeMVar mret
