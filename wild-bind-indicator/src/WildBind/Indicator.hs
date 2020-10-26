@@ -42,25 +42,20 @@ import qualified Data.Map as M
 import Data.Monoid (mconcat, First(First))
 import Data.Text (Text, pack)
 import Data.Word (Word32)
--- import Graphics.UI.Gtk
---   ( initGUI, mainGUI, postGUIAsync, postGUISync, mainQuit,
---     Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
---     windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
---     windowSetTitle, windowMove,
---     AttrOp((:=)),
---     widgetShowAll, widgetSetSizeRequest, widgetVisible, widgetHide,
---     Table, tableNew, tableAttachDefaults,
---     buttonNew, buttonSetAlignment,
---     Label, labelNew, labelSetLineWrap, labelSetJustify, Justification(JustifyLeft), labelSetText,
---     miscSetAlignment,
---     containerAdd,
---     deleteEvent,
---     statusIconNewFromFile, statusIconPopupMenu,
---     Menu, menuNew, menuItemNewWithMnemonic, menuItemActivated, menuPopup,
---     checkMenuItemNewWithMnemonic, checkMenuItemSetActive, checkMenuItemToggled
---   )
--- import qualified Graphics.UI.Gtk as G (get, set, on)
+import System.IO (stderr, hPutStrLn)
+import System.Environment (getArgs)
 
+import WildBind ( ActionDescription, Option(optBindingHook),
+                  FrontEnd(frontDefaultDescription), Binding, Binding',
+                  binding, Action(Action),
+                  wildBind', defOption
+                )
+import WildBind.Input.NumPad (NumPadUnlocked(..), NumPadLocked(..))
+
+import Paths_wild_bind_indicator (getDataFileName)
+
+
+---- Imports about Gtk
 import GI.Gdk.Functions (threadsAddIdle)
 import GI.GLib.Constants (pattern PRIORITY_DEFAULT)
 import GI.Gtk 
@@ -83,18 +78,6 @@ import GI.Gtk.Objects.Widget (Widget, widgetSetSizeRequest, widgetShowAll, widge
 import GI.Gtk.Objects.Window
   ( Window, windowNew, windowSetKeepAbove, windowSetTitle, windowMove
   )
-
-import System.IO (stderr, hPutStrLn)
-import System.Environment (getArgs)
-
-import WildBind ( ActionDescription, Option(optBindingHook),
-                  FrontEnd(frontDefaultDescription), Binding, Binding',
-                  binding, Action(Action),
-                  wildBind', defOption
-                )
-import WildBind.Input.NumPad (NumPadUnlocked(..), NumPadLocked(..))
-
-import Paths_wild_bind_indicator (getDataFileName)
 
 
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
@@ -227,7 +210,6 @@ withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_imp
     status_icon <- statusIconNewFromFile $ confIconPath conf
     void $ GIAttr.on status_icon #popupMenu $ \button time -> do
       menu <- makeStatusMenu indicator
-      -- menuPopup menu $ (\button -> return (button, time)) =<< mbutton
       menuPopup menu (Nothing :: Maybe Widget) (Nothing :: Maybe Widget) Nothing button time
     return status_icon
 
