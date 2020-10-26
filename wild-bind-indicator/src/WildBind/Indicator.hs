@@ -79,7 +79,7 @@ import GI.Gtk.Objects.MenuItem (menuItemNewWithMnemonic)
 import GI.Gtk.Objects.Misc (miscSetAlignment)
 import GI.Gtk.Objects.StatusIcon (statusIconNewFromFile)
 import GI.Gtk.Objects.Table (Table, tableNew, tableAttachDefaults)
-import GI.Gtk.Objects.Widget (widgetSetSizeRequest, widgetShowAll, widgetHide)
+import GI.Gtk.Objects.Widget (Widget, widgetSetSizeRequest, widgetShowAll, widgetHide)
 import GI.Gtk.Objects.Window
   ( Window, windowNew, windowSetKeepAbove, windowSetTitle, windowMove
   )
@@ -228,7 +228,7 @@ withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_imp
     void $ GIAttr.on status_icon #popupMenu $ \button time -> do
       menu <- makeStatusMenu indicator
       -- menuPopup menu $ (\button -> return (button, time)) =<< mbutton
-      menuPopup menu Nothing Nothing Nothing button time
+      menuPopup menu (Nothing :: Maybe Widget) (Nothing :: Maybe Widget) Nothing button time
     return status_icon
 
 
