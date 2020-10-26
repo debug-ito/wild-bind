@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, OverloadedLabels #-}
 -- |
 -- Module: WildBind.Indicator
 -- Description: Graphical indicator for WildBind
@@ -39,26 +39,43 @@ import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
 import Data.IORef (newIORef, readIORef)
 import qualified Data.Map as M
 import Data.Monoid (mconcat, First(First))
-import Data.Text (Text)
-import Graphics.UI.Gtk
-  ( initGUI, mainGUI, postGUIAsync, postGUISync, mainQuit,
-    Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
-    windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
-    windowSetTitle, windowMove,
-    AttrOp((:=)),
-    widgetShowAll, widgetSetSizeRequest, widgetVisible, widgetHide,
-    Table, tableNew, tableAttachDefaults,
-    buttonNew, buttonSetAlignment,
-    Label, labelNew, labelSetLineWrap, labelSetJustify, Justification(JustifyLeft), labelSetText,
-    miscSetAlignment,
-    containerAdd,
-    deleteEvent,
-    statusIconNewFromFile, statusIconPopupMenu,
-    Menu, menuNew, menuItemNewWithMnemonic, menuItemActivated, menuPopup,
-    checkMenuItemNewWithMnemonic, checkMenuItemSetActive, checkMenuItemToggled
+import Data.Text (Text, pack)
+import Data.Word (Word32)
+-- import Graphics.UI.Gtk
+--   ( initGUI, mainGUI, postGUIAsync, postGUISync, mainQuit,
+--     Window, windowNew, windowSetKeepAbove, windowSkipPagerHint,
+--     windowSkipTaskbarHint, windowAcceptFocus, windowFocusOnMap,
+--     windowSetTitle, windowMove,
+--     AttrOp((:=)),
+--     widgetShowAll, widgetSetSizeRequest, widgetVisible, widgetHide,
+--     Table, tableNew, tableAttachDefaults,
+--     buttonNew, buttonSetAlignment,
+--     Label, labelNew, labelSetLineWrap, labelSetJustify, Justification(JustifyLeft), labelSetText,
+--     miscSetAlignment,
+--     containerAdd,
+--     deleteEvent,
+--     statusIconNewFromFile, statusIconPopupMenu,
+--     Menu, menuNew, menuItemNewWithMnemonic, menuItemActivated, menuPopup,
+--     checkMenuItemNewWithMnemonic, checkMenuItemSetActive, checkMenuItemToggled
+--   )
+-- import qualified Graphics.UI.Gtk as G (get, set, on)
+
+import Data.GI.Base.Attributes (AttrOp((:=)))
+import qualified Data.GI.Base.Attributes as GIAttr
+import GI.Gtk.Enums (WindowType(..), Justification(..))
+import qualified GI.Gtk.Functions as GIFunc
+import GI.Gtk.Objects.Button (buttonNew, buttonSetAlignment)
+import GI.Gtk.Objects.Container (containerAdd)
+import GI.Gtk.Objects.Label (Label, labelNew, labelSetLineWrap, labelSetJustify, labelSetText)
+import GI.Gtk.Objects.Misc (miscSetAlignment)
+import GI.Gtk.Objects.Table (Table, tableNew, tableAttachDefaults)
+import GI.Gtk.Objects.Widget (widgetSetSizeRequest)
+import GI.Gtk.Objects.Window
+  ( windowNew, windowSetKeepAbove, windowSetTitle, windowMove
   )
-import qualified Graphics.UI.Gtk as G (get, set, on)
+
 import System.IO (stderr, hPutStrLn)
+import System.Environment (getArgs)
 
 import WildBind ( ActionDescription, Option(optBindingHook),
                   FrontEnd(frontDefaultDescription), Binding, Binding',
@@ -166,13 +183,14 @@ type NumPadContext = ReaderT NumPadConfig IO
 withNumPadIndicator :: (NumPadPosition i, Enum i, Bounded i) => (Indicator s i -> IO ()) -> IO ()
 withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_impl where
   error_impl = throwIO $ userError "You need to build with -threaded option when you use WildBind.Indicator.withNumPadIndicator function."
+  textArgs = fmap (map pack) $ getArgs
   impl = do
-    void $ initGUI
+    void $ (GIFunc.init . Just) =<< textArgs
     conf <- numPadConfig
     indicator <- createMainWinAndIndicator conf
     status_icon <- createStatusIcon conf indicator
     status_icon_ref <- newIORef status_icon
-    mainGUI
+    GIFunc.main
     void $ readIORef status_icon_ref -- to prevent status_icon from being garbage-collected. See https://github.com/gtk2hs/gtk2hs/issues/60
   createMainWinAndIndicator conf = flip runReaderT conf $ do
     win <- newNumPadWindow
@@ -218,17 +236,17 @@ bindingHook ind front bind_list = forM_ (allButtons ind) $ \input -> do
   
 newNumPadWindow :: NumPadContext Window
 newNumPadWindow = do
-  win <- liftIO $ windowNew
-  liftIO $ windowSetKeepAbove win True
-  liftIO $ G.set win [ windowSkipPagerHint := True,
-                       windowSkipTaskbarHint := True,
-                       windowAcceptFocus := False,
-                       windowFocusOnMap := False
-                     ]
-  liftIO $ windowSetTitle win ("WildBind Description" :: Text)
-  win_x <- confWindowX <$> ask
-  win_y <- confWindowY <$> ask
-  liftIO $ windowMove win win_x win_y
+  win <- windowNew WindowTypeTopLevel
+  windowSetKeepAbove win True
+  GIAttr.set win [ #skipPagerHint := True,
+                   #skipTaskbarHint := True,
+                   #acceptFocus := False,
+                   #focusOnMap := False
+                 ]
+  windowSetTitle win "WildBind Description"
+  win_x <- (fromIntegral . confWindowX) <$> ask
+  win_y <- (fromIntegral . confWindowY) <$> ask
+  windowMove win win_x win_y
   return win
 
 -- | Get the action to describe @i@, if that @i@ is supported. This is
@@ -237,9 +255,9 @@ type DescriptActionGetter i = i -> First (ActionDescription -> IO ())
 
 newNumPadTable :: NumPadPosition i => NumPadContext (Table, (i -> ActionDescription -> IO ()))
 newNumPadTable = do
-  tab <- liftIO $ tableNew 5 4 False
+  tab <- tableNew 5 4 False
   -- NumLock is unboundable, so it's treatd in a different way from others.
-  (\label -> liftIO $ labelSetText label ("NumLock" :: Text)) =<< addButton tab 0 1 0 1
+  (\label -> labelSetText label "NumLock") =<< addButton tab 0 1 0 1
   descript_action_getter <-
     fmap mconcat $ sequence $
       [ getter NumLDivide $ addButton tab 1 2 0 1,
@@ -269,19 +287,19 @@ newNumPadTable = do
       label <- get_label
       return $ \in_key -> First (if in_key == bound_key then Just $ labelSetText label else Nothing)
 
-addButton :: Table -> Int -> Int -> Int -> Int -> NumPadContext Label
+addButton :: Table -> Word32 -> Word32 -> Word32 -> Word32 -> NumPadContext Label
 addButton tab left right top bottom = do
-  lab <- liftIO $ labelNew (Nothing :: Maybe Text)
-  liftIO $ labelSetLineWrap lab True
-  liftIO $ miscSetAlignment lab 0 0.5
-  liftIO $ labelSetJustify lab JustifyLeft
-  button <- liftIO $ buttonNew
-  liftIO $ buttonSetAlignment button (0, 0.5)
-  liftIO $ containerAdd button lab
-  liftIO $ tableAttachDefaults tab button left right top bottom
-  bw <- confButtonWidth <$> ask
-  bh <- confButtonHeight <$> ask
-  liftIO $ widgetSetSizeRequest lab (bw * (right - left)) (bh * (bottom - top))
+  lab <- labelNew Nothing
+  labelSetLineWrap lab True
+  miscSetAlignment lab 0 0.5
+  labelSetJustify lab JustificationLeft
+  button <- buttonNew
+  buttonSetAlignment button (0, 0.5)
+  containerAdd button lab
+  tableAttachDefaults tab button left right top bottom
+  bw <- (fromIntegral . confButtonWidth) <$> ask
+  bh <- (fromIntegral . confButtonHeight) <$> ask
+  widgetSetSizeRequest lab (bw * (right - left)) (bh * (bottom - top))
   return lab
 
 makeStatusMenu :: Indicator s i -> IO Menu
