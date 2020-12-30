@@ -32,8 +32,9 @@ module WildBind.Indicator
 
 import Control.Applicative ((<$>))
 import Control.Concurrent
-  (forkFinally, rtsSupportsBoundThreads, newEmptyMVar, putMVar, takeMVar)
-import Control.Exception (throwIO)
+  (rtsSupportsBoundThreads, newEmptyMVar, putMVar, takeMVar)
+import Control.Concurrent.Async (withAsync)
+import Control.Exception (throwIO, finally)
 import Control.Monad (void, forM_)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
@@ -183,8 +184,9 @@ withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_imp
     indicator <- createMainWinAndIndicator conf
     status_icon <- createStatusIcon conf indicator
     status_icon_ref <- newIORef status_icon
-    GIFunc.main
-    void $ readIORef status_icon_ref -- to prevent status_icon from being garbage-collected. See https://github.com/gtk2hs/gtk2hs/issues/60
+    withAsync (asyncAction indicator) $ \_ -> do
+      GIFunc.main
+      void $ readIORef status_icon_ref -- to prevent status_icon from being garbage-collected. See https://github.com/gtk2hs/gtk2hs/issues/60
   createMainWinAndIndicator conf = flip runReaderT conf $ do
     win <- newNumPadWindow
     (tab, updater) <- newNumPadTable
@@ -199,13 +201,9 @@ withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_imp
     void $ GIAttr.on win #deleteEvent $ \_ -> do
       widgetHide win
       return True -- Do not emit 'destroy' signal
-    liftIO $ void $ forkFinally (action $ transportIndicator indicator) finalAction
     return indicator
-  finalAction ret = do
-    case ret of
-      Right _ -> return ()
-      Left exception -> hPutStrLn stderr ("Fatal Error from WildBind: " ++ show exception)
-    postGUIAsync GIFunc.mainQuit
+  asyncAction indicator =
+    (action $ transportIndicator indicator) `finally` (postGUIAsync GIFunc.mainQuit) 
   createStatusIcon conf indicator = do
     status_icon <- statusIconNewFromFile $ confIconPath conf
     void $ GIAttr.on status_icon #popupMenu $ \button time -> do
