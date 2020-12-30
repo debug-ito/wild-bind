@@ -1,8 +1,9 @@
 # Revision history for wild-bind-x11
 
-## 0.2.0.11  -- ?
+## 0.2.0.11  -- 2020-12-30
 
 * Call [XInitThreads](https://linux.die.net/man/3/xinitthreads) at the start of `withX11Front'`.
+  It seemd no problem without this function, but the manual says you need it...
 
 ## 0.2.0.10  -- 2020-06-21
 
