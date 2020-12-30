@@ -1,6 +1,6 @@
 # Revision history for wild-bind-task-x11
 
-## 0.2.0.2  -- ?
+## 0.2.0.2  -- 2020-12-30
 
 * Confirm build with `wind-bind-indicator-1.0.0.0`
 
