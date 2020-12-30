@@ -40,19 +40,14 @@ We recommend `stack` to build and install WildBind.
 1. Follow the instruction in https://docs.haskellstack.org/ to install `stack` command.
 2. Install development packages for libx11 and GTK+. In Ubuntu, you can install them by
 
-        $ sudo apt-get install libx11-dev libxss-dev libglib2.0-dev libcairo2-dev libpango1.0-dev libgtk2.0-dev libgtk2.0-dev
+        $ sudo apt-get install libx11-dev libxss-dev libgirepository1.0-dev libwebkit2gtk-4.0-dev libgtksourceview-3.0-dev
 
 3. Clone this repository and enter it.
 
         $ git clone https://github.com/debug-ito/wild-bind.git
         $ cd wild-bind
 
-4. Install `gtk2hs-buildtools` and set the path to it (See https://wiki.haskell.org/Gtk2Hs/Installation for detail). This may take some time.
-
-        $ stack --install-ghc install gtk2hs-buildtools
-        $ export PATH="$HOME/.local/bin:$PATH"
-
-5. Build this repository.
+4. Build this repository.
 
         $ stack build
 
