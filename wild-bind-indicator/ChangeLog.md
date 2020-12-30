@@ -1,6 +1,6 @@
 # Revision history for wild-bind-indicator
 
-## 1.0.0.0  -- ?
+## 1.0.0.0  -- 2020-12-30
 
 * **MAJOR CHANGE**: Now it uses `gi-gtk` package, instead of `gtk` package.
   Although this doesn't change the API of wild-bind-indicator, it changes the prerequisite packages/libraries significantly.
