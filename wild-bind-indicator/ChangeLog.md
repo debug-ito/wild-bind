@@ -2,7 +2,9 @@
 
 ## 1.0.0.0  -- ?
 
-* Now it uses `gi-gtk` package, instead of `gtk` package. `gi-gtk` package has different prerequisites than `gtk`.
+* **MAJOR CHANGE**: Now it uses `gi-gtk` package, instead of `gtk` package.
+  Although this doesn't change the API of wild-bind-indicator, it changes the prerequisite packages/libraries significantly.
+  Thus we bumped the major version.
 * Now it uses `async` package to clean-up the WildBind action when the Gtk+ GUI finishes. Probably fixes #4 and #5a.
 * Confirm build with `containers-0.6.0.1`
 
