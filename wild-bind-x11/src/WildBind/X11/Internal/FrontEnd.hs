@@ -115,6 +115,7 @@ withX11Front' :: String -- ^ function name used in the error message.
               -> IO a
 withX11Front' func_name = if rtsSupportsBoundThreads then impl else error_impl where
   impl = runContT $ do
+    liftIO $ doInitThreads
     disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
     keymask_map <- liftIO $ getKeyMaskMap disp
     notif_disp <- ContT $ bracket openMyDisplay Xlib.closeDisplay
@@ -127,6 +128,10 @@ withX11Front' func_name = if rtsSupportsBoundThreads then impl else error_impl w
     liftIO $ Ndeb.notify debouncer
     return $ X11Front disp debouncer awin_ref pending_events keymask_map grab_man
   error_impl _ = throwIO $ userError ("You need to build with -threaded option when you use " ++ func_name ++ " function.")
+  doInitThreads = do
+    ret <- Xlib.initThreads
+    when (ret == 0) $ do
+      throwIO $ userError ("Failure in XInitThreads.")
 
 
 tellElem :: Monad m => a -> WriterT [a] m ()
