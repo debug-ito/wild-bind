@@ -40,12 +40,12 @@ matrix:
 
   # !!! Cabal builds are only for wild-bind and -x11 package. We don't test other packages.
 
-  - env: BUILD=cabal GHCVER=7.6.3 CABALVER=1.16 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 7.6.3"
-    addons: {apt: {packages: [cabal-install-1.16,ghc,ghc-7.6.3,happy-1.19.5,alex-3.1.7,libx11-dev,libxss-dev,libgirepository1.0-dev,libwebkit2gtk-4.0-dev,libgtksourceview-3.0-dev], sources: [hvr-ghc]}}
-  - env: BUILD=cabal GHCVER=7.8.4 CABALVER=1.18 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 7.8.4"
-    addons: {apt: {packages: [cabal-install-1.18,ghc,ghc-7.8.4,happy-1.19.5,alex-3.1.7,libx11-dev,libxss-dev,libgirepository1.0-dev,libwebkit2gtk-4.0-dev,libgtksourceview-3.0-dev], sources: [hvr-ghc]}}
+  ## - env: BUILD=cabal GHCVER=7.6.3 CABALVER=1.16 HAPPYVER=1.19.5 ALEXVER=3.1.7
+  ##   compiler: ": #GHC 7.6.3"
+  ##   addons: {apt: {packages: [cabal-install-1.16,ghc,ghc-7.6.3,happy-1.19.5,alex-3.1.7,libx11-dev,libxss-dev,libgirepository1.0-dev,libwebkit2gtk-4.0-dev,libgtksourceview-3.0-dev], sources: [hvr-ghc]}}
+  ## - env: BUILD=cabal GHCVER=7.8.4 CABALVER=1.18 HAPPYVER=1.19.5 ALEXVER=3.1.7
+  ##   compiler: ": #GHC 7.8.4"
+  ##   addons: {apt: {packages: [cabal-install-1.18,ghc,ghc-7.8.4,happy-1.19.5,alex-3.1.7,libx11-dev,libxss-dev,libgirepository1.0-dev,libwebkit2gtk-4.0-dev,libgtksourceview-3.0-dev], sources: [hvr-ghc]}}
   - env: BUILD=cabal GHCVER=8.2.2 CABALVER=2.0 HAPPYVER=1.19.5 ALEXVER=3.1.7
     compiler: ": #GHC 8.2.2"
     addons: {apt: {packages: [cabal-install-2.0,ghc-8.2.2,happy-1.19.5,alex-3.1.7,libx11-dev,libxss-dev,libgirepository1.0-dev,libwebkit2gtk-4.0-dev,libgtksourceview-3.0-dev], sources: [hvr-ghc]}}
