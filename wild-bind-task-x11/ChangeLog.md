@@ -1,5 +1,9 @@
 # Revision history for wild-bind-task-x11
 
+## 0.2.0.2  -- ?
+
+* Confirm build with `wind-bind-indicator-1.0.0.0`
+
 ## 0.2.0.1  -- 2017-01-02
 
 * Fix dependency version bounds for wild-bind family packages.
