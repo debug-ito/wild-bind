@@ -15,6 +15,7 @@ test-suite spec
   main-is:              ReadmeTest.hs
   other-extensions:     QuasiQuotes,
                         OverloadedStrings
+  build-tool-depends:   hspec-discover:hspec-discover
   build-depends:        base >=0 && <999.99,
                         wild-bind-task-x11 >=0 && <999.99,
                         hspec >=0 && <999.99,

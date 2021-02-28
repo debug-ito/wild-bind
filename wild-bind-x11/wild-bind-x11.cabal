@@ -65,6 +65,7 @@ test-suite spec
                         WildBind.X11.EmulateSpec,
                         WildBind.X11.Internal.NotificationDebouncerSpec,
                         WildBind.X11.TestUtil
+  build-tool-depends:   hspec-discover:hspec-discover
   build-depends:        base, wild-bind-x11,
                         wild-bind, X11, text, transformers,
                         hspec >=2.1.7,

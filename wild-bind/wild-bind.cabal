@@ -52,6 +52,7 @@ test-suite spec
                         WildBind.BindingSpec,
                         WildBind.SeqSpec,
                         WildBind.ForTest
+  build-tool-depends:   hspec-discover:hspec-discover
   build-depends:        base, wild-bind, transformers,
                         hspec >=2.1.7,
                         QuickCheck >=2.6 && <3.0,
