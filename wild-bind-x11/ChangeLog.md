@@ -1,5 +1,9 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.12  -- ?
+
+* Confirm test with `base-4.15.0.0`
+
 ## 0.2.0.11  -- 2020-12-30
 
 * Call [XInitThreads](https://linux.die.net/man/3/xinitthreads) at the start of `withX11Front'`.

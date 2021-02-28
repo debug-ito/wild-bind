@@ -1,5 +1,9 @@
 # Revision history for wild-bind
 
+## 0.1.2.7  -- ?
+
+* Confirm test with `base-4.15.0.0`
+
 ## 0.1.2.6  -- 2020-06-21
 
 * Confirm test with `base-4.14.0.0`
