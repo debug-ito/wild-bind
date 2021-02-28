@@ -79,6 +79,9 @@ jobs:
       with:
         ghc-version: ${{ matrix.plan.ghc }}
 
+    - name: Install APT deps
+      run: sudo apt-get install -y $APT_DEPS
+
     - name: Configure and freeze
       run: |
         set -ex
@@ -95,8 +98,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cabal-
 
-    - name: Install APT deps
-      run: sudo apt-get install -y $APT_DEPS
     - name: Install dependencies
       run: cabal v2-build --only-dependencies all
     - name: Build
