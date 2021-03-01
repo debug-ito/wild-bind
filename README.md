@@ -58,9 +58,6 @@ The last command triggers a lot of downloading and building. Be patient.
 Let's start with the simplest "Hello, world" binding. Save the following text as `simplest.hs` in the cloned Git directory.
 
 ```haskell
-#!/usr/bin/env stack
--- stack runghc
-
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Task.X11
 
@@ -72,10 +69,9 @@ myBinding = binds $ do
 
 This binds an action to the 5 key (NumLock disabled) on a num pad.
 
-To activate, make it executable and run.
+To activate, run with `stack`.
 
-    $ chmod a+x simplest.hs
-    $ ./simplest.hs
+    $ stack runghc simplest.hs
 
 When activated, it shows an icon on the status bar.
 
@@ -96,9 +92,6 @@ Note that `-threaded` option is necessary.
 Of course, you can bind actions to more than one keys. To do that, just repeat `on` statements.
 
 ```haskell
-#!/usr/bin/env stack
--- stack runghc --package process
-
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Task.X11
 import System.Process (spawnCommand)
@@ -247,9 +240,6 @@ myAction = putStrLn "Hello, world!"
 WildBind has a built-in support for **stateful keybindings**. A binding object can have its own state of arbitrary type, and behave differently according to the state.
 
 ```haskell
-#!/usr/bin/env stack
--- stack runghc
-
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Task.X11
 
