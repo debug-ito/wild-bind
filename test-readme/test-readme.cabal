@@ -1,0 +1,26 @@
+name:                   test-readme
+version:                0.1.0.0
+author:                 Toshio Ito <debug.ito@gmail.com>
+maintainer:             Toshio Ito <debug.ito@gmail.com>
+license:                BSD3
+license-file:           LICENSE
+synopsis:               test README
+description:            test README. Longer.
+category:               Test
+cabal-version:          >= 1.10
+build-type:             Simple
+-- extra-source-files:     README.md, ChangeLog.md
+-- homepage:               
+-- bug-reports:            
+
+
+-- Test if it succeeds to build.
+executable readme-simplest
+  default-language:     Haskell2010
+  ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures -pgmL markdown-unlit
+                        "-optL=simplest"
+  main-is:              README.lhs
+  build-tool-depends:   markdown-unlit:markdown-unlit
+  build-depends:        base >=4.6.0.0 && <5.0,
+                        wild-bind-task-x11
+

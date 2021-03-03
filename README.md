@@ -57,7 +57,7 @@ The last command triggers a lot of downloading and building. Be patient.
 
 Let's start with the simplest "Hello, world" binding. Save the following text as `simplest.hs` in the cloned Git directory.
 
-```haskell
+```haskell simplest
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Task.X11
 

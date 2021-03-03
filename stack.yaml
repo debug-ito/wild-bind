@@ -10,7 +10,7 @@ packages:
 - wild-bind-x11/
 - wild-bind-indicator/
 - wild-bind-task-x11/
-- test-wild-bind-doc/
+- test-readme/
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps: []
