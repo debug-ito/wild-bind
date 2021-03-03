@@ -3,6 +3,8 @@
 ## 0.2.0.12  -- ?
 
 * Confirm test with `base-4.15.0.0`
+* Documentation update: Now `withFrontEnd` should be called as early as possible in `main`.
+  See https://github.com/debug-ito/wild-bind/issues/6
 
 ## 0.2.0.11  -- 2020-12-30
 

@@ -166,11 +166,7 @@ numPadConfig = do
 -- | Contextual monad for creating NumPadIndicator
 type NumPadContext = ReaderT NumPadConfig IO
 
--- | Initialize the indicator and run the given action. This function
--- should be used directly under @main@ function.
---
--- > main :: IO ()
--- > main = withNumPadIndicator $ \indicator -> ...
+-- | Initialize the indicator and run the given action.
 -- 
 -- The executable must be compiled by ghc with __@-threaded@ option enabled.__
 -- Otherwise, it aborts.

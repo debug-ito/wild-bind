@@ -1,5 +1,10 @@
 # Revision history for wild-bind-indicator
 
+## 1.0.0.1  -- ?
+
+* Documentation update. Now `wildNumPad` is not necessarily the first function to call.
+  See https://github.com/debug-ito/wild-bind/issues/6
+
 ## 1.0.0.0  -- 2020-12-30
 
 * **MAJOR CHANGE**: Now it uses `gi-gtk` package, instead of `gtk` package.

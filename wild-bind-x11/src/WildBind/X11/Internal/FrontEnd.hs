@@ -88,6 +88,10 @@ openMyDisplay = Xlib.openDisplay ""
 -- Code using this function must be compiled
 -- __with @-threaded@ option enabled__ in @ghc@. Otherwise, it aborts.
 --
+-- Basically you should call this function directly under @main@. This
+-- is because this function calls some low-level X11 functions to
+-- initialize the X11 client, which should be done first.
+--
 -- Because this 'FrontEnd' currently uses @XGrabKey(3)@ to get the
 -- input, it may cause some weird behavior such as:
 --

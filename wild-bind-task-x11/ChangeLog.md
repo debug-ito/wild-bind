@@ -4,6 +4,7 @@
 
 * Bug fix: Now `wildNumPad` initializes `WildBind.X11` first, and then `WildBind.Indicator`.
   It was other way around before, and it caused Segmentation Fault when you tried to show the status icon menu or the description dialog.
+  See https://github.com/debug-ito/wild-bind/issues/6
 
 ## 0.2.0.2  -- 2020-12-30
 
