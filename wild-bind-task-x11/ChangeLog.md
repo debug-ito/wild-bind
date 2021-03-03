@@ -1,5 +1,10 @@
 # Revision history for wild-bind-task-x11
 
+## 0.2.0.3  -- ?
+
+* Bug fix: Now `wildNumPad` initializes `WildBind.X11` first, and then `WildBind.Indicator`.
+  It was other way around before, and it caused Segmentation Fault when you tried to show the status icon menu or the description dialog.
+
 ## 0.2.0.2  -- 2020-12-30
 
 * Confirm build with `wind-bind-indicator-1.0.0.0`

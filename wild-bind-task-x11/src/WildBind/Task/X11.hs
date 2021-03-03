@@ -66,4 +66,5 @@ wildNumPad orig_binding = wildNumPad' $ \ind -> orig_binding <> toggleBinding in
 -- 'Indicator', and uses the 'Binding' you return as-is.
 wildNumPad' :: (NumPadPosition i, XKeyInput i, Describable i, Ord i, Enum i, Bounded i)
                => (Indicator ActiveWindow i -> Binding ActiveWindow i) -> IO ()
-wildNumPad' create_binding = withNumPadIndicator $ \ind -> withFrontEnd $ wildBindWithIndicator ind (create_binding ind)
+wildNumPad' createBinding =
+  withFrontEnd $ \front -> withNumPadIndicator $ \ind -> wildBindWithIndicator ind (createBinding ind) front
