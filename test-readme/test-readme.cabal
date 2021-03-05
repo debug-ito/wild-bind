@@ -17,10 +17,79 @@ build-type:             Simple
 -- Test if it succeeds to build.
 executable readme-simplest
   default-language:     Haskell2010
-  ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures -pgmL markdown-unlit
-                        "-optL=simplest"
+  ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
+                        -threaded -pgmL markdown-unlit "-optL=simplest"
   main-is:              README.lhs
   build-tool-depends:   markdown-unlit:markdown-unlit
   build-depends:        base >=4.6.0.0 && <5.0,
                         wild-bind-task-x11
 
+executable readme-combine
+  default-language:     Haskell2010
+  ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
+                        -threaded -pgmL markdown-unlit "-optL=head_process combine"
+  main-is:              README.lhs
+  build-tool-depends:   markdown-unlit:markdown-unlit
+  build-depends:        base >=4.6.0.0 && <5.0,
+                        process,
+                        wild-bind-task-x11
+
+executable readme-append
+  default-language:     Haskell2010
+  ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
+                        -threaded -pgmL markdown-unlit "-optL=head_process append"
+  main-is:              README.lhs
+  build-tool-depends:   markdown-unlit:markdown-unlit
+  build-depends:        base >=4.6.0.0 && <5.0,
+                        process,
+                        wild-bind-task-x11
+
+executable readme-dynamic
+  default-language:     Haskell2010
+  ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
+                        -threaded -pgmL markdown-unlit "-optL=head_process pushKey dynamic"
+  main-is:              README.lhs
+  build-tool-depends:   markdown-unlit:markdown-unlit
+  build-depends:        base >=4.6.0.0 && <5.0,
+                        process,
+                        wild-bind-task-x11
+
+executable readme-override
+  default-language:     Haskell2010
+  ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
+                        -threaded -pgmL markdown-unlit "-optL=head_process pushKey override"
+  main-is:              README.lhs
+  build-tool-depends:   markdown-unlit:markdown-unlit
+  build-depends:        base >=4.6.0.0 && <5.0,
+                        process,
+                        wild-bind-task-x11
+
+executable readme-desc
+  default-language:     Haskell2010
+  ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
+                        -threaded -pgmL markdown-unlit "-optL=head_process pushKey desc"
+  main-is:              README.lhs
+  build-tool-depends:   markdown-unlit:markdown-unlit
+  build-depends:        base >=4.6.0.0 && <5.0,
+                        process,
+                        wild-bind-task-x11
+
+executable readme-stateful
+  default-language:     Haskell2010
+  ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
+                        -threaded -pgmL markdown-unlit "-optL=head_process stateful"
+  main-is:              README.lhs
+  build-tool-depends:   markdown-unlit:markdown-unlit
+  build-depends:        base >=4.6.0.0 && <5.0,
+                        process,
+                        wild-bind-task-x11
+
+executable readme-full-stateful
+  default-language:     Haskell2010
+  ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
+                        -threaded -pgmL markdown-unlit "-optL=full_stateful"
+  main-is:              README.lhs
+  build-tool-depends:   markdown-unlit:markdown-unlit
+  build-depends:        base >=4.6.0.0 && <5.0,
+                        process,
+                        wild-bind-task-x11

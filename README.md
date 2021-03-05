@@ -91,13 +91,15 @@ Note that `-threaded` option is necessary.
 
 Of course, you can bind actions to more than one keys. To do that, just repeat `on` statements.
 
-```haskell
+```haskell head_process
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Task.X11
 import System.Process (spawnCommand)
 
 main = wildNumPad myBinding
+```
 
+```haskell combine
 myBinding = binds $ do
   on NumCenter `run` putStrLn "Hello, world!"
   on NumPageUp `run` spawnCommand "firefox"
@@ -107,7 +109,7 @@ This script uses [System.Process](http://hackage.haskell.org/package/process/doc
 
 Or, you can combine independent bindings to get a complex binding by `<>` operator.
 
-```haskell
+```haskell append
 myBinding = simplestBinding <> firefoxBinding
 
 simplestBinding = binds $ do
@@ -127,9 +129,11 @@ Now let's make our binding more interesting.
 
 WildBind allows you to create a binding that **changes dynamically according to the active window (the window having keyboard focus)**.
 
-```haskell
+```haskell pushKey
 pushKey key = spawnCommand ("xdotool key " <> key)  ----------------- (1)
+```
 
+```haskell dynamic
 myBinding = forFirefox <> forVLC  ----------------------------------- (2)
 
 forFirefox = whenFront isFirefox $ binds $ do  ---------------------- (3)
@@ -165,7 +169,7 @@ Binding combination operator `<>` prefers the right-hand binding. That is, if le
 
 This feature is often useful in combination of `whenFront`.
 
-```haskell
+```haskell override
 myBinding = defaultBinding <> forFirefox
 
 defaultBinding = binds $ do
@@ -187,8 +191,8 @@ Here, `defaultBinding` is enabled in most cases because it doesn't have any `whe
 
 When you build a complex binding, sometimes you have no idea what actions are bound to which keys. To help understand behavior of a binding, you can set descriptions to bound actions using `as` function.
 
-```haskell
-forFirefox = whenFront isFirefox $ binds $ do
+```haskell desc
+myBinding = whenFront isFirefox $ binds $ do
   on NumRight `as` "Go to right tab" `run` pushKey "Ctrl+Tab"
   on NumLeft `as` "Go to left tab" `run` pushKey "Ctrl+Shift+Tab"
   where
@@ -228,7 +232,7 @@ The above type means that `myBinding` binds actions to the input key type of `Nu
 
 So far, bound actions are just plain `IO ()`, and `Binding` has no internal state.
 
-```haskell
+```haskell stateful
 myBinding :: Binding ActiveWindow NumPadUnlocked
 myBinding = binds $ do
   on NumCenter `run` myAction
@@ -239,7 +243,7 @@ myAction = putStrLn "Hello, world!"
 
 WildBind has a built-in support for **stateful keybindings**. A binding object can have its own state of arbitrary type, and behave differently according to the state.
 
-```haskell
+```haskell full_stateful
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Task.X11
 
