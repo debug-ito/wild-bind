@@ -232,7 +232,7 @@ The above type means that `myBinding` binds actions to the input key type of `Nu
 
 So far, bound actions are just plain `IO ()`, and `Binding` has no internal state.
 
-```haskell stateful
+```haskell stateful_top
 myBinding :: Binding ActiveWindow NumPadUnlocked
 myBinding = binds $ do
   on NumCenter `run` myAction
@@ -243,7 +243,7 @@ myAction = putStrLn "Hello, world!"
 
 WildBind has a built-in support for **stateful keybindings**. A binding object can have its own state of arbitrary type, and behave differently according to the state.
 
-```haskell full_stateful
+```haskell stateful_full
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Task.X11
 
@@ -276,10 +276,10 @@ Converting `Binding'` into `Binding` may seem that it discards the binding's sta
 
 You can completely change keybinding based on the state of the `Binding'`. `ifBack` function is useful for that.
 
-```haskell
-myBinding' :: Binding' Int ActiveWindow NumPadUnlocked
-myBinding' = ifBack (>= 10) forTooBigState
-           $ forOtherCase
+```haskell stateful_condition
+myBinding'' :: Binding' Int ActiveWindow NumPadUnlocked
+myBinding'' = ifBack (>= 10) forTooBigState
+            $ forOtherCase
   where
     forTooBigState = binds' $ do
       on NumCenter `run` centerAction
@@ -298,7 +298,7 @@ The above script sets upper bound to the state. If the state reaches 10, the `up
 
 So far we have made some bindings for number pad keys. WildBind also supports bindings for generic keys, such as `Ctrl + C` and `Alt + F1`. In this case, we cannot use the indicator window to show binding descriptions.
 
-```haskell
+```haskell generic_keys
 {-# LANGUAGE OverloadedStrings #-}
 import WildBind.Binding
   ( Binding, binds, on, as, run
