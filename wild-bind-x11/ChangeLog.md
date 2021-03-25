@@ -1,6 +1,6 @@
 # Revision history for wild-bind-x11
 
-## 0.2.0.12  -- ?
+## 0.2.0.12  -- 2021-03-25
 
 * Confirm test with `base-4.15.0.0`
 * Documentation update: Now `withFrontEnd` should be called as early as possible in `main`.
