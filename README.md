@@ -1,6 +1,6 @@
 # WildBind
 
-![icon](https://raw.githubusercontent.com/debug-ito/wild-bind/master/resource/icon.png) ![travis status](https://api.travis-ci.org/debug-ito/wild-bind.png)
+![icon](https://raw.githubusercontent.com/debug-ito/wild-bind/master/resource/icon.png) [![Haskell CI](https://github.com/debug-ito/wild-bind/actions/workflows/haskell.yml/badge.svg)](https://github.com/debug-ito/wild-bind/actions/workflows/haskell.yml)
 
 WildBind is a dynamic and programmable key binding framework.
 
