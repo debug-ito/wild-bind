@@ -1,6 +1,6 @@
 # Revision history for wild-bind-indicator
 
-## 1.0.0.1  -- ?
+## 1.0.0.1  -- 2021-03-25
 
 * Documentation update. Now `wildNumPad` is not necessarily the first function to call.
   See https://github.com/debug-ito/wild-bind/issues/6
