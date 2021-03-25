@@ -61,7 +61,7 @@ jobs:
         os: [ubuntu-latest]
         plan:
           - ghc: latest
-            allow-fail: true
+            ## allow-fail: true
           - ghc: '8.10'
 
     runs-on: ${{ matrix.os }}
