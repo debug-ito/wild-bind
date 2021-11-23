@@ -1,5 +1,9 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.14 -- 2021-11-23
+
+* Confirm test with `semigroups-0.20`.
+
 ## 0.2.0.13  -- 2021-06-04
 
 * Confirm test with `X11-1.10`.
