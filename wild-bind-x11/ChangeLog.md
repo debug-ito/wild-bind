@@ -1,5 +1,9 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.15 -- ?
+
+* Confirm test with ghc-9.2.5 and `mtl-2.3.1`(?).
+
 ## 0.2.0.14 -- 2021-11-23
 
 * Confirm test with `semigroups-0.20`.

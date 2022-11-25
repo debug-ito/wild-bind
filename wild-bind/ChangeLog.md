@@ -1,5 +1,9 @@
 # Revision history for wild-bind
 
+## 0.1.2.9  -- ?
+
+* Confirm test with ghc-9.2.5.
+
 ## 0.1.2.8  -- 2021-11-23
 
 * Confirm test with `semigroups-0.20`.
