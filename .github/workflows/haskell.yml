@@ -9,7 +9,7 @@ jobs:
   cabal:
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest]
+        os: [ubuntu-latest]
         plan:
           - ghc: latest
             allow-fail: true
