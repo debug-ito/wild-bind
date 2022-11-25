@@ -34,7 +34,7 @@ library
                         X11 >=1.6.1 && <1.11,
                         containers >=0.5.0 && <0.7,
                         transformers >=0.3.0 && <0.6,
-                        mtl >=2.2.1 && <2.4,
+                        mtl >=2.2.1 && <2.3,
                         fold-debounce >=0.2.0 && <0.3,
                         stm >=2.4.2 && <2.6,
                         semigroups >=0.16.2.2 && <0.21
