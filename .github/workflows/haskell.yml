@@ -14,7 +14,8 @@ jobs:
           - ghc: latest
             allow-fail: true
           - ghc: '9.2'
-          - ghc: '9.0'
+          - ghc: '9.0.1'
+            freeze: '20211123-ghc-9.0.1.freeze'
           - ghc: '8.10'
 
     runs-on: ${{ matrix.os }}
