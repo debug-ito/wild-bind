@@ -35,21 +35,26 @@ WildBind started as a binding framework for **number pad keys**, but now it supp
 
 ## Getting Started
 
-We recommend `stack` to build and install WildBind.
+We recommend `ghcup` to build WildBind.
 
-1. Follow the instruction in https://docs.haskellstack.org/ to install `stack` command.
-2. Install development packages for libx11 and GTK+. In Ubuntu, you can install them by
+1. Follow the instruction in https://www.haskell.org/ghcup/ to install `ghcup` command.
+2. Install and enable ghc-9.2.5.
+
+        $ ghcup install ghc 9.2.5
+        $ ghcup set ghc 9.2.5
+
+3. Install development packages for libx11 and GTK+. In Ubuntu, you can install them by
 
         $ sudo apt-get install libx11-dev libxss-dev libgirepository1.0-dev libwebkit2gtk-4.0-dev libgtksourceview-3.0-dev
 
-3. Clone this repository and enter it.
+4. Clone this repository and enter it.
 
         $ git clone https://github.com/debug-ito/wild-bind.git
         $ cd wild-bind
 
-4. Build this repository.
+5. Build this repository.
 
-        $ stack build
+        $ cabal build all
 
 The last command triggers a lot of downloading and building. Be patient.
 
@@ -58,7 +63,10 @@ The last command triggers a lot of downloading and building. Be patient.
 Let's start with the simplest "Hello, world" binding. Save the following text as `simplest.hs` in the cloned Git directory.
 
 ```haskell simplest
-{-# LANGUAGE OverloadedStrings #-}
+{- cabal:
+build-depends: base, wild-bind-task-x11
+ghc-options: -threaded
+-}
 import WildBind.Task.X11
 
 main = wildNumPad myBinding
@@ -69,9 +77,9 @@ myBinding = binds $ do
 
 This binds an action to the 5 key (NumLock disabled) on a num pad.
 
-To activate, run with `stack`.
+To activate, run with `cabal run`.
 
-    $ stack runghc simplest.hs
+    $ cabal run simplest.hs
 
 When activated, it shows an icon on the status bar.
 
@@ -79,20 +87,15 @@ Then hit 5 key with NumLock disabled and it shows "Hello, world!" on the console
 
 To deactivate the binding, right-click the icon and select "Quit" item.
 
-If you prefer building a binary executable, use `stack ghc`.
-
-    $ stack ghc -- -threaded simplest.hs
-    $ ./simplest
-
-Note that `-threaded` option is necessary.
-
-
 ## Combine Bindings
 
 Of course, you can bind actions to more than one keys. To do that, just repeat `on` statements.
 
 ```haskell head_process
-{-# LANGUAGE OverloadedStrings #-}
+{- cabal:
+build-depends: base, wild-bind-task-x11
+ghc-options: -threaded
+-}
 import WildBind.Task.X11
 import System.Process (spawnCommand)
 
@@ -244,7 +247,10 @@ myAction = putStrLn "Hello, world!"
 WildBind has a built-in support for **stateful keybindings**. A binding object can have its own state of arbitrary type, and behave differently according to the state.
 
 ```haskell stateful_full
-{-# LANGUAGE OverloadedStrings #-}
+{- cabal:
+build-depends: base, wild-bind-task-x11
+ghc-options: -threaded
+-}
 import WildBind.Task.X11
 
 main = wildNumPad myBinding
@@ -299,7 +305,10 @@ The above script sets upper bound to the state. If the state reaches 10, the `up
 So far we have made some bindings for number pad keys. WildBind also supports bindings for generic keys, such as `Ctrl + C` and `Alt + F1`. In this case, we cannot use the indicator window to show binding descriptions.
 
 ```haskell generic_keys
-{-# LANGUAGE OverloadedStrings #-}
+{- cabal:
+build-depends: base, wild-bind-task-x11
+ghc-options: -threaded
+-}
 import WildBind.Binding
   ( Binding, binds, on, as, run
   )

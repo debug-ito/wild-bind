@@ -19,6 +19,7 @@ executable readme-simplest
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
                         -threaded -pgmL markdown-unlit "-optL=simplest"
+  default-extensions:   OverloadedStrings
   main-is:              README.lhs
   build-tool-depends:   markdown-unlit:markdown-unlit
   build-depends:        base >=4.6.0.0 && <5.0,
@@ -28,6 +29,7 @@ executable readme-combine
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
                         -threaded -pgmL markdown-unlit "-optL=head_process combine"
+  default-extensions:   OverloadedStrings
   main-is:              README.lhs
   build-tool-depends:   markdown-unlit:markdown-unlit
   build-depends:        base >=4.6.0.0 && <5.0,
@@ -38,6 +40,7 @@ executable readme-append
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
                         -threaded -pgmL markdown-unlit "-optL=head_process append"
+  default-extensions:   OverloadedStrings
   main-is:              README.lhs
   build-tool-depends:   markdown-unlit:markdown-unlit
   build-depends:        base >=4.6.0.0 && <5.0,
@@ -48,6 +51,7 @@ executable readme-dynamic
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
                         -threaded -pgmL markdown-unlit "-optL=head_process pushKey dynamic"
+  default-extensions:   OverloadedStrings
   main-is:              README.lhs
   build-tool-depends:   markdown-unlit:markdown-unlit
   build-depends:        base >=4.6.0.0 && <5.0,
@@ -58,6 +62,7 @@ executable readme-override
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
                         -threaded -pgmL markdown-unlit "-optL=head_process pushKey override"
+  default-extensions:   OverloadedStrings
   main-is:              README.lhs
   build-tool-depends:   markdown-unlit:markdown-unlit
   build-depends:        base >=4.6.0.0 && <5.0,
@@ -68,6 +73,7 @@ executable readme-desc
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
                         -threaded -pgmL markdown-unlit "-optL=head_process pushKey desc"
+  default-extensions:   OverloadedStrings
   main-is:              README.lhs
   build-tool-depends:   markdown-unlit:markdown-unlit
   build-depends:        base >=4.6.0.0 && <5.0,
@@ -78,6 +84,7 @@ executable readme-stateful-top
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
                         -threaded -pgmL markdown-unlit "-optL=head_process stateful_top"
+  default-extensions:   OverloadedStrings
   main-is:              README.lhs
   build-tool-depends:   markdown-unlit:markdown-unlit
   build-depends:        base >=4.6.0.0 && <5.0,
@@ -88,6 +95,7 @@ executable readme-stateful-full
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
                         -threaded -pgmL markdown-unlit "-optL=stateful_full"
+  default-extensions:   OverloadedStrings
   main-is:              README.lhs
   build-tool-depends:   markdown-unlit:markdown-unlit
   build-depends:        base >=4.6.0.0 && <5.0,
@@ -98,6 +106,7 @@ executable readme-stateful-condition
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
                         -threaded -pgmL markdown-unlit "-optL=stateful_full stateful_condition"
                         -Wno-unused-top-binds
+  default-extensions:   OverloadedStrings
   main-is:              README.lhs
   build-tool-depends:   markdown-unlit:markdown-unlit
   build-depends:        base >=4.6.0.0 && <5.0,
@@ -108,6 +117,7 @@ executable readme-generic-keys
   ghc-options:          -Wall -fno-warn-unused-imports "-with-rtsopts=-M512m" -fno-warn-missing-signatures
                         -threaded -pgmL markdown-unlit "-optL=generic_keys"
                         -Wno-unused-top-binds
+  default-extensions:   OverloadedStrings
   main-is:              README.lhs
   build-tool-depends:   markdown-unlit:markdown-unlit
   build-depends:        base >=4.6.0.0 && <5.0,
