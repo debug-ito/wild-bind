@@ -1,40 +1,43 @@
-{-# LANGUAGE FlexibleContexts, CPP, OverloadedStrings #-}
-module WildBind.X11Spec (main, spec) where
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE OverloadedStrings #-}
+module WildBind.X11Spec
+    ( main
+    , spec
+    ) where
 
-import Control.Applicative ((<$>))
-import Control.Concurrent.Async (async, waitCatch)
-import Control.Exception (finally, Exception(fromException), throwIO)
-import Control.Monad (forM_)
-import Control.Monad.IO.Class (liftIO)
+import           Control.Applicative       ((<$>))
+import           Control.Concurrent.Async  (async, waitCatch)
+import           Control.Exception         (Exception (fromException), finally, throwIO)
+import           Control.Monad             (forM_)
+import           Control.Monad.IO.Class    (liftIO)
 import qualified Control.Monad.Trans.State as State
-import Data.Monoid ((<>))
-import Data.List (intercalate, reverse)
-import Data.IORef (IORef, newIORef, readIORef, modifyIORef)
-import Data.Text (unpack)
-import Data.Time.Clock (getCurrentTime, diffUTCTime)
-import qualified Graphics.X11.Xlib as Xlib
-import System.IO (hPutStrLn,stderr)
-import Test.Hspec
+import           Data.IORef                (IORef, modifyIORef, newIORef, readIORef)
+import           Data.List                 (intercalate, reverse)
+import           Data.Monoid               ((<>))
+import           Data.Text                 (unpack)
+import           Data.Time.Clock           (diffUTCTime, getCurrentTime)
+import qualified Graphics.X11.Xlib         as Xlib
+import           System.IO                 (hPutStrLn, stderr)
+import           Test.Hspec
 
-import WildBind
-  ( FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent),
-    FrontEvent(FEChange,FEInput), Describable, ActionDescription,
-    Option(..), defOption, wildBind',
-    binds', startFrom, on, as, run, whenBack, revise, justBefore
-  )
-import qualified WildBind.Description as WBD
-import qualified WildBind.Input.NumPad as NumPad
-import WildBind.X11
-  ( withFrontEnd, ActiveWindow, XKeyInput,
-    XMod(..), XKeyEvent(..), KeyEventType(..),
-    ctrl, alt, super, shift, release, press
-  )
-import qualified WildBind.X11.KeySym as WKS
+import           WildBind                  (ActionDescription, Describable,
+                                            FrontEnd (frontNextEvent, frontSetGrab, frontUnsetGrab),
+                                            FrontEvent (FEChange, FEInput), Option (..), as, binds',
+                                            defOption, justBefore, on, revise, run, startFrom,
+                                            whenBack, wildBind')
+import qualified WildBind.Description      as WBD
+import qualified WildBind.Input.NumPad     as NumPad
+import           WildBind.X11              (ActiveWindow, KeyEventType (..), XKeyEvent (..),
+                                            XKeyInput, XMod (..), alt, ctrl, press, release, shift,
+                                            super, withFrontEnd)
+import qualified WildBind.X11.KeySym       as WKS
 
-import WildBind.X11.TestUtil (checkIfX11Available, withGrabs)
+import           WildBind.X11.TestUtil     (checkIfX11Available, withGrabs)
 
-newtype MyException = MyException String
-                    deriving (Show,Eq,Ord)
+newtype MyException
+  = MyException String
+  deriving (Eq, Ord, Show)
 
 instance Exception MyException
 
@@ -100,7 +103,7 @@ spec = checkIfX11Available $ do
       time `shouldSatisfy` (< 500)
       case ev of
         FEChange _ -> return ()
-        _ -> expectationFailure ("FEChange is expected, but got " ++ show ev)
+        _          -> expectationFailure ("FEChange is expected, but got " ++ show ev)
     it "should NOT throw exception when it tries to double-grab in the same process" $ withFrontEnd $ \f1 ->
       withFrontEnd $ \f2 -> do
         frontSetGrab f1 NumPad.NumLeft `shouldReturn` ()
@@ -131,8 +134,8 @@ spec = checkIfX11Available $ do
       forM_ (zip got_descs exp_descs) $ uncurry shouldMatchList
       case result of
        Right _ -> expectationFailure "expects an exception, but nothing happened."
-       Left e -> fromException e `shouldBe` (Just $ MyException "OK")
-      
+       Left e  -> fromException e `shouldBe` (Just $ MyException "OK")
+
   describe "X11Front - NumPadUnlocked" $ do
     it "should grab/ungrab keys" $ maybeRun $ withFrontEndForTest $ \f -> do
       let grabCase' :: FrontEnd ActiveWindow NumPad.NumPadUnlocked -> Expectation

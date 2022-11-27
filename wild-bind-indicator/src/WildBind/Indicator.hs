@@ -1,109 +1,103 @@
-{-# LANGUAGE OverloadedStrings, OverloadedLabels, PatternSynonyms #-}
+{-# LANGUAGE OverloadedLabels  #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms   #-}
 -- |
 -- Module: WildBind.Indicator
 -- Description: Graphical indicator for WildBind
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
--- 
+--
 -- This module exports the 'Indicator', a graphical interface that
 -- explains the current bindings to the user. The 'Indicator' uses
 -- 'optBindingHook' in 'Option' to receive the current bindings from
 -- wild-bind.
 module WildBind.Indicator
-       ( -- * Construction
-         withNumPadIndicator,
-         -- * Execution
-         wildBindWithIndicator,
-         -- * Low-level function
-         bindingHook,
-         -- * Indicator type and its actions
-         Indicator,
-         updateDescription,
-         getPresence,
-         setPresence,
-         togglePresence,
-         quit,
-         -- ** Conversion
-         adaptIndicator,
-         -- ** Binding
-         toggleBinding,
-         -- * Generalization of number pad types
-         NumPadPosition(..)
-       ) where
+    ( -- * Construction
+      withNumPadIndicator
+      -- * Execution
+    , wildBindWithIndicator
+      -- * Low-level function
+    , bindingHook
+      -- * Indicator type and its actions
+    , Indicator
+    , updateDescription
+    , getPresence
+    , setPresence
+    , togglePresence
+    , quit
+      -- ** Conversion
+    , adaptIndicator
+      -- ** Binding
+    , toggleBinding
+      -- * Generalization of number pad types
+    , NumPadPosition (..)
+    ) where
 
-import Control.Applicative ((<$>))
-import Control.Concurrent
-  (rtsSupportsBoundThreads, newEmptyMVar, putMVar, takeMVar)
-import Control.Concurrent.Async (withAsync)
-import Control.Exception (throwIO, finally)
-import Control.Monad (void, forM_)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
-import Data.IORef (newIORef, readIORef)
-import qualified Data.Map as M
-import Data.Monoid (mconcat, First(First))
-import Data.Text (Text, pack)
-import Data.Word (Word32)
-import System.IO (stderr, hPutStrLn)
-import System.Environment (getArgs)
+import           Control.Applicative          ((<$>))
+import           Control.Concurrent           (newEmptyMVar, putMVar, rtsSupportsBoundThreads,
+                                               takeMVar)
+import           Control.Concurrent.Async     (withAsync)
+import           Control.Exception            (finally, throwIO)
+import           Control.Monad                (forM_, void)
+import           Control.Monad.IO.Class       (liftIO)
+import           Control.Monad.Trans.Reader   (ReaderT, ask, runReaderT)
+import           Data.IORef                   (newIORef, readIORef)
+import qualified Data.Map                     as M
+import           Data.Monoid                  (First (First), mconcat)
+import           Data.Text                    (Text, pack)
+import           Data.Word                    (Word32)
+import           System.Environment           (getArgs)
+import           System.IO                    (hPutStrLn, stderr)
 
-import WildBind ( ActionDescription, Option(optBindingHook),
-                  FrontEnd(frontDefaultDescription), Binding, Binding',
-                  binding, Action(Action),
-                  wildBind', defOption
-                )
-import WildBind.Input.NumPad (NumPadUnlocked(..), NumPadLocked(..))
+import           WildBind                     (Action (Action), ActionDescription, Binding,
+                                               Binding', FrontEnd (frontDefaultDescription),
+                                               Option (optBindingHook), binding, defOption,
+                                               wildBind')
+import           WildBind.Input.NumPad        (NumPadLocked (..), NumPadUnlocked (..))
 
-import Paths_wild_bind_indicator (getDataFileName)
+import           Paths_wild_bind_indicator    (getDataFileName)
 
 
 ---- Imports about Gtk
-import GI.Gdk.Functions (threadsAddIdle)
-import GI.GLib.Constants (pattern PRIORITY_DEFAULT)
-import GI.Gtk 
-  ( -- Data.GI.Base.Attributes
-    AttrOp((:=))
-  )
-import qualified GI.Gtk as GIAttr (set, get, on)
-import GI.Gtk.Enums (WindowType(..), Justification(..))
-import qualified GI.Gtk.Functions as GIFunc
-import GI.Gtk.Objects.Button (buttonNew, buttonSetAlignment)
-import GI.Gtk.Objects.CheckMenuItem (checkMenuItemNewWithMnemonic, checkMenuItemSetActive)
-import GI.Gtk.Objects.Container (containerAdd)
-import GI.Gtk.Objects.Label (Label, labelNew, labelSetLineWrap, labelSetJustify, labelSetText)
-import GI.Gtk.Objects.Menu (Menu, menuNew, menuPopup)
-import GI.Gtk.Objects.MenuItem (menuItemNewWithMnemonic)
-import GI.Gtk.Objects.Misc (miscSetAlignment)
-import GI.Gtk.Objects.StatusIcon (statusIconNewFromFile)
-import GI.Gtk.Objects.Table (Table, tableNew, tableAttachDefaults)
-import GI.Gtk.Objects.Widget (Widget, widgetSetSizeRequest, widgetShowAll, widgetHide)
-import GI.Gtk.Objects.Window
-  ( Window, windowNew, windowSetKeepAbove, windowSetTitle, windowMove
-  )
+import           GI.Gdk.Functions             (threadsAddIdle)
+import           GI.GLib.Constants            (pattern PRIORITY_DEFAULT)
+import           GI.Gtk                       (AttrOp ((:=)))
+import qualified GI.Gtk                       as GIAttr (get, on, set)
+import           GI.Gtk.Enums                 (Justification (..), WindowType (..))
+import qualified GI.Gtk.Functions             as GIFunc
+import           GI.Gtk.Objects.Button        (buttonNew, buttonSetAlignment)
+import           GI.Gtk.Objects.CheckMenuItem (checkMenuItemNewWithMnemonic, checkMenuItemSetActive)
+import           GI.Gtk.Objects.Container     (containerAdd)
+import           GI.Gtk.Objects.Label         (Label, labelNew, labelSetJustify, labelSetLineWrap,
+                                               labelSetText)
+import           GI.Gtk.Objects.Menu          (Menu, menuNew, menuPopup)
+import           GI.Gtk.Objects.MenuItem      (menuItemNewWithMnemonic)
+import           GI.Gtk.Objects.Misc          (miscSetAlignment)
+import           GI.Gtk.Objects.StatusIcon    (statusIconNewFromFile)
+import           GI.Gtk.Objects.Table         (Table, tableAttachDefaults, tableNew)
+import           GI.Gtk.Objects.Widget        (Widget, widgetHide, widgetSetSizeRequest,
+                                               widgetShowAll)
+import           GI.Gtk.Objects.Window        (Window, windowMove, windowNew, windowSetKeepAbove,
+                                               windowSetTitle)
 
 
 -- | Indicator interface. @s@ is the front-end state, @i@ is the input
 -- type.
-data Indicator s i =
-  Indicator
-  { updateDescription :: i -> ActionDescription -> IO (),
-    -- ^ Update and show the description for the current binding.
-    
-    getPresence :: IO Bool,
-    
-    -- ^ Get the current presence of the indicator. Returns 'True' if
-    -- it's present.
-    
-    setPresence :: Bool -> IO (),
-    -- ^ Set the presence of the indicator.
-
-    quit :: IO (),
-    -- ^ Destroy the indicator. This usually means quitting the entire
-    -- application.
-
-    allButtons :: [i]
-    -- ^ list of all buttons on which the indicator displays
-    -- descriptions.
-  }
+data Indicator s i
+  = Indicator
+      { updateDescription :: i -> ActionDescription -> IO ()
+        -- ^ Update and show the description for the current binding.
+      , getPresence       :: IO Bool
+        -- ^ Get the current presence of the indicator. Returns 'True' if
+        -- it's present.
+      , setPresence       :: Bool -> IO ()
+        -- ^ Set the presence of the indicator.
+      , quit              :: IO ()
+        -- ^ Destroy the indicator. This usually means quitting the entire
+        -- application.
+      , allButtons        :: [i]
+        -- ^ list of all buttons on which the indicator displays
+        -- descriptions.
+      }
 
 -- | Toggle the presence of the indicator.
 togglePresence :: Indicator s i -> IO ()
@@ -128,29 +122,30 @@ instance NumPadPosition NumPadLocked where
 
 instance NumPadPosition NumPadUnlocked where
   toNumPad input = case input of
-    NumInsert -> NumL0
-    NumEnd -> NumL1
-    NumDown -> NumL2
+    NumInsert   -> NumL0
+    NumEnd      -> NumL1
+    NumDown     -> NumL2
     NumPageDown -> NumL3
-    NumLeft -> NumL4
-    NumCenter -> NumL5
-    NumRight -> NumL6
-    NumHome -> NumL7
-    NumUp -> NumL8
-    NumPageUp -> NumL9
-    NumDivide -> NumLDivide
-    NumMulti -> NumLMulti
-    NumMinus -> NumLMinus
-    NumPlus -> NumLPlus
-    NumEnter -> NumLEnter
-    NumDelete -> NumLPeriod
+    NumLeft     -> NumL4
+    NumCenter   -> NumL5
+    NumRight    -> NumL6
+    NumHome     -> NumL7
+    NumUp       -> NumL8
+    NumPageUp   -> NumL9
+    NumDivide   -> NumLDivide
+    NumMulti    -> NumLMulti
+    NumMinus    -> NumLMinus
+    NumPlus     -> NumLPlus
+    NumEnter    -> NumLEnter
+    NumDelete   -> NumLPeriod
 
 -- | Data type keeping read-only config for NumPadIndicator.
-data NumPadConfig =
-  NumPadConfig { confButtonWidth, confButtonHeight :: Int,
-                 confWindowX, confWindowY :: Int,
-                 confIconPath :: FilePath
-               }
+data NumPadConfig
+  = NumPadConfig
+      { confButtonWidth, confButtonHeight :: Int
+      , confWindowX, confWindowY          :: Int
+      , confIconPath                      :: FilePath
+      }
 
 numPadConfig :: IO NumPadConfig
 numPadConfig = do
@@ -167,7 +162,7 @@ numPadConfig = do
 type NumPadContext = ReaderT NumPadConfig IO
 
 -- | Initialize the indicator and run the given action.
--- 
+--
 -- The executable must be compiled by ghc with __@-threaded@ option enabled.__
 -- Otherwise, it aborts.
 withNumPadIndicator :: (NumPadPosition i, Enum i, Bounded i) => (Indicator s i -> IO ()) -> IO ()
@@ -199,7 +194,7 @@ withNumPadIndicator action = if rtsSupportsBoundThreads then impl else error_imp
       return True -- Do not emit 'destroy' signal
     return indicator
   asyncAction indicator =
-    (action $ transportIndicator indicator) `finally` (postGUIAsync GIFunc.mainQuit) 
+    (action $ transportIndicator indicator) `finally` (postGUIAsync GIFunc.mainQuit)
   createStatusIcon conf indicator = do
     status_icon <- statusIconNewFromFile $ confIconPath conf
     void $ GIAttr.on status_icon #popupMenu $ \button time -> do
@@ -219,8 +214,8 @@ bindingHook :: Ord i => Indicator s1 i -> FrontEnd s2 i -> [(i, ActionDescriptio
 bindingHook ind front bind_list = forM_ (allButtons ind) $ \input -> do
   let desc = M.findWithDefault (frontDefaultDescription front input) input (M.fromList bind_list)
   updateDescription ind input desc
-                       
-  
+
+
 newNumPadWindow :: NumPadContext Window
 newNumPadWindow = do
   win <- windowNew WindowTypeToplevel
@@ -266,7 +261,7 @@ newNumPadTable = do
       ]
   let description_updater = \input -> case descript_action_getter $ toNumPad input of
         First (Just act) -> act
-        First Nothing -> const $ return ()
+        First Nothing    -> const $ return ()
   return (tab, description_updater)
   where
     getter :: Eq i => i -> NumPadContext Label -> NumPadContext (DescriptActionGetter i)
@@ -325,7 +320,7 @@ adaptIndicator mapper cmapper ind =
       }
   where
     newDesc input = case cmapper input of
-      Nothing -> const $ return ()
+      Nothing         -> const $ return ()
       Just orig_input -> updateDescription ind orig_input
 
 -- | A binding that toggles presence of the 'Indicator'.

@@ -2,40 +2,33 @@
 -- Module: WildBind.Exec
 -- Description: Functions to create executable actions.
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
--- 
+--
 module WildBind.Exec
-       ( -- * Functions to build executable action
-         wildBind,
-         wildBind',
-         -- * Option for executable
-         Option,
-         defOption,
-         -- ** Accessor functions for 'Option'
-         optBindingHook,
-         optCatch
-       ) where
+    ( -- * Functions to build executable action
+      wildBind
+    , wildBind'
+      -- * Option for executable
+    , Option
+    , defOption
+      -- ** Accessor functions for 'Option'
+    , optBindingHook
+    , optCatch
+    ) where
 
-import Control.Applicative ((<$>))
-import Control.Exception (SomeException, catch)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Class (lift)
+import           Control.Applicative        ((<$>))
+import           Control.Exception          (SomeException, catch)
+import           Control.Monad.IO.Class     (liftIO)
+import           Control.Monad.Trans.Class  (lift)
 import qualified Control.Monad.Trans.Reader as Reader
-import qualified Control.Monad.Trans.State as State
-import Data.List ((\\))
-import System.IO (hPutStrLn, stderr)
+import qualified Control.Monad.Trans.State  as State
+import           Data.List                  ((\\))
+import           System.IO                  (hPutStrLn, stderr)
 
-import WildBind.Description (ActionDescription)
-import WildBind.FrontEnd
-  ( FrontEvent(FEChange,FEInput),
-    FrontEnd(frontSetGrab, frontUnsetGrab, frontNextEvent)
-  )
-import WildBind.Binding
-  ( Action(actDo, actDescription),
-    Binding,
-    boundAction,
-    boundInputs,
-    boundActions
-  )
+import           WildBind.Binding           (Action (actDescription, actDo), Binding, boundAction,
+                                             boundActions, boundInputs)
+import           WildBind.Description       (ActionDescription)
+import           WildBind.FrontEnd          (FrontEnd (frontNextEvent, frontSetGrab, frontUnsetGrab),
+                                             FrontEvent (FEChange, FEInput))
 
 type GrabSet i = [i]
 
@@ -57,16 +50,16 @@ wildBind' opt binding front =
 --
 -- You can get the default value of 'Option' by 'defOption' funcion,
 -- and modify its members via accessor functions listed below.
-data Option s i =
-  Option { optBindingHook :: [(i, ActionDescription)] -> IO (),
-           -- ^ An action executed when current binding may be
-           -- changed. Default: do nothing.
-
-           optCatch :: s -> i -> SomeException -> IO ()
-           -- ^ the handler for exceptions thrown from bound
-           -- actions. Default: just print the 'SomeException' to
-           -- 'stderr' and ignore it.
-         }
+data Option s i
+  = Option
+      { optBindingHook :: [(i, ActionDescription)] -> IO ()
+        -- ^ An action executed when current binding may be
+        -- changed. Default: do nothing.
+      , optCatch       :: s -> i -> SomeException -> IO ()
+        -- ^ the handler for exceptions thrown from bound
+        -- actions. Default: just print the 'SomeException' to
+        -- 'stderr' and ignore it.
+      }
 
 defOption :: Option s i
 defOption = Option { optBindingHook = const $ return (),
@@ -103,7 +96,7 @@ updateBinding :: (Eq i) => FrontEnd s i -> Binding s i -> WBContext s i ()
 updateBinding front after_binding = do
   (_, mstate) <- State.get
   case mstate of
-    Nothing -> return ()
+    Nothing    -> return ()
     Just state -> updateWBState front after_binding state
 
 wildBindInContext :: (Ord i) => FrontEnd s i -> WBContext s i ()

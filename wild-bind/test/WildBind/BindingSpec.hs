@@ -1,32 +1,38 @@
-{-# LANGUAGE RankNTypes, OverloadedStrings #-}
-module WildBind.BindingSpec (main, spec) where
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
+module WildBind.BindingSpec
+    ( main
+    , spec
+    ) where
 
-import Control.Applicative ((<$>), (<*>), pure)
-import Control.Monad (void)
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Trans.Class (lift)
+import           Control.Applicative        (pure, (<$>), (<*>))
+import           Control.Monad              (void)
+import           Control.Monad.IO.Class     (MonadIO, liftIO)
+import           Control.Monad.Trans.Class  (lift)
 import qualified Control.Monad.Trans.Reader as Reader
-import qualified Control.Monad.Trans.State as State
-import Data.Maybe (isNothing, fromJust)
-import Data.Monoid (mempty, (<>), mconcat)
-import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
-import qualified Lens.Micro as Lens
-import Test.Hspec
-import Test.QuickCheck (Gen, Arbitrary(arbitrary), property, listOf, sample')
+import qualified Control.Monad.Trans.State  as State
+import           Data.IORef                 (IORef, modifyIORef, newIORef, readIORef, writeIORef)
+import           Data.Maybe                 (fromJust, isNothing)
+import           Data.Monoid                (mconcat, mempty, (<>))
+import qualified Lens.Micro                 as Lens
+import           Test.Hspec
+import           Test.QuickCheck            (Arbitrary (arbitrary), Gen, listOf, property, sample')
 
-import qualified WildBind.Binding as WB
-import WildBind.ForTest
-  ( SampleInput(..), SampleState(..), SampleBackState(..),
-    inputAll, execAll, evalStateEmpty, boundDescs, boundDescs',
-    checkBoundDescs,
-    withRefChecker
-  )
+import qualified WildBind.Binding           as WB
+import           WildBind.ForTest           (SampleBackState (..), SampleInput (..),
+                                             SampleState (..), boundDescs, boundDescs',
+                                             checkBoundDescs, evalStateEmpty, execAll, inputAll,
+                                             withRefChecker)
 
 main :: IO ()
 main = hspec spec
 
-data BiggerSampleBackState = BSB { _lSB :: SampleBackState, _rSB :: SampleBackState }
-                           deriving (Show, Eq, Ord)
+data BiggerSampleBackState
+  = BSB
+      { _lSB :: SampleBackState
+      , _rSB :: SampleBackState
+      }
+  deriving (Eq, Ord, Show)
 
 lSB :: Lens.Lens' BiggerSampleBackState SampleBackState
 lSB = Lens.lens _lSB (\bsb sb -> bsb { _lSB = sb })
@@ -59,7 +65,7 @@ genStatelessBinding out_list =
     outputRandomElem = do
       out_elem <- arbitrary
       return $ modifyIORef out_list (out_elem :)
-  
+
 generate :: Gen a -> IO a
 generate = fmap head . sample'
 
@@ -342,7 +348,7 @@ spec_convBack = do
       checkInputsS' [SIa, SIb]
       execAll' [SIa, SIb]
       checkOut "0231413"
-    
+
 
 spec_stateful :: Spec
 spec_stateful = do
@@ -405,7 +411,7 @@ spec_stateful = do
       execAll (SS "") [SIc]
       checkOut "ADAbC"
       checkInputsS (SS "") [SIa]
-      
+
   describe "ifBack" $ do
     it "chooses from unconditional bindings" $ withStrRef $ \out checkOut -> do
       let b = WB.ifBack (\(SB sb) -> sb < 5)
@@ -525,7 +531,7 @@ spec_conditionBoth = do
       checkInputsS (SS "hoge") [SIa, SIb]
       checkInputsS (SS "fooo") [SIc]
       checkInputsS (SS "foooo") [SIb]
-            
+
   describe "whenBoth" $ do
     let incr' out ret = outOnS out SIa ret (\(SB num) -> SB (num + 1))
         decr' out ret = outOnS out SIb ret (\(SB num) -> SB (num - 1))
@@ -571,7 +577,7 @@ spec_conditionBoth = do
       checkInputsS (SS "1") [SIa, SIb]
       execAll (SS "1") [SIb]
       checkOut "+p-mm"
-      
+
 spec_monadic :: Spec
 spec_monadic = describe "Monadic construction of Binding" $ do
   describe "binds" $ do
@@ -775,4 +781,4 @@ spec_revise = do
       checkBoundDescs (SS "") [(SIa, "a")]
       execAll (SS "") [SIa]
       checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
-      
+

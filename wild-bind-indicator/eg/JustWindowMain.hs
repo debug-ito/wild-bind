@@ -1,17 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Main (main) where
+module Main
+    ( main
+    ) where
 
-import Data.Monoid (mempty)
+import           Data.Monoid           (mempty)
 
-import Control.Exception (throw)
-import System.Environment (getArgs)
-import WildBind (Binding, binds, on, run, as, wildBind', defOption, optBindingHook, optCatch)
-import WildBind.Input.NumPad (NumPadUnlocked(..))
-import WildBind.X11 (withFrontEnd, ActiveWindow)
-import WildBind.Indicator
-  ( Indicator, withNumPadIndicator, wildBindWithIndicator, togglePresence, quit,
-    bindingHook
-  )
+import           Control.Exception     (throw)
+import           System.Environment    (getArgs)
+import           WildBind              (Binding, as, binds, defOption, on, optBindingHook, optCatch,
+                                        run, wildBind')
+import           WildBind.Indicator    (Indicator, bindingHook, quit, togglePresence,
+                                        wildBindWithIndicator, withNumPadIndicator)
+import           WildBind.Input.NumPad (NumPadUnlocked (..))
+import           WildBind.X11          (ActiveWindow, withFrontEnd)
 
 main :: IO ()
 main = do
@@ -19,7 +20,7 @@ main = do
   withNumPadIndicator $ selectMain arg
   where
     headOrEmpty (h:_) = h
-    headOrEmpty _ = ""
+    headOrEmpty _     = ""
     selectMain arg | arg == "error" = mainError
                    | otherwise = mainDefault
 

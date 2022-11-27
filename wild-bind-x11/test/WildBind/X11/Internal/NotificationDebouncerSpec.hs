@@ -1,12 +1,14 @@
-module WildBind.X11.Internal.NotificationDebouncerSpec (spec) where
+module WildBind.X11.Internal.NotificationDebouncerSpec
+    ( spec
+    ) where
 
-import Test.Hspec
+import           Test.Hspec
 
-import qualified Graphics.X11.Xlib as Xlib
-import qualified Graphics.X11.Xlib.Extras as XlibE
+import qualified Graphics.X11.Xlib                           as Xlib
+import qualified Graphics.X11.Xlib.Extras                    as XlibE
 import qualified WildBind.X11.Internal.NotificationDebouncer as Deb
 
-import WildBind.X11.TestUtil (checkIfX11Available)
+import           WildBind.X11.TestUtil                       (checkIfX11Available)
 
 spec :: Spec
 spec = checkIfX11Available $ do
@@ -21,7 +23,7 @@ spec = checkIfX11Available $ do
 
 -- showDisplay :: Xlib.Display -> String
 -- showDisplay disp = show disp ++ "(conn number = "++ show (Xlib.connectionNumber disp) ++")"
-        
+
 waitForDebouncedEvent :: Deb.Debouncer -> Xlib.Display -> Xlib.XEventPtr -> IO Bool
 waitForDebouncedEvent deb disp xev = doit 0 where
   doit :: Int -> IO Bool

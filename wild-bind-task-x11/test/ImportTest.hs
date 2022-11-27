@@ -1,13 +1,9 @@
-module Main (main) where
+module Main
+    ( main
+    ) where
 
-import WildBind.Task.X11
-  ( wildNumPad, wildNumPad',
-    Binding, Binding',
-    NumPadUnlocked(..), NumPadLocked(..),
-    ActiveWindow,
-    Indicator,
-    (<>)
-  )
+import           WildBind.Task.X11 (ActiveWindow, Binding, Binding', Indicator, NumPadLocked (..),
+                                    NumPadUnlocked (..), wildNumPad, wildNumPad', (<>))
 
 main :: IO ()
 main = putStrLn "If it compiles, it's ok."

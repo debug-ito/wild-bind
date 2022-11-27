@@ -2,46 +2,53 @@
 -- Module: WildBind.Task.X11
 -- Description: Task to install and export everything you need to use WildBind in X11
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
--- 
+--
 -- This module exports everything you probably need to use WildBind in
 -- X11 environments.
 module WildBind.Task.X11
-       ( -- * Execution
-         wildNumPad,
-         wildNumPad',
-         -- * Re-exports
-         module WildBind.Binding,
-         module WildBind.Description,
-         module WildBind.Input.NumPad,
-         -- ** From basic modules
-         module Control.Monad.IO.Class,
-         module Control.Monad.Trans.State,
-         module Data.Monoid,
-         Text,
-         -- ** From "WindBind.X11"
-         Window, ActiveWindow, winInstance, winClass, winName,
-         -- ** From "WildBind.Indicator"
-         Indicator, NumPadPosition(..), updateDescription, getPresence, setPresence, togglePresence, quit
-       ) where
+    ( -- * Execution
+      wildNumPad
+    , wildNumPad'
+      -- * Re-exports
+    , module WildBind.Binding
+    , module WildBind.Description
+    , module WildBind.Input.NumPad
+      -- ** From basic modules
+    , module Control.Monad.IO.Class
+    , module Control.Monad.Trans.State
+    , module Data.Monoid
+    , Text
+      -- ** From "WindBind.X11"
+    , Window
+    , ActiveWindow
+    , winInstance
+    , winClass
+    , winName
+      -- ** From "WildBind.Indicator"
+    , Indicator
+    , NumPadPosition (..)
+    , updateDescription
+    , getPresence
+    , setPresence
+    , togglePresence
+    , quit
+    ) where
 
-import Control.Monad.IO.Class
-import Control.Monad.Trans.State
-import Data.Monoid
-import Data.Text (Text)
+import           Control.Monad.IO.Class
+import           Control.Monad.Trans.State
+import           Data.Monoid
+import           Data.Text                 (Text)
 
-import WildBind.Binding
-import WildBind.Description
-import WildBind.Input.NumPad
-import WildBind.X11
-  ( Window, ActiveWindow, winInstance, winClass, winName,
-    withFrontEnd
-  )
-import WildBind.Indicator
-  ( Indicator, NumPadPosition(..),
-    updateDescription, getPresence, setPresence, togglePresence, quit,
-    withNumPadIndicator, wildBindWithIndicator, toggleBinding
-  )
-import WildBind.X11.Internal.Key (XKeyInput)
+import           WildBind.Binding
+import           WildBind.Description
+import           WildBind.Indicator        (Indicator, NumPadPosition (..), getPresence, quit,
+                                            setPresence, toggleBinding, togglePresence,
+                                            updateDescription, wildBindWithIndicator,
+                                            withNumPadIndicator)
+import           WildBind.Input.NumPad
+import           WildBind.X11              (ActiveWindow, Window, winClass, winInstance, winName,
+                                            withFrontEnd)
+import           WildBind.X11.Internal.Key (XKeyInput)
 
 -- | A convenient function to create an executable action with X11
 -- 'FrontEnd' and 'Indicator' for a number pad.
@@ -49,7 +56,7 @@ import WildBind.X11.Internal.Key (XKeyInput)
 -- > main :: IO ()
 -- > main = wildNumPad $ binds $ do
 -- >   on NumCenter `run` putStrLn "You pushed center."
--- 
+--
 -- Note that the executable must be compiled by ghc with
 -- __@-threaded@ option enabled.__
 --

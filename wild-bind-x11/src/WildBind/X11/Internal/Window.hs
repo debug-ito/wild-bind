@@ -6,32 +6,32 @@
 --
 -- __This is an internal module. Package users should not rely on this.__
 module WildBind.X11.Internal.Window
-       ( -- * The 'Window' data type
-         Window,
-         ActiveWindow,
-         emptyWindow,
-         fromWinID,
-         -- * Accessor functions for 'Window'
-         winInstance,
-         winClass,
-         winName,
-         -- ** project-internal accessor
-         winID,
-         -- * Functions
-         getActiveWindow,
-         defaultRootWindowForDisplay
-       ) where
+    ( -- * The 'Window' data type
+      Window
+    , ActiveWindow
+    , emptyWindow
+    , fromWinID
+      -- * Accessor functions for 'Window'
+    , winInstance
+    , winClass
+    , winName
+      -- ** project-internal accessor
+    , winID
+      -- * Functions
+    , getActiveWindow
+    , defaultRootWindowForDisplay
+    ) where
 
-import Control.Applicative ((<$>),(<|>),empty)
-import Control.Monad (guard)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Maybe (MaybeT(MaybeT),runMaybeT)
-import Data.Maybe (listToMaybe)
-import Data.Text (Text)
-import qualified Data.Text as Text
+import           Control.Applicative       (empty, (<$>), (<|>))
+import           Control.Monad             (guard)
+import           Control.Monad.IO.Class    (liftIO)
+import           Control.Monad.Trans.Maybe (MaybeT (MaybeT), runMaybeT)
+import           Data.Maybe                (listToMaybe)
+import           Data.Text                 (Text)
+import qualified Data.Text                 as Text
 import qualified Foreign
-import qualified Graphics.X11.Xlib as Xlib
-import qualified Graphics.X11.Xlib.Extras as XlibE
+import qualified Graphics.X11.Xlib         as Xlib
+import qualified Graphics.X11.Xlib.Extras  as XlibE
 
 -- | Information about window. You can inspect properties 'winInstance'
 -- and 'winClass' by @wmctrl@ command.
@@ -45,16 +45,20 @@ import qualified Graphics.X11.Xlib.Extras as XlibE
 -- > 0x02600003  0 totem.Totem           mydesktop Movie Player
 --
 -- In the above example, the third column shows @winInstance.winClass@.
-data Window =
-  Window
-  { winInstance :: Text,  -- ^ name of the application instance (part of @WM_CLASS@ property)
-    winClass :: Text, -- ^ name of the application class (part of @WM_CLASS@ property)
-    winName :: Text,  -- ^ what's shown in the title bar
-    winID :: Xlib.Window
-    -- ^ X11 window ID.
-    --
-    -- @since 0.2.0.0
-  } deriving (Eq,Ord,Show)
+data Window
+  = Window
+      { winInstance :: Text
+        -- ^ name of the application instance (part of @WM_CLASS@ property)
+      , winClass    :: Text
+        -- ^ name of the application class (part of @WM_CLASS@ property)
+      , winName     :: Text
+        -- ^ what's shown in the title bar
+      , winID       :: Xlib.Window
+        -- ^ X11 window ID.
+        --
+        -- @since 0.2.0.0
+      }
+  deriving (Eq, Ord, Show)
 
 -- | Use this type especially when the 'Window' is active.
 type ActiveWindow = Window
@@ -93,7 +97,7 @@ ewmhIsSupported disp feature_str = do
   feature <- Xlib.internAtom disp feature_str False
   result <- XlibE.getWindowProperty32 disp req (Xlib.defaultRootWindow disp)
   case result of
-    Nothing -> return False
+    Nothing    -> return False
     Just atoms -> return $ any ((feature ==) . fromIntegral) atoms
 
 -- | Get X11 Window handle for the active window. Port of libxdo's
@@ -108,7 +112,7 @@ xGetActiveWindow disp = do
     req <- liftIO $ Xlib.internAtom disp req_str False
     result <- MaybeT $ XlibE.getWindowProperty32 disp req (Xlib.defaultRootWindow disp)
     case result of
-      [] -> empty
+      []      -> empty
       (val:_) -> return $ fromIntegral val
 
 xGetClassHint :: Xlib.Display -> Xlib.Window -> IO (Text, Text)

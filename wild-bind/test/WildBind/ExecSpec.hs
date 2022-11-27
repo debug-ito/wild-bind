@@ -1,27 +1,37 @@
 {-# LANGUAGE OverloadedStrings #-}
-module WildBind.ExecSpec (main, spec) where
+module WildBind.ExecSpec
+    ( main
+    , spec
+    ) where
 
-import Control.Applicative ((<$>))
-import Control.Concurrent (forkIOWithUnmask, killThread, threadDelay)
-import Control.Concurrent.STM (atomically, TChan, readTChan, tryReadTChan, writeTChan, newTChanIO)
-import Control.Exception (bracket, throw, fromException)
-import Control.Monad.IO.Class (MonadIO, liftIO)
+import           Control.Applicative       ((<$>))
+import           Control.Concurrent        (forkIOWithUnmask, killThread, threadDelay)
+import           Control.Concurrent.STM    (TChan, atomically, newTChanIO, readTChan, tryReadTChan,
+                                            writeTChan)
+import           Control.Exception         (bracket, fromException, throw)
+import           Control.Monad.IO.Class    (MonadIO, liftIO)
 import qualified Control.Monad.Trans.State as State
-import Data.Monoid ((<>))
-import System.IO.Error (userError)
-import Test.Hspec
+import           Data.Monoid               ((<>))
+import           System.IO.Error           (userError)
+import           Test.Hspec
 
-import qualified WildBind.Binding as WBB
-import qualified WildBind.Exec as WBE
-import qualified WildBind.FrontEnd as WBF
+import qualified WildBind.Binding          as WBB
+import qualified WildBind.Exec             as WBE
+import qualified WildBind.FrontEnd         as WBF
 
-import WildBind.ForTest (SampleInput(..), SampleState(..), SampleBackState(..))
+import           WildBind.ForTest          (SampleBackState (..), SampleInput (..),
+                                            SampleState (..))
 
-newtype EventChan s i = EventChan { unEventChan :: TChan (WBF.FrontEvent s i) }
+newtype EventChan s i
+  = EventChan { unEventChan :: TChan (WBF.FrontEvent s i) }
 
-data GrabHistory i = GSet i | GUnset i deriving (Show, Eq, Ord)
+data GrabHistory i
+  = GSet i
+  | GUnset i
+  deriving (Eq, Ord, Show)
 
-newtype GrabChan i = GrabChan { unGrabChan :: TChan (GrabHistory i) }
+newtype GrabChan i
+  = GrabChan { unGrabChan :: TChan (GrabHistory i) }
 
 frontEnd :: EventChan s i -> GrabChan i -> WBF.FrontEnd s i
 frontEnd echan gchan = WBF.FrontEnd
@@ -48,7 +58,7 @@ withWildBind' exec action = do
   gchan <- GrabChan <$> newTChanIO
   let spawnWildBind = forkIOWithUnmask $ \umask -> umask $ exec (frontEnd echan gchan)
   bracket spawnWildBind killThread (\_ -> action echan gchan)
-  
+
 withWildBind :: Ord i => WBB.Binding s i -> (EventChan s i -> GrabChan i -> IO ()) -> IO ()
 withWildBind binding action = withWildBind' (WBE.wildBind binding) action
 
@@ -63,7 +73,7 @@ readAll chan = atomically $ readAll' [] where
   readAll' acc = do
     mret <- tryReadTChan chan
     case mret of
-      Nothing -> return (reverse acc)
+      Nothing  -> return (reverse acc)
       Just ret -> readAll' (ret : acc)
 
 shouldNowMatch :: (Show a, Eq a) => TChan a -> [a] -> IO ()
@@ -232,4 +242,4 @@ optionSpec = do
         got_state `shouldBe` SS "front state"
         got_input `shouldBe` SIa
         fromException got_exception `shouldBe` Just (userError "BOOM!")
-        
+

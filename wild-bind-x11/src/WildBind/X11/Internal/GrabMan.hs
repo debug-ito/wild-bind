@@ -17,26 +17,23 @@
 -- 'GrabField', we need to grab it if and only if there is at least
 -- one grabbed input symbol for the 'GrabField'.
 module WildBind.X11.Internal.GrabMan
-       ( GrabMan,
-         GrabOp(..),
-         new,
-         modify
-       ) where
+    ( GrabMan
+    , GrabOp (..)
+    , new
+    , modify
+    ) where
 
-import Control.Monad (forM_)
-import Data.IORef (IORef, newIORef, readIORef, writeIORef)
-import Data.Foldable (foldr)
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.Map.Strict as M
-import Data.Monoid (Monoid(..), (<>))
-import qualified Data.Set as S
-import qualified Graphics.X11.Xlib as Xlib
+import           Control.Monad             (forM_)
+import           Data.Foldable             (foldr)
+import           Data.IORef                (IORef, newIORef, readIORef, writeIORef)
+import           Data.List.NonEmpty        (NonEmpty)
+import qualified Data.Map.Strict           as M
+import           Data.Monoid               (Monoid (..), (<>))
+import qualified Data.Set                  as S
+import qualified Graphics.X11.Xlib         as Xlib
 
-import WildBind.X11.Internal.Key
-  ( XKeyEvent(..), press, KeyEventType(..),
-    KeyMaskMap, XKeyInput(..),
-    xGrabKey, xUngrabKey
-  )
+import           WildBind.X11.Internal.Key (KeyEventType (..), KeyMaskMap, XKeyEvent (..),
+                                            XKeyInput (..), press, xGrabKey, xUngrabKey)
 
 -- | Unit of key grabs in X11. X server manages state of key grabs
 -- independently for each 'GrabField'.
@@ -62,27 +59,27 @@ deleteG field key inputs = (new_inputs, is_entry_deleted)
                           in ( if removed
                                then M.delete field inputs
                                else M.insert field new_grabbed inputs,
-                               
+
                                removed
                              )
 
 -- | Grab operation. Either \"set grab\" or \"unset grab\".
-data GrabOp = DoSetGrab | DoUnsetGrab deriving (Show,Eq,Ord)
+data GrabOp = DoSetGrab | DoUnsetGrab deriving (Eq, Ord, Show)
 
 modifyG :: Ord k => GrabOp -> GrabField -> k -> GrabbedInputs k -> (GrabbedInputs k, Bool)
 modifyG op = case op of
-  DoSetGrab -> insertG
+  DoSetGrab   -> insertG
   DoUnsetGrab -> deleteG
 
 -- | The key grab manager.
-data GrabMan k =
-  GrabMan
-  { gmKeyMaskMap :: KeyMaskMap,
-    gmDisplay :: Xlib.Display,
-    gmRootWindow :: Xlib.Window,
-    gmGrabbedInputs :: GrabbedInputs k
-  }
-  deriving (Show,Eq,Ord)
+data GrabMan k
+  = GrabMan
+      { gmKeyMaskMap    :: KeyMaskMap
+      , gmDisplay       :: Xlib.Display
+      , gmRootWindow    :: Xlib.Window
+      , gmGrabbedInputs :: GrabbedInputs k
+      }
+  deriving (Eq, Ord, Show)
 
 -- | Create a new 'GrabMan'.
 new :: KeyMaskMap -> Xlib.Display -> Xlib.Window -> IO (IORef (GrabMan k))
@@ -123,6 +120,6 @@ modify gm_ref op input = do
   writeIORef gm_ref new_gm
   forM_ changed_fields $ \(keysym, mask) -> do
     case op of
-     DoSetGrab -> xGrabKey disp rwin keysym mask
+     DoSetGrab   -> xGrabKey disp rwin keysym mask
      DoUnsetGrab -> xUngrabKey disp rwin keysym mask
 

@@ -1,49 +1,54 @@
 module WildBind.ForTest
-       ( SampleInput(..),
-         SampleState(..),
-         SampleBackState(..),
-         inputAll,
-         execAll,
-         evalStateEmpty,
-         boundDescs,
-         boundDescs',
-         curBoundInputs,
-         curBoundDescs,
-         curBoundDesc,
-         checkBoundInputs,
-         checkBoundDescs,
-         checkBoundDesc,
-         withRefChecker
-       ) where
+    ( SampleInput (..)
+    , SampleState (..)
+    , SampleBackState (..)
+    , inputAll
+    , execAll
+    , evalStateEmpty
+    , boundDescs
+    , boundDescs'
+    , curBoundInputs
+    , curBoundDescs
+    , curBoundDesc
+    , checkBoundInputs
+    , checkBoundDescs
+    , checkBoundDesc
+    , withRefChecker
+    ) where
 
-import Control.Applicative ((<$>), (<*>), pure)
-import Control.Monad (join)
-import Control.Monad.IO.Class (liftIO, MonadIO)
+import           Control.Applicative       (pure, (<$>), (<*>))
+import           Control.Monad             (join)
+import           Control.Monad.IO.Class    (MonadIO, liftIO)
 import qualified Control.Monad.Trans.State as State
-import Data.IORef (IORef, newIORef, readIORef)
-import Data.Monoid (mempty)
-import Test.QuickCheck (Arbitrary(arbitrary,shrink), arbitraryBoundedEnum)
-import Test.Hspec (shouldReturn, shouldMatchList, shouldBe)
+import           Data.IORef                (IORef, newIORef, readIORef)
+import           Data.Monoid               (mempty)
+import           Test.Hspec                (shouldBe, shouldMatchList, shouldReturn)
+import           Test.QuickCheck           (Arbitrary (arbitrary, shrink), arbitraryBoundedEnum)
 
-import qualified WildBind.Binding as WB
-import qualified WildBind.Description as WBD
+import qualified WildBind.Binding          as WB
+import qualified WildBind.Description      as WBD
 
-data SampleInput = SIa | SIb | SIc
-                 deriving (Show, Eq, Ord, Enum, Bounded)
+data SampleInput = SIa | SIb | SIc deriving (Bounded, Enum, Eq, Ord, Show)
 
 instance Arbitrary SampleInput where
   arbitrary = arbitraryBoundedEnum
 
-data SampleState = SS { unSS :: String }
-                 deriving (Show, Eq, Ord)
+data SampleState
+  = SS
+      { unSS :: String
+      }
+  deriving (Eq, Ord, Show)
 
 instance Arbitrary SampleState where
   arbitrary = SS <$> arbitrary
   shrink (SS s) = SS <$> shrink s
 
 
-data SampleBackState = SB { unSB :: Int }
-                     deriving (Show, Eq, Ord)
+data SampleBackState
+  = SB
+      { unSB :: Int
+      }
+  deriving (Eq, Ord, Show)
 
 instance Enum SampleBackState where
   toEnum = SB
@@ -53,7 +58,7 @@ instance Enum SampleBackState where
 inputAll :: Ord i => WB.Binding s i -> s -> [i] -> IO (WB.Binding s i)
 inputAll b _ [] = return b
 inputAll binding state (i:rest) = case WB.boundAction binding state i of
-  Nothing -> inputAll binding state rest
+  Nothing  -> inputAll binding state rest
   Just act -> join $ inputAll <$> WB.actDo act <*> return state <*> return rest
 
 execAll :: Ord i => s -> [i] -> State.StateT (WB.Binding s i) IO ()
@@ -91,7 +96,7 @@ checkBoundDescs fs expected = liftIO . (`shouldMatchList` expected) =<< curBound
 
 checkBoundDesc :: (Ord i) => s -> i -> WBD.ActionDescription -> State.StateT (WB.Binding s i) IO ()
 checkBoundDesc fs input expected = liftIO . (`shouldBe` Just expected) =<< curBoundDesc fs input
-  
+
 withRefChecker :: (Eq a, Show a, MonadIO m)
                => a
                -> (IORef a -> (a -> m ()) -> m ())

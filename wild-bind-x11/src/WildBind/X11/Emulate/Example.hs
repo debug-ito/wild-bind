@@ -7,20 +7,13 @@
 -- This is an example of using "WildBind.X11.Emulate". See the source.
 --
 -- @since 0.2.0.0
-module WildBind.X11.Emulate.Example
-       where
+module WildBind.X11.Emulate.Example where
 
-import WildBind
-  ( Binding,
-    wildBind, bindsF, on, as, run
-  )
-import WildBind.X11
-  ( X11Front, XKeyEvent, ActiveWindow,
-    withX11Front, makeFrontEnd,
-    alt, ctrl, press, release
-  )
-import WildBind.X11.KeySym (xK_c, xK_w)
-import WildBind.X11.Emulate (sendKey)
+import           WildBind             (Binding, as, bindsF, on, run, wildBind)
+import           WildBind.X11         (ActiveWindow, X11Front, XKeyEvent, alt, ctrl, makeFrontEnd,
+                                       press, release, withX11Front)
+import           WildBind.X11.Emulate (sendKey)
+import           WildBind.X11.KeySym  (xK_c, xK_w)
 
 main :: IO ()
 main = withX11Front $ \x11 -> wildBind (myBinding x11) (makeFrontEnd x11)

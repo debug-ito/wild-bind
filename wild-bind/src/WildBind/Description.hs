@@ -4,11 +4,11 @@
 -- Maintainer: Toshio Ito <debug.ito@gmail.com>
 --
 module WildBind.Description
-       ( ActionDescription,
-         Describable(..)
-       ) where
+    ( ActionDescription
+    , Describable (..)
+    ) where
 
-import Data.Text (Text)
+import           Data.Text (Text)
 
 -- | Human-readable description of an action. 'ActionDescription' is
 -- used to describe the current binding to the user.

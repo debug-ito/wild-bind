@@ -7,23 +7,16 @@
 -- for key sequences. See the source.
 --
 -- @since 0.2.0.0
-module WildBind.Task.X11.Seq.Example
-       where
+module WildBind.Task.X11.Seq.Example where
 
-import Data.Monoid ((<>))
+import           Data.Monoid         ((<>))
 
 -- Following is from wild-bind package
-import WildBind (Binding, wildBind, binds, on, run)
-import WildBind.Seq
-  ( SeqBinding,
-    prefix, fromSeq, toSeq, withCancel, withPrefix
-  )
+import           WildBind            (Binding, binds, on, run, wildBind)
+import           WildBind.Seq        (SeqBinding, fromSeq, prefix, toSeq, withCancel, withPrefix)
 
 -- Following is from wild-bind-x11 package
-import WildBind.X11
-  ( XKeyEvent, ActiveWindow,
-    withFrontEnd, ctrl, press
-  )
+import           WildBind.X11        (ActiveWindow, XKeyEvent, ctrl, press, withFrontEnd)
 import qualified WildBind.X11.KeySym as Sym
 
 main :: IO ()

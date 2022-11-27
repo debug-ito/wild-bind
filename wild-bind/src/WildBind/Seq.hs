@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings, RankNTypes #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 -- |
 -- Module: WildBind.Seq
 -- Description: Support for binding sequence of input events.
@@ -12,32 +13,31 @@
 --
 -- @since 0.1.1.0
 --
-    
+
 module WildBind.Seq
-       ( -- * Simple API
-         prefix,
-         -- * Advanced API
-         SeqBinding,
-         toSeq,
-         fromSeq,
-         withPrefix,
-         withCancel,
-         reviseSeq
-       ) where
+    ( -- * Simple API
+      prefix
+      -- * Advanced API
+    , SeqBinding
+    , toSeq
+    , fromSeq
+    , withPrefix
+    , withCancel
+    , reviseSeq
+    ) where
 
-import Control.Monad.Trans.State (State)
+import           Control.Monad.Trans.State (State)
 import qualified Control.Monad.Trans.State as State
-import Data.Monoid (Monoid(..), mconcat)
-import Data.Semigroup (Semigroup(..))
+import           Data.Monoid               (Monoid (..), mconcat)
+import           Data.Semigroup            (Semigroup (..))
 
-import WildBind.Binding
-  ( Binding, Binding', binds', whenBack, on, as, run, extend,
-    startFrom, revise', justBefore, revise,
-    Action
-  )
+import           WildBind.Binding          (Action, Binding, Binding', as, binds', extend,
+                                            justBefore, on, revise, revise', run, startFrom,
+                                            whenBack)
 
 -- | Intermediate type of building a 'Binding' for key sequences.
-newtype SeqBinding fs i = SeqBinding ([i] -> Binding' [i] fs i)
+newtype SeqBinding fs i
+  = SeqBinding ([i] -> Binding' [i] fs i)
 
 -- | Follows the same rule as 'Binding'.
 instance Ord i => Semigroup (SeqBinding fs i) where
@@ -61,7 +61,7 @@ withPrefix :: Ord i
 withPrefix ps sb = foldr withPrefixSingle sb ps
 
 withPrefixSingle :: Ord i => i -> SeqBinding fs i -> SeqBinding fs i
-withPrefixSingle p (SeqBinding fb) = 
+withPrefixSingle p (SeqBinding fb) =
   SeqBinding $ \cur_prefix -> nextBinding cur_prefix <> prefixBinding cur_prefix
   where
     prefixBinding cur_prefix = whenBack (== cur_prefix) $ binds' $ do

@@ -24,9 +24,9 @@
 --
 -- * Sometimes I could not obtain the current active window. Instead,
 --   I ended up with getting the previous active window.
--- 
+--
 -- * Sometimes GetWindowProperty blocked forever.
--- 
+--
 -- So, as a workaround, we debounce the raw notification events and
 -- generate a ClientMessage X11 event. When we get the ClientMessage,
 -- we update the state.
@@ -34,22 +34,23 @@
 -- Toshio's personal note: 2015/05/06, 2010/12/05 - 19
 
 module WildBind.X11.Internal.NotificationDebouncer
-       ( Debouncer,
-         withDebouncer,
-         notify,
-         xEventMask,
-         isDebouncedEvent
-       ) where
+    ( Debouncer
+    , withDebouncer
+    , notify
+    , xEventMask
+    , isDebouncedEvent
+    ) where
 
-import Control.Exception (bracket)
-import qualified Control.FoldDebounce as Fdeb
-import qualified Graphics.X11.Xlib as Xlib
+import           Control.Exception        (bracket)
+import qualified Control.FoldDebounce     as Fdeb
+import qualified Graphics.X11.Xlib        as Xlib
 import qualified Graphics.X11.Xlib.Extras as XlibE
 
-data Debouncer = Debouncer
-                 { ndTrigger :: Fdeb.Trigger () (),
-                   ndMessageType :: Xlib.Atom
-                 }
+data Debouncer
+  = Debouncer
+      { ndTrigger     :: Fdeb.Trigger () ()
+      , ndMessageType :: Xlib.Atom
+      }
 
 -- | Create a Debouncer and run the specified action.
 withDebouncer :: Xlib.Display -> (Debouncer -> IO a) -> IO a
@@ -91,4 +92,4 @@ isDebouncedEvent deb xev = do
   let exp_type = ndMessageType deb
   case ev of
     XlibE.ClientMessageEvent _ _ _ _ _ got_type _ -> return (got_type == exp_type)
-    _ -> return False
+    _                                             -> return False

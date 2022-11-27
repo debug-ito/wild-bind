@@ -1,38 +1,27 @@
 {-# LANGUAGE OverloadedStrings #-}
-module WildBind.SeqSpec (main,spec) where
+module WildBind.SeqSpec
+    ( main
+    , spec
+    ) where
 
-import Control.Applicative ((<*>))
-import Control.Monad (forM_)
-import Control.Monad.IO.Class (liftIO)
+import           Control.Applicative       ((<*>))
+import           Control.Monad             (forM_)
+import           Control.Monad.IO.Class    (liftIO)
 import qualified Control.Monad.Trans.State as State
-import Data.Monoid ((<>))
-import Data.IORef (modifyIORef, newIORef, readIORef)
-import Test.Hspec
+import           Data.IORef                (modifyIORef, newIORef, readIORef)
+import           Data.Monoid               ((<>))
+import           Test.Hspec
 
-import WildBind.Binding
-  ( binds, on, run, as,
-    boundActions, actDescription,
-    boundInputs,
-    Binding,
-    justBefore
-  )
-import WildBind.Description (ActionDescription)
-import WildBind.Seq
-  ( prefix,
-    toSeq, fromSeq,
-    withPrefix, withCancel,
-    reviseSeq
-  )
+import           WildBind.Binding          (Binding, actDescription, as, binds, boundActions,
+                                            boundInputs, justBefore, on, run)
+import           WildBind.Description      (ActionDescription)
+import           WildBind.Seq              (fromSeq, prefix, reviseSeq, toSeq, withCancel,
+                                            withPrefix)
 
-import WildBind.ForTest
-  ( SampleInput(..), SampleState(..),
-    evalStateEmpty, execAll,
-    boundDescs, curBoundInputs, curBoundDescs, curBoundDesc,
-    checkBoundInputs,
-    checkBoundDescs,
-    checkBoundDesc,
-    withRefChecker
-  )
+import           WildBind.ForTest          (SampleInput (..), SampleState (..), boundDescs,
+                                            checkBoundDesc, checkBoundDescs, checkBoundInputs,
+                                            curBoundDesc, curBoundDescs, curBoundInputs,
+                                            evalStateEmpty, execAll, withRefChecker)
 
 main :: IO ()
 main = hspec spec
@@ -57,7 +46,7 @@ spec_prefix = describe "prefix" $ do
   specify "one prefix" $ evalStateEmpty $ do
     State.put $ prefix [] [SIc] base_b
     checkBoundInputs (SS "") [SIc]
-    execAll (SS "") [SIc] 
+    execAll (SS "") [SIc]
     checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
     execAll (SS "") [SIc]
     checkBoundDescs (SS "") [(SIa, "a"), (SIb, "b")]
@@ -150,7 +139,7 @@ spec_SeqBinding = describe "SeqBinding" $ do
       checkBoundDescs (SS "") [(SIa, "cancel"), (SIb, "b"), (SIc, "cancel")]
       execAll (SS "") [SIb]
       checkPrefixOne
-      
+
 spec_reviseSeq :: Spec
 spec_reviseSeq = describe "reviseSeq" $ do
   it "should allow access to prefix keys input so far" $ evalStateEmpty $ withRefChecker [] $ \out checkOut -> do
@@ -189,5 +178,5 @@ spec_reviseSeq = describe "reviseSeq" $ do
     checkBoundDescs (SS "") [(SIb, "b on aa")] -- SIc should be canceled
     execAll (SS "") [SIb]
     checkBoundInputs (SS "") [SIa]
-    
-    
+
+

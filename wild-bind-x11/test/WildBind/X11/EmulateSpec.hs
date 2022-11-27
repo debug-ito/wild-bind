@@ -1,27 +1,26 @@
-module WildBind.X11.EmulateSpec (main,spec) where
+module WildBind.X11.EmulateSpec
+    ( main
+    , spec
+    ) where
 
-import Control.Exception (bracket)
-import Control.Monad (forM_)
-import Control.Monad.Trans.Maybe (runMaybeT)
-import Data.Bits ((.|.))
-import Data.Text (unpack)
-import qualified Graphics.X11.Xlib as Xlib
-import Test.Hspec
+import           Control.Exception            (bracket)
+import           Control.Monad                (forM_)
+import           Control.Monad.Trans.Maybe    (runMaybeT)
+import           Data.Bits                    ((.|.))
+import           Data.Text                    (unpack)
+import qualified Graphics.X11.Xlib            as Xlib
+import           Test.Hspec
 
-import WildBind (frontNextEvent, FrontEvent(..))
-import qualified WildBind.Description as WBD
-import WildBind.X11
-  ( withX11Front, makeFrontEnd,
-    XMod(..), release, press,
-    defaultRootWindow,
-    XKeyEvent(..), KeyEventType(..),
-    alt, super, ctrl, shift
-  )
-import WildBind.X11.Emulate (sendKeyTo)
-import WildBind.X11.Internal.Key (xKeyEventToXKeyInput, getKeyMaskMap, KeyMaskMap)
-import WildBind.X11.Internal.Window (fromWinID)
+import           WildBind                     (FrontEvent (..), frontNextEvent)
+import qualified WildBind.Description         as WBD
+import           WildBind.X11                 (KeyEventType (..), XKeyEvent (..), XMod (..), alt,
+                                               ctrl, defaultRootWindow, makeFrontEnd, press,
+                                               release, shift, super, withX11Front)
+import           WildBind.X11.Emulate         (sendKeyTo)
+import           WildBind.X11.Internal.Key    (KeyMaskMap, getKeyMaskMap, xKeyEventToXKeyInput)
+import           WildBind.X11.Internal.Window (fromWinID)
 
-import WildBind.X11.TestUtil (checkIfX11Available)
+import           WildBind.X11.TestUtil        (checkIfX11Available)
 
 main :: IO ()
 main = hspec spec
@@ -33,7 +32,7 @@ spec = checkIfX11Available $ describe "sendKeyTo" $ do
                  press Xlib.xK_Right,
                  release $ ctrl $ shift Xlib.xK_F12,
                  ctrl $ alt Xlib.xK_3
-                   
+
                  -- ctrl $ shift Xlib.xK_bracketleft
 
                  ---- "Shift" modifier is tricky, because it affects
@@ -103,4 +102,4 @@ nextKey kmmap disp = Xlib.allocaXEvent $ \xev -> do
     unwrapMaybe = maybe error_convert id
 
 
-    
+

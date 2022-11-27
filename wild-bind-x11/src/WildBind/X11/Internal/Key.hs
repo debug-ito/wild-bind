@@ -1,4 +1,6 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, TypeSynonymInstances, OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
 -- |
 -- Module: WildBind.X11.Internal.Key
 -- Description: types and functions related to key symbols and their conversion
@@ -6,75 +8,73 @@
 --
 -- __This is an internal module. Package users should not rely on this.__
 module WildBind.X11.Internal.Key
-       ( -- * Key
-         XKeyInput(..),
-         xKeyEventToXKeyInput,
-         KeyEventType(..),
-         -- * Modifiers
-         KeyMaskMap(..),
-         getKeyMaskMap,
-         -- * XKeyEvent
-         XKeyEvent(..),
-         XMod(..),
-         ToXKeyEvent(..),
-         addXMod,
-         press,
-         release,
-         shift,
-         ctrl,
-         alt,
-         super,
-         -- * Grabs
-         xGrabKey,
-         xUngrabKey,
-         -- * Event generation
-         xSendKeyEvent
-       ) where
+    ( -- * Key
+      XKeyInput (..)
+    , xKeyEventToXKeyInput
+    , KeyEventType (..)
+      -- * Modifiers
+    , KeyMaskMap (..)
+    , getKeyMaskMap
+      -- * XKeyEvent
+    , XKeyEvent (..)
+    , XMod (..)
+    , ToXKeyEvent (..)
+    , addXMod
+    , press
+    , release
+    , shift
+    , ctrl
+    , alt
+    , super
+      -- * Grabs
+    , xGrabKey
+    , xUngrabKey
+      -- * Event generation
+    , xSendKeyEvent
+    ) where
 
-import Control.Applicative ((<$>), (<*>), (<|>))
-import Control.Monad (forM_)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Maybe (MaybeT(MaybeT))
-import Data.Bits ((.|.), (.&.))
-import qualified Data.Bits as Bits
-import Data.Foldable (foldr, fold)
-import Data.List (nub)
-import Data.List.NonEmpty (NonEmpty(..))
-import qualified Data.Map as M
-import Data.Maybe (mapMaybe, listToMaybe)
-import Data.Monoid ((<>))
-import qualified Data.Set as S
-import qualified Data.Text as T
+import           Control.Applicative       ((<$>), (<*>), (<|>))
+import           Control.Monad             (forM_)
+import           Control.Monad.IO.Class    (liftIO)
+import           Control.Monad.Trans.Maybe (MaybeT (MaybeT))
+import           Data.Bits                 ((.&.), (.|.))
+import qualified Data.Bits                 as Bits
+import           Data.Foldable             (fold, foldr)
+import           Data.List                 (nub)
+import           Data.List.NonEmpty        (NonEmpty (..))
+import qualified Data.Map                  as M
+import           Data.Maybe                (listToMaybe, mapMaybe)
+import           Data.Monoid               ((<>))
+import qualified Data.Set                  as S
+import qualified Data.Text                 as T
 import qualified Foreign
-import qualified Graphics.X11.Xlib as Xlib
-import qualified Graphics.X11.Xlib.Extras as XlibE
+import qualified Graphics.X11.Xlib         as Xlib
+import qualified Graphics.X11.Xlib.Extras  as XlibE
 
-import WildBind.Description (Describable(..))
-import qualified WildBind.Input.NumPad as NumPad
+import           WildBind.Description      (Describable (..))
+import qualified WildBind.Input.NumPad     as NumPad
 
 -- | Whether the key is pressed or released.
 --
 -- @since 0.2.0.0
-data KeyEventType = KeyPress
-                  | KeyRelease
-                  deriving (Show,Eq,Ord,Bounded,Enum)
+data KeyEventType = KeyPress | KeyRelease deriving (Bounded, Enum, Eq, Ord, Show)
 
 -- | 'Xlib.KeyMask' values assigned to each modifier keys/states. If
 -- the modifier doesn't exist, the mask is 0.
 --
 -- @since 0.2.0.0
-data KeyMaskMap =
-  KeyMaskMap
-  { maskShift :: Xlib.KeyMask,
-    maskControl :: Xlib.KeyMask,
-    maskAlt :: Xlib.KeyMask,
-    maskSuper :: Xlib.KeyMask,
-    maskNumLock :: Xlib.KeyMask,
-    maskCapsLock :: Xlib.KeyMask,
-    maskShiftLock :: Xlib.KeyMask,
-    maskScrollLock :: Xlib.KeyMask
-  }
-  deriving (Show,Eq,Ord)
+data KeyMaskMap
+  = KeyMaskMap
+      { maskShift      :: Xlib.KeyMask
+      , maskControl    :: Xlib.KeyMask
+      , maskAlt        :: Xlib.KeyMask
+      , maskSuper      :: Xlib.KeyMask
+      , maskNumLock    :: Xlib.KeyMask
+      , maskCapsLock   :: Xlib.KeyMask
+      , maskShiftLock  :: Xlib.KeyMask
+      , maskScrollLock :: Xlib.KeyMask
+      }
+  deriving (Eq, Ord, Show)
 
 isMasked :: KeyMaskMap -> (KeyMaskMap -> Xlib.KeyMask) -> Xlib.KeyMask -> Bool
 isMasked kmmap accessor target = if (target .&. accessor kmmap) == 0
@@ -99,29 +99,29 @@ class XKeyInput k where
 
 -- | Partial inverse of 'toKeySym'.
 fromKeySymDef :: (Bounded k, Enum k) => (k -> Xlib.KeySym) -> Xlib.KeySym -> Maybe k
-fromKeySymDef to_conv ks = M.lookup ks $ M.fromList $ map (\n -> (to_conv n, n)) $ enumFromTo minBound maxBound 
+fromKeySymDef to_conv ks = M.lookup ks $ M.fromList $ map (\n -> (to_conv n, n)) $ enumFromTo minBound maxBound
 
 -- | This input event captures the 'KeyRelease' event only. That way,
 -- you can deliver events to the window that originally has the
 -- keyboard focus.
 instance XKeyInput NumPad.NumPadUnlocked where
   toKeySym n = case n of
-    NumPad.NumUp -> Xlib.xK_KP_Up
-    NumPad.NumDown -> Xlib.xK_KP_Down
-    NumPad.NumLeft -> Xlib.xK_KP_Left
-    NumPad.NumRight -> Xlib.xK_KP_Right
-    NumPad.NumHome -> Xlib.xK_KP_Home
-    NumPad.NumPageUp -> Xlib.xK_KP_Page_Up
+    NumPad.NumUp       -> Xlib.xK_KP_Up
+    NumPad.NumDown     -> Xlib.xK_KP_Down
+    NumPad.NumLeft     -> Xlib.xK_KP_Left
+    NumPad.NumRight    -> Xlib.xK_KP_Right
+    NumPad.NumHome     -> Xlib.xK_KP_Home
+    NumPad.NumPageUp   -> Xlib.xK_KP_Page_Up
     NumPad.NumPageDown -> Xlib.xK_KP_Page_Down
-    NumPad.NumEnd -> Xlib.xK_KP_End
-    NumPad.NumCenter -> Xlib.xK_KP_Begin
-    NumPad.NumInsert -> Xlib.xK_KP_Insert
-    NumPad.NumDelete -> Xlib.xK_KP_Delete
-    NumPad.NumEnter -> Xlib.xK_KP_Enter
-    NumPad.NumDivide -> Xlib.xK_KP_Divide
-    NumPad.NumMulti -> Xlib.xK_KP_Multiply
-    NumPad.NumMinus -> Xlib.xK_KP_Subtract
-    NumPad.NumPlus -> Xlib.xK_KP_Add
+    NumPad.NumEnd      -> Xlib.xK_KP_End
+    NumPad.NumCenter   -> Xlib.xK_KP_Begin
+    NumPad.NumInsert   -> Xlib.xK_KP_Insert
+    NumPad.NumDelete   -> Xlib.xK_KP_Delete
+    NumPad.NumEnter    -> Xlib.xK_KP_Enter
+    NumPad.NumDivide   -> Xlib.xK_KP_Divide
+    NumPad.NumMulti    -> Xlib.xK_KP_Multiply
+    NumPad.NumMinus    -> Xlib.xK_KP_Subtract
+    NumPad.NumPlus     -> Xlib.xK_KP_Add
   fromKeyEvent _ KeyPress _ _ = Nothing
   fromKeyEvent kmmask KeyRelease keysym mask = if is_numlocked
                                                then Nothing
@@ -134,24 +134,24 @@ instance XKeyInput NumPad.NumPadUnlocked where
 -- keyboard focus.
 instance XKeyInput NumPad.NumPadLocked where
   toKeySym n = case n of
-    NumPad.NumL0 -> Xlib.xK_KP_0
-    NumPad.NumL1 -> Xlib.xK_KP_1
-    NumPad.NumL2 -> Xlib.xK_KP_2
-    NumPad.NumL3 -> Xlib.xK_KP_3
-    NumPad.NumL4 -> Xlib.xK_KP_4
-    NumPad.NumL5 -> Xlib.xK_KP_5
-    NumPad.NumL6 -> Xlib.xK_KP_6
-    NumPad.NumL7 -> Xlib.xK_KP_7
-    NumPad.NumL8 -> Xlib.xK_KP_8
-    NumPad.NumL9 -> Xlib.xK_KP_9
+    NumPad.NumL0      -> Xlib.xK_KP_0
+    NumPad.NumL1      -> Xlib.xK_KP_1
+    NumPad.NumL2      -> Xlib.xK_KP_2
+    NumPad.NumL3      -> Xlib.xK_KP_3
+    NumPad.NumL4      -> Xlib.xK_KP_4
+    NumPad.NumL5      -> Xlib.xK_KP_5
+    NumPad.NumL6      -> Xlib.xK_KP_6
+    NumPad.NumL7      -> Xlib.xK_KP_7
+    NumPad.NumL8      -> Xlib.xK_KP_8
+    NumPad.NumL9      -> Xlib.xK_KP_9
     NumPad.NumLDivide -> Xlib.xK_KP_Divide
-    NumPad.NumLMulti -> Xlib.xK_KP_Multiply
-    NumPad.NumLMinus -> Xlib.xK_KP_Subtract
-    NumPad.NumLPlus -> Xlib.xK_KP_Add
-    NumPad.NumLEnter -> Xlib.xK_KP_Enter
+    NumPad.NumLMulti  -> Xlib.xK_KP_Multiply
+    NumPad.NumLMinus  -> Xlib.xK_KP_Subtract
+    NumPad.NumLPlus   -> Xlib.xK_KP_Add
+    NumPad.NumLEnter  -> Xlib.xK_KP_Enter
     NumPad.NumLPeriod -> Xlib.xK_KP_Delete
     -- XKeysymToKeycode() didn't return the correct keycode for XK_KP_Decimal in numpaar code...
-    
+
   toModifierMasks kmmap _ = return $ maskNumLock kmmap
 
   -- Xlib handles the [(.) (Delete)] key in a weird way. In the input
@@ -262,24 +262,21 @@ xUngrabKey disp win key mask = do
 -- | X11 key modifiers.
 --
 -- @since 0.2.0.0
-data XMod = Shift
-          | Ctrl
-          | Alt
-          | Super
-          deriving (Show,Eq,Ord,Enum,Bounded)
+data XMod = Shift | Ctrl | Alt | Super deriving (Bounded, Enum, Eq, Ord, Show)
 
 -- | High-level X11 key event.
 --
 -- @since 0.2.0.0
-data XKeyEvent =
-  XKeyEvent
-  { xKeyEventType :: KeyEventType, 
-    xKeyEventMods :: S.Set XMod, -- ^ set of key modifiers enabled.
-    xKeyEventKeySym :: Xlib.KeySym
-    -- ^ X11 KeySym for the key. "WildBind.X11.KeySym" re-exports
-    -- 'KeySym' values.
-  }
-  deriving (Show,Eq,Ord)
+data XKeyEvent
+  = XKeyEvent
+      { xKeyEventType   :: KeyEventType
+      , xKeyEventMods   :: S.Set XMod
+        -- ^ set of key modifiers enabled.
+      , xKeyEventKeySym :: Xlib.KeySym
+        -- ^ X11 KeySym for the key. "WildBind.X11.KeySym" re-exports
+        -- 'KeySym' values.
+      }
+  deriving (Eq, Ord, Show)
 
 -- | 'fromKeyEvent' always returns 'Just'.
 instance XKeyInput XKeyEvent where
@@ -309,14 +306,14 @@ instance Describable XKeyEvent where
     where
       mods_str = fold $ S.map (\m -> show m ++ "+") mods
       ev_txt = case ev of
-        KeyPress -> "press "
+        KeyPress   -> "press "
         KeyRelease -> "release "
 
 xModToKeyMask :: KeyMaskMap -> XMod -> Xlib.KeyMask
 xModToKeyMask kmmap modi = case modi of
   Shift -> maskShift kmmap
-  Ctrl -> maskControl kmmap
-  Alt -> maskAlt kmmap
+  Ctrl  -> maskControl kmmap
+  Alt   -> maskAlt kmmap
   Super -> maskSuper kmmap
 
 xModsToKeyMask :: KeyMaskMap -> S.Set XMod -> Xlib.KeyMask
@@ -332,7 +329,7 @@ lockVariations kmmap = toNonEmpty $ nub $ do
   scl <- [0, maskScrollLock kmmap]
   return (numl .|. capsl .|. shiftl .|. scl)
   where
-    toNonEmpty [] = return 0
+    toNonEmpty []       = return 0
     -- the result should always include 0, so the above case is not really necessary.
     toNonEmpty (x:rest) = x :| rest
 
@@ -402,10 +399,10 @@ xSendKeyEvent kmmap disp target_win key_event = Xlib.allocaXEvent $ \xev -> do
     propagate = True
     event_type = xKeyEventType key_event
     event_mask = case event_type of
-      KeyPress -> Xlib.keyPressMask
+      KeyPress   -> Xlib.keyPressMask
       KeyRelease -> Xlib.keyReleaseMask
     xevent_type = case event_type of
-      KeyPress -> Xlib.keyPress
+      KeyPress   -> Xlib.keyPress
       KeyRelease -> Xlib.keyRelease
     setupXEvent xev = do
       key_code <- Xlib.keysymToKeycode disp $ xKeyEventKeySym key_event

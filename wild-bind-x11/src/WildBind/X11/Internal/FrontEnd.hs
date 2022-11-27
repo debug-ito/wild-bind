@@ -5,47 +5,44 @@
 --
 -- __This is an internal module. Package users should not rely on this.__
 module WildBind.X11.Internal.FrontEnd
-       ( -- * X11Front
-         X11Front(..),
-         withFrontEnd,
-         withX11Front,
-         makeFrontEnd,
-         defaultRootWindow
-       ) where
+    ( -- * X11Front
+      X11Front (..)
+    , withFrontEnd
+    , withX11Front
+    , makeFrontEnd
+    , defaultRootWindow
+    ) where
 
 
-import Control.Applicative ((<$>), empty)
-import Control.Concurrent (rtsSupportsBoundThreads)
-import Control.Concurrent.STM (atomically, TChan, newTChanIO, tryReadTChan, writeTChan)
-import Control.Exception (bracket, throwIO)
-import Control.Monad (when, filterM, mapM_)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Cont (ContT(ContT), runContT)
-import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
-import Control.Monad.Trans.Writer (WriterT, execWriterT, tell)
-import Data.Bits ((.|.))
-import Data.IORef (IORef, newIORef, readIORef, writeIORef)
-import qualified Graphics.X11.Xlib as Xlib
+import           Control.Applicative                         (empty, (<$>))
+import           Control.Concurrent                          (rtsSupportsBoundThreads)
+import           Control.Concurrent.STM                      (TChan, atomically, newTChanIO,
+                                                              tryReadTChan, writeTChan)
+import           Control.Exception                           (bracket, throwIO)
+import           Control.Monad                               (filterM, mapM_, when)
+import           Control.Monad.IO.Class                      (liftIO)
+import           Control.Monad.Trans.Cont                    (ContT (ContT), runContT)
+import           Control.Monad.Trans.Maybe                   (MaybeT, runMaybeT)
+import           Control.Monad.Trans.Writer                  (WriterT, execWriterT, tell)
+import           Data.Bits                                   ((.|.))
+import           Data.IORef                                  (IORef, newIORef, readIORef,
+                                                              writeIORef)
+import qualified Graphics.X11.Xlib                           as Xlib
 
-import WildBind
-  ( FrontEnd(FrontEnd, frontDefaultDescription, frontSetGrab, frontUnsetGrab, frontNextEvent),
-    FrontEvent(FEInput,FEChange)
-  )
-import qualified WildBind.Description as WBD
+import           WildBind                                    (FrontEnd (FrontEnd, frontDefaultDescription, frontNextEvent, frontSetGrab, frontUnsetGrab),
+                                                              FrontEvent (FEChange, FEInput))
+import qualified WildBind.Description                        as WBD
 
-import WildBind.X11.Internal.Key
-  ( xKeyEventToXKeyInput,
-    xGrabKey, xUngrabKey,
-    XKeyInput(..), KeyMaskMap, getKeyMaskMap,
-    KeyEventType(..)
-  )
-import WildBind.X11.Internal.Window
-  ( ActiveWindow,getActiveWindow, Window,
-    winInstance, winClass, winName, emptyWindow,
-    defaultRootWindowForDisplay
-  )
+import qualified WildBind.X11.Internal.GrabMan               as GM
+import           WildBind.X11.Internal.Key                   (KeyEventType (..), KeyMaskMap,
+                                                              XKeyInput (..), getKeyMaskMap,
+                                                              xGrabKey, xKeyEventToXKeyInput,
+                                                              xUngrabKey)
 import qualified WildBind.X11.Internal.NotificationDebouncer as Ndeb
-import qualified WildBind.X11.Internal.GrabMan as GM
+import           WildBind.X11.Internal.Window                (ActiveWindow, Window,
+                                                              defaultRootWindowForDisplay,
+                                                              emptyWindow, getActiveWindow,
+                                                              winClass, winInstance, winName)
 
 -- | The X11 front-end. @k@ is the input key type.
 --
@@ -57,14 +54,15 @@ import qualified WildBind.X11.Internal.GrabMan as GM
 -- for this API to change in the future than 'FrontEnd'.
 --
 -- @since 0.2.0.0
-data X11Front k =
-  X11Front { x11Display :: Xlib.Display,
-             x11Debouncer :: Ndeb.Debouncer,
-             x11PrevActiveWindow :: IORef (Maybe ActiveWindow),
-             x11PendingEvents :: TChan (FrontEvent ActiveWindow k),
-             x11KeyMaskMap :: KeyMaskMap,
-             x11GrabMan :: IORef (GM.GrabMan k)
-           }
+data X11Front k
+  = X11Front
+      { x11Display          :: Xlib.Display
+      , x11Debouncer        :: Ndeb.Debouncer
+      , x11PrevActiveWindow :: IORef (Maybe ActiveWindow)
+      , x11PendingEvents    :: TChan (FrontEvent ActiveWindow k)
+      , x11KeyMaskMap       :: KeyMaskMap
+      , x11GrabMan          :: IORef (GM.GrabMan k)
+      }
 
 x11PopPendingEvent :: X11Front k -> IO (Maybe (FrontEvent ActiveWindow k))
 x11PopPendingEvent f = atomically $ tryReadTChan $ x11PendingEvents f
@@ -82,7 +80,7 @@ openMyDisplay = Xlib.openDisplay ""
 -- front-end state. 'ActiveWindow' keeps information about the window
 -- currently active. As for the input type @i@, this 'FrontEnd' gets
 -- keyboard events from the X server.
--- 
+--
 -- CAVEATS
 --
 -- Code using this function must be compiled
@@ -141,10 +139,11 @@ withX11Front' func_name = if rtsSupportsBoundThreads then impl else error_impl w
 tellElem :: Monad m => a -> WriterT [a] m ()
 tellElem a = tell [a]
 
-data InternalEvent = IEKey KeyEventType
-                   | IEDebounced
-                   | IEActiveWindow
-                   | IEUnknown
+data InternalEvent
+  = IEKey KeyEventType
+  | IEDebounced
+  | IEActiveWindow
+  | IEUnknown
 
 identifyEvent :: Ndeb.Debouncer -> Xlib.XEventPtr -> IO InternalEvent
 identifyEvent deb xev = do
@@ -179,13 +178,13 @@ isSignificantEvent :: X11Front k -> FrontEvent ActiveWindow k -> IO Bool
 isSignificantEvent front (FEChange new_state) = do
   m_old_state <- liftIO $ readIORef $ x11PrevActiveWindow front
   case m_old_state of
-   Nothing -> return True
+   Nothing        -> return True
    Just old_state -> return (not $ new_state == old_state)
 isSignificantEvent _ _ = return True
 
 updateState :: X11Front k -> FrontEvent ActiveWindow k -> IO ()
 updateState front fev = case fev of
-  (FEInput _) -> return ()
+  (FEInput _)  -> return ()
   (FEChange s) -> writeIORef (x11PrevActiveWindow front) (Just s)
 
 nextEvent :: (XKeyInput k) => X11Front k -> IO (FrontEvent ActiveWindow k)
@@ -194,7 +193,7 @@ nextEvent handle = loop where
     mpending <- x11PopPendingEvent handle
     case mpending of
       Just eve -> return eve
-      Nothing -> nextEventFromX11
+      Nothing  -> nextEventFromX11
   nextEventFromX11 = Xlib.allocaXEvent $ \xev -> do
     Xlib.nextEvent (x11Display handle) xev
     got_events <- processEvents xev

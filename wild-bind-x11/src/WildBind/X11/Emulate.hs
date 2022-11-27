@@ -10,30 +10,24 @@
 --
 -- @since 0.2.0.0
 module WildBind.X11.Emulate
-       ( -- * Create key inputs
-         sendKeyTo,
-         sendKey,
-         pushTo,
-         push,
-         -- * Key remap binding
-         remap,
-         remapR
-       ) where
+    ( -- * Create key inputs
+      sendKeyTo
+    , sendKey
+    , pushTo
+    , push
+      -- * Key remap binding
+    , remap
+    , remapR
+    ) where
 
-import Control.Monad.IO.Class (MonadIO(liftIO))
-import Control.Monad.Reader.Class (MonadReader(ask))
-import WildBind.Binding (Binding', bindsF, on, run)
+import           Control.Monad.IO.Class         (MonadIO (liftIO))
+import           Control.Monad.Reader.Class     (MonadReader (ask))
+import           WildBind.Binding               (Binding', bindsF, on, run)
 
-import WildBind.X11.Internal.FrontEnd
-  ( X11Front(..)
-  )
-import WildBind.X11.Internal.Key
-  ( ToXKeyEvent(..), KeyEventType(..), XKeyEvent,
-    xSendKeyEvent, press, release
-  )
-import WildBind.X11.Internal.Window
-  ( Window, ActiveWindow, winID
-  )
+import           WildBind.X11.Internal.FrontEnd (X11Front (..))
+import           WildBind.X11.Internal.Key      (KeyEventType (..), ToXKeyEvent (..), XKeyEvent,
+                                                 press, release, xSendKeyEvent)
+import           WildBind.X11.Internal.Window   (ActiveWindow, Window, winID)
 
 -- | Send a X11 key event to a 'Window'.
 sendKeyTo :: (ToXKeyEvent k, MonadIO m)

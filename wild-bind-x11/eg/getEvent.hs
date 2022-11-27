@@ -1,8 +1,10 @@
-module Main (main) where
+module Main
+    ( main
+    ) where
 
-import WildBind (FrontEnd(frontSetGrab, frontNextEvent), FrontEvent)
-import WildBind.Input.NumPad (NumPadUnlocked(NumCenter))
-import WildBind.X11 (withFrontEnd, ActiveWindow)
+import           WildBind              (FrontEnd (frontNextEvent, frontSetGrab), FrontEvent)
+import           WildBind.Input.NumPad (NumPadUnlocked (NumCenter))
+import           WildBind.X11          (ActiveWindow, withFrontEnd)
 
 main :: IO ()
 main = withFrontEnd $ \x11 -> do
