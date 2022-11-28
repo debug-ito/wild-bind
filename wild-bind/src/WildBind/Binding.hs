@@ -1,4 +1,6 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, RankNTypes, OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RankNTypes                 #-}
 -- |
 -- Module: WildBind.Binding
 -- Description: Functions to build Binding
@@ -6,20 +8,20 @@
 --
 -- This module exports functions to build and manipulate 'Binding', an
 -- object binding input symbols to actions.
--- 
+--
 module WildBind.Binding
        ( -- * Types
          Action(Action,actDescription,actDo),
          Binding,
          Binding',
-         
+
          -- * Construction
 
          -- | Functions to create fundamental 'Binding's.
          --
          -- To create complex 'Binding's, use <#Condition Condition> functions
          -- described below and 'mappend' them together.
-         
+
          noBinding,
          Binder,
          binds,
@@ -33,9 +35,9 @@ module WildBind.Binding
          binding',
          bindingF,
          bindingF',
-         
+
          -- * Condition
-         
+
          -- | #Condition# With these functions, you can create
          -- 'Binding's that behave differently for different front-end
          -- and/or back-end states.
@@ -73,23 +75,25 @@ module WildBind.Binding
          boundInputs'
        ) where
 
-import Control.Applicative (Applicative, (<*), (*>))
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Reader (ReaderT(..), withReaderT)
-import Control.Monad.Trans.State (StateT(..), runStateT, mapStateT)
-import Control.Monad.Trans.Writer (Writer, tell, execWriter, mapWriter)
-import qualified Data.Map as M
-import Data.Monoid (Monoid(..), Endo(Endo, appEndo))
-import Data.Semigroup (Semigroup(..))
+import           Control.Applicative        (Applicative, (*>), (<*))
+import           Control.Monad.Trans.Class  (lift)
+import           Control.Monad.Trans.Reader (ReaderT (..), withReaderT)
+import           Control.Monad.Trans.State  (StateT (..), mapStateT, runStateT)
+import           Control.Monad.Trans.Writer (Writer, execWriter, mapWriter, tell)
+import qualified Data.Map                   as M
+import           Data.Monoid                (Endo (Endo, appEndo), Monoid (..))
+import           Data.Semigroup             (Semigroup (..))
 
-import WildBind.Description (ActionDescription)
+import           WildBind.Description       (ActionDescription)
 
 -- | Action done by WildBind
-data Action m a =
-  Action
-  { actDescription :: ActionDescription, -- ^ Human-readable description of the action.
-    actDo :: m a -- ^ The actual job.
-  }
+data Action m a
+  = Action
+      { actDescription :: ActionDescription
+        -- ^ Human-readable description of the action.
+      , actDo          :: m a
+        -- ^ The actual job.
+      }
 
 instance Show (Action m a) where
   show a = "Action " ++ show (actDescription a)
@@ -134,10 +138,8 @@ type SRIM bs fs = StateT bs (ReaderT fs IO)
 --
 -- You can make the explicit state @bs@ implicit by 'startFrom'
 -- function.
-newtype Binding' bs fs i =
-  Binding'
-  { unBinding' :: bs -> fs -> M.Map i (Action (SRIM bs fs) (Binding' bs fs i))
-  }
+newtype Binding' bs fs i
+  = Binding' { unBinding' :: bs -> fs -> M.Map i (Action (SRIM bs fs) (Binding' bs fs i)) }
 
 runSRIM :: bs -> fs -> SRIM bs fs a -> IO (a, bs)
 runSRIM bs fs m = flip runReaderT fs $ flip runStateT bs m
@@ -218,8 +220,9 @@ boundInputs' b bs fs = fmap fst $ boundActions' b bs fs
 
 -- | A monad to construct 'Binding''. @i@ is the input symbol, and @v@
 -- is supposed to be the 'Action' bound to @i@.
-newtype Binder i v a = Binder { unBinder :: Writer (Endo [(i, v)]) a }
-                       deriving (Monad,Applicative,Functor)
+newtype Binder i v a
+  = Binder { unBinder :: Writer (Endo [(i, v)]) a }
+  deriving (Applicative, Functor, Monad)
 
 runBinder :: Binder i v a -> [(i, v)] -> [(i, v)]
 runBinder = appEndo . execWriter . unBinder
