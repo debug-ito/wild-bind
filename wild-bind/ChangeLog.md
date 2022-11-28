@@ -1,6 +1,6 @@
 # Revision history for wild-bind
 
-## 0.1.2.9  -- ?
+## 0.1.2.9  -- 2022-11-28
 
 * Confirm test with ghc-9.2.5.
 
