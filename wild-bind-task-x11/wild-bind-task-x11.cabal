@@ -7,7 +7,7 @@ license-file:           LICENSE
 synopsis:               Task to install and export everything you need to use WildBind in X11
 description:            Task to install and export everything you need to use WildBind in X11. See <https://github.com/debug-ito/wild-bind>
 category:               UserInterface
-cabal-version:          >= 1.10
+cabal-version:          2.0
 build-type:             Simple
 extra-source-files:     README.md, ChangeLog.md
 homepage:               https://github.com/debug-ito/wild-bind
