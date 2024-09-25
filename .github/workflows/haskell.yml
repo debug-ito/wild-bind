@@ -38,7 +38,10 @@ jobs:
         ghc-version: ${{ matrix.plan.ghc }}
 
     - name: Install APT deps
-      run: sudo apt-get install -y $APT_DEPS
+      run: |
+        set -ex
+        sudo apt-get update
+        sudo apt-get install -y $APT_DEPS
 
     - name: Configure and freeze
       run: |
