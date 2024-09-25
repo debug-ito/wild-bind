@@ -1,8 +1,8 @@
 write-ghc-environment-files: ghc8.4.4+
-packages: wild-bind/
-          wild-bind-x11/
-          wild-bind-indicator/
-          wild-bind-task-x11/
-          test-readme/
-
 -- allow-newer: all
+
+packages: wild-bind,
+          wild-bind-x11,
+          wild-bind-indicator,
+          wild-bind-task-x11,
+          test-readme
