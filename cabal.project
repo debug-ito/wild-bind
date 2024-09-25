@@ -5,4 +5,4 @@ packages: wild-bind/
           wild-bind-task-x11/
           test-readme/
 
-allow-newer: all
+-- allow-newer: all
