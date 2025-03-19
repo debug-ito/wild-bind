@@ -3,7 +3,7 @@ name: Haskell CI
 on: [push, pull_request]
 
 env:
-  APT_DEPS: 'libx11-dev libxss-dev libgirepository1.0-dev libwebkit2gtk-4.0-dev libgtksourceview-3.0-dev'
+  APT_DEPS: 'libx11-dev libxss-dev libgirepository1.0-dev libwebkit2gtk-4.1-dev libgtksourceview-3.0-dev'
 
 jobs:
   build:
