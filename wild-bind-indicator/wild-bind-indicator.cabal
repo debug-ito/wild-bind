@@ -23,13 +23,13 @@ library
   exposed-modules:      WildBind.Indicator
   other-modules:        Paths_wild_bind_indicator
   autogen-modules:      Paths_wild_bind_indicator
-  build-depends:        base,
+  build-depends:        base ^>=4.14.3 || ^>=4.15.0 || ^>=4.16.0 || ^>=4.17.0 || ^>=4.18.0 || ^>=4.19.0 || ^>=4.20.0 || ^>=4.21.0,
                         wild-bind ^>=0.1.2,
                         transformers ^>=0.5.6 || ^>=0.6.1,
-                        gi-gtk ^>=3.0.38,
-                        gi-gdk ^>=3.0.25,
-                        gi-glib ^>=2.0.26,
-                        async ^>=2.2.4,
+                        gi-gtk ^>=3.0.44,
+                        gi-gdk ^>=3.0.30,
+                        gi-glib ^>=2.0.30,
+                        async ^>=2.2.5,
                         text ^>=1.2.4 || ^>=2.0.1 || ^>=2.1,
                         containers ^>=0.6.4 || ^>=0.7
 

@@ -26,7 +26,7 @@ library
                         WildBind.Input.NumPad,
                         WildBind.Seq
   -- other-modules:        
-  build-depends:        base,
+  build-depends:        base ^>=4.14.3 || ^>=4.15.0 || ^>=4.16.0 || ^>=4.17.0 || ^>=4.18.0 || ^>=4.19.0 || ^>=4.20.0 || ^>=4.21.0,
                         text ^>=1.2.4 || ^>=2.0.1 || ^>=2.1,
                         containers ^>=0.6.4 || ^>=0.7,
                         transformers ^>=0.5.6 || ^>=0.6.1,
@@ -53,13 +53,13 @@ test-suite spec
                         WildBind.SeqSpec,
                         WildBind.ForTest
   build-tool-depends:   hspec-discover:hspec-discover
-  build-depends:        base,
+  build-depends:        base ^>=4.14.3 || ^>=4.15.0 || ^>=4.16.0 || ^>=4.17.0 || ^>=4.18.0 || ^>=4.19.0 || ^>=4.20.0 || ^>=4.21.0,
                         wild-bind,
                         transformers ^>=0.5.6 || ^>=0.6.1,
-                        hspec ^>=2.9.1 || ^>=2.10.6 || ^>=2.11.9,
-                        QuickCheck ^>=2.14.2 || ^>=2.15.0,
+                        hspec ^>=2.11.12,
+                        QuickCheck ^>=2.15.0,
                         stm ^>=2.5.0,
-                        microlens ^>=0.4.12
+                        microlens ^>=0.4.14
 
 source-repository head
   type:                 git
