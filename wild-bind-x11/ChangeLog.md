@@ -1,5 +1,9 @@
 # Revision history for wild-bind-x11
 
+## 0.2.0.18  -- 2026-01-08
+
+* Confirm test with `ghc-9.14.1`.
+
 ## 0.2.0.17  -- 2025-03-19
 
 * Confirm test with `ghc-9.12.1`.

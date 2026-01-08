@@ -1,5 +1,9 @@
 # Revision history for wild-bind-indicator
 
+## 1.0.0.4  -- 2026-01-08
+
+* Confirm test with `ghc-9.14.1`.
+
 ## 1.0.0.3  -- 2025-03-19
 
 * Confirm test with `ghc-9.12.1`.

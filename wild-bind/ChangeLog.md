@@ -1,5 +1,9 @@
 # Revision history for wild-bind
 
+## 0.1.2.14  -- 2026-01-08
+
+* Confirm test with `ghc-9.14.1`.
+
 ## 0.1.2.13  -- 2025-09-29
 
 * Confirm test with `microlens-0.5`.
