@@ -1,5 +1,9 @@
 # Revision history for wild-bind
 
+## 0.1.2.15  -- 2026-04-22
+
+- Confirm test with `QuickCheck-2.18.0.0`.
+
 ## 0.1.2.14  -- 2026-01-08
 
 * Confirm test with `ghc-9.14.1`.
